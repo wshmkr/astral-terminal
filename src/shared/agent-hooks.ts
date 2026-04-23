@@ -1,7 +1,7 @@
 import { APP_PACKAGE_NAME } from "./meta";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "1";
+export const HOOK_MARKER_VERSION = "2";
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
 
@@ -33,11 +33,19 @@ function oscNotifyCommand(title: string, body: string): string {
   return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then printf '\\033]777;notify;${t};${b}\\007' > /dev/tty; fi`;
 }
 
-function cmd(entry: { title: string; body: string }) {
+function oscAgentCwdCommand(): string {
+  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then printf '\\033]777;agentCwd;%s\\007' "$PWD" > /dev/tty; fi`;
+}
+
+function notifyCmd(entry: { title: string; body: string }) {
   return {
     type: "command",
     command: oscNotifyCommand(entry.title, entry.body),
   };
+}
+
+function agentCwdCmd() {
+  return { type: "command", command: oscAgentCwdCommand() };
 }
 
 export interface AgentHookProvider {
@@ -54,14 +62,21 @@ const claudeProvider: AgentHookProvider = {
     const s = agentHookStrings(this.name);
     return {
       hooks: {
+        SessionStart: [{ hooks: [agentCwdCmd()] }],
         Notification: [
-          { matcher: "permission_prompt", hooks: [cmd(s.permissionPrompt)] },
-          { matcher: "elicitation_dialog", hooks: [cmd(s.elicitationDialog)] },
+          {
+            matcher: "permission_prompt",
+            hooks: [notifyCmd(s.permissionPrompt)],
+          },
+          {
+            matcher: "elicitation_dialog",
+            hooks: [notifyCmd(s.elicitationDialog)],
+          },
         ],
         PreToolUse: [
-          { matcher: "AskUserQuestion", hooks: [cmd(s.askUserQuestion)] },
+          { matcher: "AskUserQuestion", hooks: [notifyCmd(s.askUserQuestion)] },
         ],
-        Stop: [{ hooks: [cmd(s.stop)] }],
+        Stop: [{ hooks: [notifyCmd(s.stop), agentCwdCmd()] }],
       },
     };
   },

@@ -4,6 +4,7 @@ import type { AppConfig } from "../shared/types";
 import { loadConfig } from "./config";
 import {
   registerAgentHookIpc,
+  registerGitIpc,
   registerNotificationIpc,
   registerPtyIpc,
   registerWindowIpc,
@@ -43,6 +44,7 @@ app.whenReady().then(() => {
   registerWindowIpc({ getMainWindow });
   registerNotificationIpc({ getMainWindow });
   registerAgentHookIpc();
+  registerGitIpc();
   createWindow();
 });
 

@@ -8,6 +8,7 @@ import {
   ptyExitChannel,
 } from "../shared/types";
 import { configureAgentHooks, detectAgentHooks } from "./agent-hook-installer";
+import { getGitBranch } from "./git-branch";
 import { PtyManager } from "./pty-manager";
 import { focusMainWindow } from "./window";
 
@@ -118,6 +119,10 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
     });
     notif.show();
   });
+}
+
+export function registerGitIpc(): void {
+  ipcMain.handle(IPC.git.getBranch, (_event, cwd: string) => getGitBranch(cwd));
 }
 
 export function registerAgentHookIpc(): void {
