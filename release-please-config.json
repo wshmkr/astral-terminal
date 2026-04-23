@@ -1,11 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "1ac1c0a9ba8180af834c981cee6941726642dd95",
   "packages": {
     ".": {
       "release-type": "node",
       "package-name": "astral-terminal",
-      "bootstrap-sha": "1ac1c0a9ba8180af834c981cee6941726642dd95",
       "include-v-in-tag": true,
+      "include-component-in-tag": false,
       "draft": false,
       "prerelease": false,
       "changelog-sections": [
