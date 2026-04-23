@@ -58,6 +58,7 @@ function createTerminal(
     scrollback: 10000,
     theme: config.terminalTheme,
     windowsPty: windowsPtyOptions(config),
+    allowProposedApi: true,
   });
 
   const fitAddon = new FitAddon();
