@@ -36,6 +36,7 @@ export default defineConfig({
             rollupOptions: {
               external: [
                 "electron",
+                "electron-squirrel-startup",
                 "node-pty",
                 "@xterm/headless",
                 "@xterm/addon-serialize",
