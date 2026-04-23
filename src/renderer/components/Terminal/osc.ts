@@ -6,6 +6,9 @@ const OSC_TITLE = "2";
 const OSC_CWD = "7";
 const OSC_RXVT_NOTIFY = "777";
 
+// ConPTY seeds this as the initial title and bare shells never overwrite
+const WINDOWS_EXE_PATH = /^[A-Za-z]:[\\/].*\.exe\s*$/;
+
 export interface OscNotification {
   title?: string;
   body?: string;
@@ -29,7 +32,7 @@ export function parseOsc(data: string): OscResult {
     if (code === undefined || payload === undefined) continue;
 
     if (code === OSC_TITLE_ICON || code === OSC_TITLE) {
-      title = payload;
+      if (!WINDOWS_EXE_PATH.test(payload)) title = payload;
     } else if (code === OSC_CWD) {
       const urlMatch = payload.match(/^file:\/\/[^/]*(\/.*)/);
       if (urlMatch?.[1]) {
