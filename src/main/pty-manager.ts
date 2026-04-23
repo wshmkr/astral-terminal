@@ -18,6 +18,8 @@ import { type AppConfig, DEFAULT_CWD } from "../shared/types";
 
 const HEADLESS_SCROLLBACK = 10000;
 const SERIALIZE_SCROLLBACK = 5000;
+const DEFAULT_COLS = 80;
+const DEFAULT_ROWS = 24;
 
 const SERIALIZE_OPTS = {
   scrollback: SERIALIZE_SCROLLBACK,
@@ -26,6 +28,24 @@ const SERIALIZE_OPTS = {
 
 const MAX_SURFACE_ID_LEN = 128;
 const SURFACE_ID_PATTERN = /^[A-Za-z0-9_.-]+$/;
+
+interface StoredBuffer {
+  cols: number;
+  rows: number;
+  content: string;
+}
+
+function isStoredBuffer(v: unknown): v is StoredBuffer {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    Number.isFinite(o.cols) &&
+    Number.isFinite(o.rows) &&
+    typeof o.content === "string" &&
+    (o.cols as number) > 0 &&
+    (o.rows as number) > 0
+  );
+}
 
 function resolveCwd(raw: string | undefined, isWindows: boolean): string {
   const home = os.homedir();
@@ -61,6 +81,8 @@ export interface PtyCallbacks {
 export interface CreatePtyOptions {
   surfaceId: string;
   cwd?: string;
+  cols?: number;
+  rows?: number;
   config: AppConfig;
   callbacks?: (id: string) => PtyCallbacks;
 }
@@ -97,24 +119,25 @@ export class PtyManager {
   }
 
   private bufferFile(surfaceId: string): string {
-    return path.join(this.bufferDir, `${surfaceId}.txt`);
+    return path.join(this.bufferDir, `${surfaceId}.json`);
   }
 
   private metaFile(surfaceId: string): string {
     return path.join(this.bufferDir, `${surfaceId}.meta.json`);
   }
 
-  private loadBuffer(surfaceId: string): string | null {
+  private loadBuffer(surfaceId: string): StoredBuffer | null {
     try {
-      return fs.readFileSync(this.bufferFile(surfaceId), "utf-8");
-    } catch {
-      return null;
-    }
+      const raw = fs.readFileSync(this.bufferFile(surfaceId), "utf-8");
+      const parsed = JSON.parse(raw);
+      if (isStoredBuffer(parsed)) return parsed;
+    } catch {}
+    return null;
   }
 
-  private writeBuffer(surfaceId: string, data: string): void {
+  private writeBuffer(surfaceId: string, buf: StoredBuffer): void {
     try {
-      fs.writeFileSync(this.bufferFile(surfaceId), data);
+      fs.writeFileSync(this.bufferFile(surfaceId), JSON.stringify(buf));
     } catch (err) {
       console.error("Failed to write terminal buffer:", err);
     }
@@ -159,18 +182,31 @@ export class PtyManager {
     } catch {}
   }
 
-  private serialize(entry: PtyEntry): string {
-    return entry.serializeAddon.serialize(SERIALIZE_OPTS);
+  private snapshot(entry: PtyEntry): StoredBuffer {
+    return {
+      cols: entry.headless.cols,
+      rows: entry.headless.rows,
+      content: entry.serializeAddon.serialize(SERIALIZE_OPTS),
+    };
   }
 
   create(opts: CreatePtyOptions): string {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
-    const carriedScrollback = this.evictBySurfaceId(surfaceId);
+    const carried = this.evictBySurfaceId(surfaceId);
     const restoredAgentSession = this.loadAndConsumeAgentSession(surfaceId);
-    const isWindows = process.platform === "win32";
+    // Skip scrollback restore when auto-resuming
+    const restored = restoredAgentSession
+      ? null
+      : (carried ?? this.loadBuffer(surfaceId));
 
+    const targetCols =
+      opts.cols && opts.cols > 0 ? Math.floor(opts.cols) : DEFAULT_COLS;
+    const targetRows =
+      opts.rows && opts.rows > 0 ? Math.floor(opts.rows) : DEFAULT_ROWS;
+
+    const isWindows = process.platform === "win32";
     const shell = isWindows ? "wsl.exe" : "/bin/sh";
     const wslCwd = cwd || DEFAULT_CWD;
     const args = buildShellArgs({
@@ -193,15 +229,17 @@ export class PtyManager {
 
     const proc = pty.spawn(shell, args, {
       name: "xterm-256color",
-      cols: 80,
-      rows: 24,
+      cols: targetCols,
+      rows: targetRows,
       cwd: spawnCwd,
       env,
     });
 
+    const initialCols = restored?.cols ?? targetCols;
+    const initialRows = restored?.rows ?? targetRows;
     const headless = new HeadlessTerminal({
-      cols: 80,
-      rows: 24,
+      cols: initialCols,
+      rows: initialRows,
       scrollback: HEADLESS_SCROLLBACK,
       allowProposedApi: true,
       windowsPty: windowsPtyOptions(config),
@@ -211,11 +249,10 @@ export class PtyManager {
       serializeAddon as unknown as import("@xterm/headless").ITerminalAddon,
     );
 
-    // Skip scrollback restore when auto-resuming
-    const restored = restoredAgentSession
-      ? null
-      : (carriedScrollback ?? this.loadBuffer(surfaceId));
-    if (restored) headless.write(restored);
+    if (restored) headless.write(restored.content);
+    if (initialCols !== targetCols || initialRows !== targetRows) {
+      headless.resize(targetCols, targetRows);
+    }
 
     const entry: PtyEntry = {
       pty: proc,
@@ -257,7 +294,7 @@ export class PtyManager {
   beginReplay(id: string): string {
     const entry = this.entries.get(id);
     if (!entry) return "";
-    const buf = this.serialize(entry);
+    const buf = entry.serializeAddon.serialize(SERIALIZE_OPTS);
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
@@ -280,12 +317,12 @@ export class PtyManager {
     this.teardown(id, { deleteBuffer: true });
   }
 
-  private evictBySurfaceId(surfaceId: string): string | null {
+  private evictBySurfaceId(surfaceId: string): StoredBuffer | null {
     for (const [existingId, entry] of this.entries) {
       if (entry.surfaceId !== surfaceId) continue;
-      const scrollback = this.serialize(entry);
+      const snap = this.snapshot(entry);
       this.teardown(existingId, { deleteBuffer: false });
-      return scrollback;
+      return snap;
     }
     return null;
   }
@@ -311,7 +348,7 @@ export class PtyManager {
   saveAndKillAll(): void {
     for (const [id, entry] of this.entries) {
       try {
-        this.writeBuffer(entry.surfaceId, this.serialize(entry));
+        this.writeBuffer(entry.surfaceId, this.snapshot(entry));
       } catch (err) {
         console.error("Failed to serialize terminal buffer:", err);
       }
@@ -334,7 +371,7 @@ export class PtyManager {
     for (const name of entries) {
       let id: string | null = null;
       if (name.endsWith(".meta.json")) id = name.slice(0, -".meta.json".length);
-      else if (name.endsWith(".txt")) id = name.slice(0, -".txt".length);
+      else if (name.endsWith(".json")) id = name.slice(0, -".json".length);
       if (!id || validSurfaceIds.has(id)) continue;
       try {
         fs.unlinkSync(path.join(this.bufferDir, name));

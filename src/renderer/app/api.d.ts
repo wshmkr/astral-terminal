@@ -8,7 +8,12 @@ import type {
 export interface AppAPI {
   mode: AppMode;
   readConfig: () => Promise<AppConfig>;
-  createPty: (options: { cwd?: string; surfaceId: string }) => Promise<string>;
+  createPty: (options: {
+    cwd?: string;
+    surfaceId: string;
+    cols?: number;
+    rows?: number;
+  }) => Promise<string>;
   writePty: (ptyId: string, data: string) => void;
   resizePty: (ptyId: string, cols: number, rows: number) => void;
   killPty: (ptyId: string) => void;

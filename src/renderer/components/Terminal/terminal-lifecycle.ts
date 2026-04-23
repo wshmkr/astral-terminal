@@ -255,9 +255,13 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
+    const proposed = this.fitAddon.proposeDimensions();
+    if (proposed) this.term.resize(proposed.cols, proposed.rows);
     const id = await window.app.createPty({
       cwd: this.opts.cwd,
       surfaceId: this.opts.surfaceId,
+      cols: proposed?.cols,
+      rows: proposed?.rows,
     });
     if (this.disposed) {
       window.app.killPty(id);

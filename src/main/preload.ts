@@ -24,8 +24,12 @@ contextBridge.exposeInMainWorld("app", {
 
   readConfig: () => ipcRenderer.invoke(IPC.config.read),
 
-  createPty: (options: { cwd?: string; surfaceId: string }) =>
-    ipcRenderer.invoke(IPC.pty.create, options),
+  createPty: (options: {
+    cwd?: string;
+    surfaceId: string;
+    cols?: number;
+    rows?: number;
+  }) => ipcRenderer.invoke(IPC.pty.create, options),
   writePty: (ptyId: string, data: string) =>
     ipcRenderer.send(IPC.pty.write, { ptyId, data }),
   resizePty: (ptyId: string, cols: number, rows: number) =>

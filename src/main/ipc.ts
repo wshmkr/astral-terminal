@@ -26,13 +26,23 @@ export function registerPtyIpc({
 
   ipcMain.handle(
     IPC.pty.create,
-    (_event, options: { cwd?: string; surfaceId: string }) => {
+    (
+      _event,
+      options: {
+        cwd?: string;
+        surfaceId: string;
+        cols?: number;
+        rows?: number;
+      },
+    ) => {
       if (!PtyManager.isValidSurfaceId(options.surfaceId)) {
         throw new Error("createPty: invalid surfaceId");
       }
       return ptyManager.create({
         surfaceId: options.surfaceId,
         cwd: options.cwd,
+        cols: options.cols,
+        rows: options.rows,
         config: getConfig(),
         callbacks: (ptyId) => ({
           onData: (data) => {
