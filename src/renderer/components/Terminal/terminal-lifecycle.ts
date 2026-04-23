@@ -1,0 +1,242 @@
+import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { Terminal } from "@xterm/xterm";
+import { windowsPtyOptions } from "../../../shared/pty-options";
+import type { AppConfig } from "../../../shared/types";
+import { parseOsc } from "./osc";
+
+const STARTUP_COMMAND_DELAY_MS = 200;
+const RESIZE_DEBOUNCE_MS = 100;
+const TERMINAL_FONT =
+  "'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace";
+const TERMINAL_FONT_SIZE = 16;
+
+export function preloadTerminalFont(): Promise<unknown> {
+  return Promise.all([
+    document.fonts.load(`${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
+    document.fonts.load(`bold ${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
+    document.fonts.load(`italic ${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
+    document.fonts.load(`bold italic ${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
+  ]);
+}
+
+interface TerminalAddons {
+  term: Terminal;
+  fitAddon: FitAddon;
+}
+
+function createTerminal(
+  container: HTMLElement,
+  config: AppConfig,
+): TerminalAddons {
+  container.style.backgroundColor = config.terminalTheme.background;
+
+  const term = new Terminal({
+    fontFamily: TERMINAL_FONT,
+    fontSize: TERMINAL_FONT_SIZE,
+    lineHeight: 1.2,
+    cursorBlink: true,
+    cursorStyle: "bar",
+    scrollback: 10000,
+    theme: config.terminalTheme,
+    windowsPty: windowsPtyOptions(config),
+  });
+
+  const fitAddon = new FitAddon();
+  term.loadAddon(fitAddon);
+  term.loadAddon(new WebLinksAddon());
+
+  term.open(container);
+  return { term, fitAddon };
+}
+
+function attachClipboardHandlers(
+  term: Terminal,
+  container: HTMLElement,
+  getPtyId: () => string | null,
+): () => void {
+  const pasteFromClipboard = () => {
+    navigator.clipboard
+      .readText()
+      .then((text) => {
+        const id = getPtyId();
+        if (text && id) window.app.writePty(id, text);
+      })
+      .catch((err) => {
+        console.warn("Clipboard read failed:", err);
+      });
+  };
+
+  term.attachCustomKeyEventHandler((e) => {
+    if (e.type !== "keydown") return true;
+    if (e.ctrlKey && e.shiftKey && e.key === "C") {
+      e.preventDefault();
+      const sel = term.getSelection();
+      if (sel) navigator.clipboard.writeText(sel);
+      return false;
+    }
+    if (e.ctrlKey && e.shiftKey && e.key === "V") {
+      e.preventDefault();
+      pasteFromClipboard();
+      return false;
+    }
+    if (e.key === "ScrollLock") return false;
+    return true;
+  });
+
+  const onContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    const sel = term.getSelection();
+    if (sel) {
+      navigator.clipboard.writeText(sel);
+      term.clearSelection();
+    } else {
+      pasteFromClipboard();
+    }
+  };
+  container.addEventListener("contextmenu", onContextMenu);
+
+  return () => container.removeEventListener("contextmenu", onContextMenu);
+}
+
+export interface TerminalControllerOptions {
+  container: HTMLElement;
+  config: AppConfig;
+  surfaceId: string;
+  cwd: string;
+  startupCommand: string | undefined;
+  getLiveSurface: () => { cwd: string; startupCommand?: string };
+  onCwdChange: (cwd: string) => void;
+  onTitleChange: (title: string) => void;
+  onNotification: (title: string | undefined, body: string | undefined) => void;
+}
+
+export class TerminalController {
+  readonly term: Terminal;
+  private readonly fitAddon: FitAddon;
+  private readonly resizeObserver: ResizeObserver;
+  private readonly cleanupFns: Array<() => void> = [];
+
+  private ptyId: string | null = null;
+  private disposed = false;
+  private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  private preReplayBuffer: string[] | null = [];
+
+  constructor(private readonly opts: TerminalControllerOptions) {
+    const { term, fitAddon } = createTerminal(opts.container, opts.config);
+    this.term = term;
+    this.fitAddon = fitAddon;
+
+    this.cleanupFns.push(
+      attachClipboardHandlers(term, opts.container, () => this.ptyId),
+    );
+
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this.resizeTimer !== null) clearTimeout(this.resizeTimer);
+      this.resizeTimer = setTimeout(() => {
+        this.resizeTimer = null;
+        if (!this.disposed) this.safeFit();
+      }, RESIZE_DEBOUNCE_MS);
+    });
+    this.resizeObserver.observe(opts.container);
+
+    this.startPty();
+  }
+
+  fit(): void {
+    this.safeFit();
+  }
+
+  focus(): void {
+    this.term.focus();
+  }
+
+  setTheme(theme: import("@xterm/xterm").ITheme): void {
+    if (this.disposed) return;
+    this.term.options.theme = theme;
+    if (theme.background)
+      this.opts.container.style.backgroundColor = theme.background;
+  }
+
+  dispose(): void {
+    this.disposed = true;
+    this.resizeObserver.disconnect();
+    if (this.resizeTimer !== null) clearTimeout(this.resizeTimer);
+    for (const fn of this.cleanupFns) fn();
+    if (this.ptyId) window.app.killPty(this.ptyId);
+    this.term.dispose();
+  }
+
+  private safeFit(): void {
+    const { container } = this.opts;
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+    const proposed = this.fitAddon.proposeDimensions();
+    if (!proposed) return;
+    if (proposed.cols === this.term.cols && proposed.rows === this.term.rows)
+      return;
+    this.fitAddon.fit();
+  }
+
+  private async startPty(): Promise<void> {
+    const id = await window.app.createPty({
+      cwd: this.opts.cwd,
+      surfaceId: this.opts.surfaceId,
+    });
+    if (this.disposed) {
+      window.app.killPty(id);
+      return;
+    }
+    this.ptyId = id;
+
+    this.cleanupFns.push(
+      window.app.onPtyData(id, (data) => this.onPtyData(data)),
+      window.app.onPtyExit(id, () => {
+        if (this.disposed) return;
+        this.term.write("\r\n\x1b[90m[Process exited]\x1b[0m\r\n");
+      }),
+    );
+
+    const replay = await window.app.replayPty(id);
+    if (this.disposed) return;
+    if (replay) this.term.write(replay);
+
+    const buffered = this.preReplayBuffer ?? [];
+    this.preReplayBuffer = null;
+    for (const chunk of buffered) this.onPtyData(chunk);
+
+    this.term.onData((data) => window.app.writePty(id, data));
+    this.term.onResize(({ cols, rows }) =>
+      window.app.resizePty(id, cols, rows),
+    );
+
+    this.safeFit();
+    window.app.resizePty(id, this.term.cols, this.term.rows);
+    this.term.focus();
+
+    const startupCommand = this.opts.startupCommand;
+    if (startupCommand) {
+      const line =
+        startupCommand.endsWith("\n") || startupCommand.endsWith("\r")
+          ? startupCommand
+          : `${startupCommand}\r`;
+      window.setTimeout(() => {
+        if (!this.disposed && this.ptyId === id) window.app.writePty(id, line);
+      }, STARTUP_COMMAND_DELAY_MS);
+    }
+  }
+
+  private onPtyData(data: string): void {
+    if (this.disposed) return;
+    if (this.preReplayBuffer !== null) {
+      this.preReplayBuffer.push(data);
+      return;
+    }
+    this.term.write(data);
+    const osc = parseOsc(data);
+    if (osc.cwd && osc.cwd !== this.opts.getLiveSurface().cwd)
+      this.opts.onCwdChange(osc.cwd);
+    if (osc.title) this.opts.onTitleChange(osc.title);
+    for (const n of osc.notifications)
+      this.opts.onNotification(n.title, n.body);
+  }
+}

@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vite/
+release/
+*.js.map
+
+# OS
+.DS_Store
+
+# Claude Code
+.claude/settings.local.json
+.claude/plans/
+.claude/worktrees/

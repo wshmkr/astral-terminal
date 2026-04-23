@@ -1,0 +1,19 @@
+.terminal-container {
+  flex: 1;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.terminal-container .xterm {
+  height: 100%;
+}
+
+.terminal-container .xterm .xterm-viewport {
+  overflow-y: hidden;
+  scrollbar-width: none;
+  background-color: transparent;
+}
+
+.terminal-container .xterm .xterm-viewport::-webkit-scrollbar {
+  display: none;
+}
