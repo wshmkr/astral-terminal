@@ -1,8 +1,12 @@
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { memo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import { VscAdd, VscGear } from "react-icons/vsc";
 import { useDrag } from "../../hooks/useDrag";
 import {
@@ -109,6 +113,7 @@ function SidebarImpl() {
   const sidebarWidth = useWorkspaceStore((s) => s.sidebarWidth);
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const workspaceIds = useMemo(() => workspaces.map((w) => w.id), [workspaces]);
 
   const dragRef = useRef({ startX: 0, startWidth: 0, latestWidth: 0 });
 
@@ -166,20 +171,25 @@ function SidebarImpl() {
         </Box>
         <Box sx={LIST_CONTAINER_SX}>
           <Box ref={scrollRef} className="workspace-scroll" sx={SCROLL_SX}>
-            {workspaces.map((ws, index) => {
-              const isActive = ws.id === activeWorkspaceId;
-              const nextIsActive =
-                workspaces[index + 1]?.id === activeWorkspaceId;
-              const isLast = index === workspaces.length - 1;
-              return (
-                <WorkspaceTab
-                  key={ws.id}
-                  workspace={ws}
-                  isActive={isActive}
-                  showDivider={!isActive && !nextIsActive && !isLast}
-                />
-              );
-            })}
+            <SortableContext
+              items={workspaceIds}
+              strategy={verticalListSortingStrategy}
+            >
+              {workspaces.map((ws, index) => {
+                const isActive = ws.id === activeWorkspaceId;
+                const nextIsActive =
+                  workspaces[index + 1]?.id === activeWorkspaceId;
+                const isLast = index === workspaces.length - 1;
+                return (
+                  <WorkspaceTab
+                    key={ws.id}
+                    workspace={ws}
+                    isActive={isActive}
+                    showDivider={!isActive && !nextIsActive && !isLast}
+                  />
+                );
+              })}
+            </SortableContext>
           </Box>
           <OverlayScrollbar scrollRef={scrollRef} />
         </Box>

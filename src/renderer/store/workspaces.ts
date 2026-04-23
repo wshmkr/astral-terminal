@@ -277,3 +277,85 @@ export function resizeSplit(splitNodeId: string, sizes: number[]): void {
   setWorkspaceLayout(ws.id, newLayout);
   commit();
 }
+
+export function reorderWorkspaces(fromIndex: number, toIndex: number): void {
+  if (fromIndex === toIndex) return;
+  const s = getState();
+  if (fromIndex < 0 || fromIndex >= s.workspaces.length) return;
+  if (toIndex < 0 || toIndex >= s.workspaces.length) return;
+  const next = s.workspaces.slice();
+  const [moved] = next.splice(fromIndex, 1);
+  if (!moved) return;
+  next.splice(toIndex, 0, moved);
+  setState({ ...s, workspaces: next });
+  commit();
+}
+
+export function reorderSurfacesInPane(
+  paneId: string,
+  fromIndex: number,
+  toIndex: number,
+): void {
+  if (fromIndex === toIndex) return;
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const changed = updateLeaf(ws.id, paneId, (leaf) => {
+    if (fromIndex < 0 || fromIndex >= leaf.surfaces.length) return leaf;
+    if (toIndex < 0 || toIndex >= leaf.surfaces.length) return leaf;
+    const surfaces = leaf.surfaces.slice();
+    const [moved] = surfaces.splice(fromIndex, 1);
+    if (!moved) return leaf;
+    surfaces.splice(toIndex, 0, moved);
+    return { ...leaf, surfaces };
+  });
+  if (changed) commit();
+}
+
+export function moveSurfaceToPane(
+  sourcePaneId: string,
+  surfaceId: string,
+  targetPaneId: string,
+): void {
+  if (sourcePaneId === targetPaneId) return;
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
+  const targetLeaf = findLeafPane(ws.layout, targetPaneId);
+  if (!sourceLeaf || !targetLeaf) return;
+  const surface = sourceLeaf.surfaces.find((s) => s.id === surfaceId);
+  if (!surface) return;
+
+  const afterAdd = updateLeafInLayout(ws.layout, targetPaneId, (leaf) => ({
+    ...leaf,
+    surfaces: [...leaf.surfaces, surface],
+    activeSurfaceId: surface.id,
+  }));
+
+  if (sourceLeaf.surfaces.length === 1) {
+    const pruned = pruneNode(afterAdd, sourcePaneId);
+    if (!pruned) {
+      removeWorkspace(ws.id);
+      commit();
+      return;
+    }
+    setWorkspaceLayout(ws.id, pruned);
+    setState({ ...getState(), focusedPaneId: targetPaneId });
+    commit();
+    return;
+  }
+
+  const finalLayout = updateLeafInLayout(afterAdd, sourcePaneId, (leaf) => {
+    const removedIndex = leaf.surfaces.findIndex((s) => s.id === surfaceId);
+    if (removedIndex < 0) return leaf;
+    const remaining = leaf.surfaces.filter((s) => s.id !== surfaceId);
+    const fallback = remaining[removedIndex - 1] ?? remaining[0];
+    const nextActiveId =
+      leaf.activeSurfaceId === surfaceId
+        ? (fallback?.id ?? leaf.activeSurfaceId)
+        : leaf.activeSurfaceId;
+    return { ...leaf, surfaces: remaining, activeSurfaceId: nextActiveId };
+  });
+  setWorkspaceLayout(ws.id, finalLayout);
+  setState({ ...getState(), focusedPaneId: targetPaneId });
+  commit();
+}

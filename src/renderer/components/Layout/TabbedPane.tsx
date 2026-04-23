@@ -1,3 +1,10 @@
+import { useDroppable } from "@dnd-kit/core";
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -68,10 +75,31 @@ function TabItem({
   activeBg,
   activeFg,
 }: TabItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: surface.id,
+    data: { type: "tab", paneId },
+  });
+  const dragStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : "auto",
+  };
   return (
     <Box
+      ref={setNodeRef}
       className="tab-item"
       onClick={() => setActiveSurface(paneId, surface.id)}
+      style={dragStyle}
+      {...attributes}
+      {...listeners}
       sx={{
         display: "flex",
         alignItems: "center",
@@ -175,6 +203,14 @@ function TabbedPaneImpl({ pane }: Props) {
     [notifications],
   );
   const showAttentionOutline = pane.surfaces.some((s) => unreadIds.has(s.id));
+  const surfaceIds = useMemo(
+    () => pane.surfaces.map((s) => s.id),
+    [pane.surfaces],
+  );
+  const { setNodeRef: setTabBarDroppableRef } = useDroppable({
+    id: `tab-bar:${pane.id}`,
+    data: { type: "tab-bar", paneId: pane.id },
+  });
 
   return (
     <Box
@@ -182,24 +218,33 @@ function TabbedPaneImpl({ pane }: Props) {
       sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
     >
       <Box sx={TAB_BAR_SX}>
-        <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
-          {pane.surfaces.map((surface, idx) => {
-            const isActive = surface.id === pane.activeSurfaceId;
-            const nextIsActive =
-              pane.surfaces[idx + 1]?.id === pane.activeSurfaceId;
-            return (
-              <TabItem
-                key={surface.id}
-                paneId={pane.id}
-                surface={surface}
-                isActive={isActive}
-                hasUnread={unreadIds.has(surface.id)}
-                showDivider={!isActive && !nextIsActive}
-                activeBg={terminalTheme.background}
-                activeFg={terminalTheme.foreground}
-              />
-            );
-          })}
+        <Box
+          ref={setTabBarDroppableRef}
+          onWheel={onTabScrollerWheel}
+          sx={TAB_SCROLLER_SX}
+        >
+          <SortableContext
+            items={surfaceIds}
+            strategy={horizontalListSortingStrategy}
+          >
+            {pane.surfaces.map((surface, idx) => {
+              const isActive = surface.id === pane.activeSurfaceId;
+              const nextIsActive =
+                pane.surfaces[idx + 1]?.id === pane.activeSurfaceId;
+              return (
+                <TabItem
+                  key={surface.id}
+                  paneId={pane.id}
+                  surface={surface}
+                  isActive={isActive}
+                  hasUnread={unreadIds.has(surface.id)}
+                  showDivider={!isActive && !nextIsActive}
+                  activeBg={terminalTheme.background}
+                  activeFg={terminalTheme.foreground}
+                />
+              );
+            })}
+          </SortableContext>
           <Tooltip title="New Tab">
             <IconButton
               size="small"

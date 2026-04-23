@@ -1,3 +1,5 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
@@ -100,12 +102,36 @@ interface Props {
 
 export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
   const [editing, setEditing] = useState(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: workspace.id,
+    data: { type: "workspace" },
+    disabled: editing,
+  });
+
+  const dragStyle = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : "auto",
+    position: "relative" as const,
+  };
 
   return (
     <Box
+      ref={setNodeRef}
       className="workspace-tab"
       onClick={() => setActiveWorkspace(workspace.id)}
+      style={dragStyle}
       sx={rootSx(isActive, showDivider)}
+      {...attributes}
+      {...listeners}
     >
       <Box className="ws-title-row" sx={TITLE_ROW_SX}>
         {unreadCount(workspace) > 0 && <Box sx={UNREAD_DOT_SX} />}
