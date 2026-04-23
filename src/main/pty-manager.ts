@@ -6,9 +6,17 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
+import {
+  CLAUDE_SESSION_OSC_IDENT,
+  CLAUDE_SESSION_OSC_PREFIX,
+} from "../shared/agent-hooks";
 import { APP_PACKAGE_NAME } from "../shared/meta";
 import { windowsPtyOptions } from "../shared/pty-options";
-import { type AppConfig, DEFAULT_CWD } from "../shared/types";
+import {
+  type AppConfig,
+  type CreatePtyResult,
+  DEFAULT_CWD,
+} from "../shared/types";
 
 const HEADLESS_SCROLLBACK = 10000;
 const SERIALIZE_SCROLLBACK = 5000;
@@ -50,6 +58,7 @@ interface PtyEntry {
   headless: HeadlessTerminal;
   serializeAddon: SerializeAddon;
   pendingForward: ((data: string) => void) | undefined;
+  claudeSessionId: string | undefined;
 }
 
 export class PtyManager {
@@ -78,6 +87,10 @@ export class PtyManager {
     return path.join(this.bufferDir, `${surfaceId}.txt`);
   }
 
+  private metaFile(surfaceId: string): string {
+    return path.join(this.bufferDir, `${surfaceId}.meta.json`);
+  }
+
   private loadBuffer(surfaceId: string): string | null {
     try {
       return fs.readFileSync(this.bufferFile(surfaceId), "utf-8");
@@ -100,15 +113,51 @@ export class PtyManager {
     } catch {}
   }
 
+  private loadAndConsumeMeta(
+    surfaceId: string,
+  ): { claudeSessionId?: string } | null {
+    let parsed: { claudeSessionId?: string } | null = null;
+    try {
+      const raw = fs.readFileSync(this.metaFile(surfaceId), "utf-8");
+      const obj = JSON.parse(raw);
+      if (obj && typeof obj === "object") {
+        const id = (obj as { claudeSessionId?: unknown }).claudeSessionId;
+        parsed = typeof id === "string" ? { claudeSessionId: id } : {};
+      }
+    } catch {
+      parsed = null;
+    }
+    this.deleteMeta(surfaceId);
+    return parsed;
+  }
+
+  private writeMeta(
+    surfaceId: string,
+    meta: { claudeSessionId?: string },
+  ): void {
+    try {
+      fs.writeFileSync(this.metaFile(surfaceId), JSON.stringify(meta));
+    } catch (err) {
+      console.error("Failed to write terminal meta:", err);
+    }
+  }
+
+  private deleteMeta(surfaceId: string): void {
+    try {
+      fs.unlinkSync(this.metaFile(surfaceId));
+    } catch {}
+  }
+
   private serialize(entry: PtyEntry): string {
     return entry.serializeAddon.serialize(SERIALIZE_OPTS);
   }
 
-  create(opts: CreatePtyOptions): string {
+  create(opts: CreatePtyOptions): CreatePtyResult {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
     const carriedScrollback = this.evictBySurfaceId(surfaceId);
+    const persistedMeta = this.loadAndConsumeMeta(surfaceId);
     const isWindows = process.platform === "win32";
 
     const shell = isWindows ? "wsl.exe" : process.env.SHELL || "/bin/bash";
@@ -158,8 +207,25 @@ export class PtyManager {
       headless,
       serializeAddon,
       pendingForward: callbacks?.onData,
+      claudeSessionId: undefined,
     };
     this.entries.set(id, entry);
+
+    headless.parser.registerOscHandler(CLAUDE_SESSION_OSC_IDENT, (data) => {
+      if (!data.startsWith(CLAUDE_SESSION_OSC_PREFIX)) return false;
+      const payload = data.slice(CLAUDE_SESSION_OSC_PREFIX.length);
+      const sep = payload.indexOf(";");
+      if (sep < 0) return false;
+      const event = payload.slice(0, sep);
+      const sessionId = payload.slice(sep + 1);
+      if (!sessionId) return false;
+      if (event === "start") {
+        entry.claudeSessionId = sessionId;
+      } else if (event === "end" && entry.claudeSessionId === sessionId) {
+        entry.claudeSessionId = undefined;
+      }
+      return true;
+    });
 
     proc.onData((data) => headless.write(data));
     proc.onExit(({ exitCode, signal }) => {
@@ -167,7 +233,7 @@ export class PtyManager {
       callbacks?.onExit?.(exitCode, signal);
     });
 
-    return id;
+    return { ptyId: id, claudeSessionId: persistedMeta?.claudeSessionId };
   }
 
   beginReplay(id: string): string {
@@ -213,7 +279,10 @@ export class PtyManager {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.entries.delete(id);
-    if (deleteBuffer) this.deleteBuffer(entry.surfaceId);
+    if (deleteBuffer) {
+      this.deleteBuffer(entry.surfaceId);
+      this.deleteMeta(entry.surfaceId);
+    }
     try {
       entry.pty.kill();
     } catch {}
@@ -228,6 +297,13 @@ export class PtyManager {
       } catch (err) {
         console.error("Failed to serialize terminal buffer:", err);
       }
+      if (entry.claudeSessionId) {
+        this.writeMeta(entry.surfaceId, {
+          claudeSessionId: entry.claudeSessionId,
+        });
+      } else {
+        this.deleteMeta(entry.surfaceId);
+      }
       this.teardown(id, { deleteBuffer: false });
     }
   }
@@ -240,13 +316,13 @@ export class PtyManager {
       return;
     }
     for (const name of entries) {
-      if (!name.endsWith(".txt")) continue;
-      const id = name.slice(0, -4);
-      if (!validSurfaceIds.has(id)) {
-        try {
-          fs.unlinkSync(path.join(this.bufferDir, name));
-        } catch {}
-      }
+      let id: string | null = null;
+      if (name.endsWith(".meta.json")) id = name.slice(0, -".meta.json".length);
+      else if (name.endsWith(".txt")) id = name.slice(0, -".txt".length);
+      if (!id || validSurfaceIds.has(id)) continue;
+      try {
+        fs.unlinkSync(path.join(this.bufferDir, name));
+      } catch {}
     }
   }
 }

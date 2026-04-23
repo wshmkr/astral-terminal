@@ -11,6 +11,14 @@ import { parseOsc } from "./osc";
 
 const STARTUP_COMMAND_DELAY_MS = 200;
 const RESIZE_DEBOUNCE_MS = 100;
+const CLAUDE_SESSION_ID_RE = /^[0-9a-fA-F-]{16,}$/;
+
+function claudeResumeCommand(
+  sessionId: string | undefined,
+): string | undefined {
+  if (!sessionId || !CLAUDE_SESSION_ID_RE.test(sessionId)) return undefined;
+  return `claude --resume ${sessionId}`;
+}
 const TERMINAL_FONT =
   "'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace";
 const TERMINAL_FONT_SIZE = 16;
@@ -256,7 +264,7 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
-    const id = await window.app.createPty({
+    const { ptyId: id, claudeSessionId } = await window.app.createPty({
       cwd: this.opts.cwd,
       surfaceId: this.opts.surfaceId,
     });
@@ -291,7 +299,8 @@ export class TerminalController {
     window.app.resizePty(id, this.term.cols, this.term.rows);
     this.term.focus();
 
-    const startupCommand = this.opts.startupCommand;
+    const startupCommand =
+      this.opts.startupCommand ?? claudeResumeCommand(claudeSessionId);
     if (startupCommand) {
       const line =
         startupCommand.endsWith("\n") || startupCommand.endsWith("\r")

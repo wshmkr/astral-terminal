@@ -2,13 +2,17 @@ import type {
   AppConfig,
   AppMode,
   ConfigureAgentHooksResult,
+  CreatePtyResult,
   NotificationFirePayload,
 } from "../../shared/types";
 
 export interface AppAPI {
   mode: AppMode;
   readConfig: () => Promise<AppConfig>;
-  createPty: (options: { cwd?: string; surfaceId: string }) => Promise<string>;
+  createPty: (options: {
+    cwd?: string;
+    surfaceId: string;
+  }) => Promise<CreatePtyResult>;
   writePty: (ptyId: string, data: string) => void;
   resizePty: (ptyId: string, cols: number, rows: number) => void;
   killPty: (ptyId: string) => void;

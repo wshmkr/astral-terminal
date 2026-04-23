@@ -1,7 +1,10 @@
 import { APP_PACKAGE_NAME } from "./meta";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "1";
+export const HOOK_MARKER_VERSION = "2";
+
+export const CLAUDE_SESSION_OSC_IDENT = 1337;
+export const CLAUDE_SESSION_OSC_PREFIX = "AstralClaudeSession=";
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
 
@@ -40,6 +43,16 @@ function cmd(entry: { title: string; body: string }) {
   };
 }
 
+function oscSessionCommand(event: "start" | "end"): string {
+  const extract = `sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1`;
+  const emit = `printf '\\033]${CLAUDE_SESSION_OSC_IDENT};${CLAUDE_SESSION_OSC_PREFIX}${event};%s\\007' "$sid"`;
+  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then sid=$(${extract}); [ -n "$sid" ] && ${emit} > /dev/tty; fi`;
+}
+
+function sessionCmd(event: "start" | "end") {
+  return { type: "command", command: oscSessionCommand(event) };
+}
+
 export interface AgentHookProvider {
   name: string;
   settingsPath: string;
@@ -62,6 +75,8 @@ const claudeProvider: AgentHookProvider = {
           { matcher: "AskUserQuestion", hooks: [cmd(s.askUserQuestion)] },
         ],
         Stop: [{ hooks: [cmd(s.stop)] }],
+        SessionStart: [{ hooks: [sessionCmd("start")] }],
+        SessionEnd: [{ hooks: [sessionCmd("end")] }],
       },
     };
   },
