@@ -1,5 +1,6 @@
 import path from "node:path";
 import { app, BrowserWindow, session } from "electron";
+import squirrelStartup from "electron-squirrel-startup";
 import type { AppConfig } from "../shared/types";
 import { loadConfig } from "./config";
 import {
@@ -10,6 +11,10 @@ import {
 } from "./ipc";
 import { PtyManager } from "./pty-manager";
 import { createWindow, getMainWindow } from "./window";
+
+if (squirrelStartup) {
+  app.quit();
+}
 
 let ptyManager: PtyManager;
 
