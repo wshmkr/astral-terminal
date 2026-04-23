@@ -8,6 +8,7 @@ jobs:
   lint:
     name: Conventional Commits
     runs-on: ubuntu-latest
+    if: github.event.action != 'edited' || github.event.changes.title != null
     permissions:
       pull-requests: read
       statuses: write
