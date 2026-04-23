@@ -6,9 +6,7 @@ const OSC_TITLE = "2";
 const OSC_CWD = "7";
 const OSC_RXVT_NOTIFY = "777";
 
-// ConPTY seeds the title with the launched executable (e.g. the wsl.exe path)
-// before the child shell runs; ignore those so bare shells that never emit
-// their own title don't get stuck on the launcher path.
+// ConPTY seeds this as the initial title and bare shells never overwrite
 const WINDOWS_EXE_PATH = /^[A-Za-z]:[\\/].*\.exe\s*$/;
 
 export interface OscNotification {
