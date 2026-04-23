@@ -3,7 +3,7 @@ import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   VscArrowDown,
   VscArrowUp,
@@ -21,6 +21,7 @@ const BAR_SX = {
   position: "absolute",
   top: 8,
   right: 16,
+  maxWidth: "calc(100% - 32px)",
   zIndex: 10,
   display: "flex",
   alignItems: "center",
@@ -32,25 +33,35 @@ const BAR_SX = {
   boxShadow: 3,
   border: 1,
   borderColor: "divider",
+  minWidth: 0,
 } as const;
 
 const INPUT_SX = {
   fontSize: "13px",
   px: 0.75,
-  width: 220,
+  minWidth: 0,
+  flex: "1 1 220px",
   color: "text.primary",
+  "& input": { minWidth: 0 },
 } as const;
 
-const BUTTON_SX = { color: "text.secondary", p: 0.5 } as const;
+const BUTTON_SX = { color: "text.secondary", p: 0.5, flexShrink: 0 } as const;
 
-const BUTTON_ACTIVE_SX = { color: "primary.main", p: 0.5 } as const;
+const BUTTON_ACTIVE_SX = {
+  color: "primary.main",
+  p: 0.5,
+  flexShrink: 0,
+} as const;
 
 const COUNT_SX = {
   fontSize: "12px",
   color: "text.disabled",
-  minWidth: 48,
+  width: 64,
+  flexShrink: 0,
+  whiteSpace: "nowrap",
   textAlign: "right" as const,
   fontVariantNumeric: "tabular-nums",
+  "@container (max-width: 460px)": { display: "none" },
 };
 
 export function FindBar({ controller, onClose }: Props) {
@@ -68,7 +79,7 @@ export function FindBar({ controller, onClose }: Props) {
     inputRef.current?.select();
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!query) {
       controller.clearFind();
       setMatches(undefined);

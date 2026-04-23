@@ -24,6 +24,7 @@ const WRAPPER_SX = {
   width: "100%",
   height: "100%",
   display: "flex",
+  containerType: "inline-size",
 } as const;
 
 export function TerminalPane({ paneId, surface, isVisible }: Props) {
