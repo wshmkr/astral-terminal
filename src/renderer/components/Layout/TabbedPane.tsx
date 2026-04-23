@@ -25,6 +25,7 @@ import {
   splitPane,
   useWorkspaceStore,
 } from "../../store";
+import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
 import {
@@ -161,7 +162,9 @@ function selectActiveNotifications(s: AppState): Notification[] | null {
 }
 
 function TabbedPaneImpl({ pane }: Props) {
-  const terminalBackground = useWorkspaceStore((s) => s.terminalBackground);
+  const terminalBackground = useWorkspaceStore(
+    (s) => TERMINAL_THEMES[s.appearance.terminalThemeId].background,
+  );
   const notifications = useWorkspaceStore(selectActiveNotifications);
   const unreadSurfaceIds = useMemo(() => {
     const set = new Set<string>();

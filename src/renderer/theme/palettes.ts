@@ -1,4 +1,4 @@
-import { DEFAULT_TERMINAL_BG } from "../../shared/types";
+import type { AppThemeId } from "../../shared/types";
 
 export interface AppPaletteCustom {
   subtleDivider: string;
@@ -25,7 +25,7 @@ export interface AppPalette {
 }
 
 export const DARK_PALETTE: AppPalette = {
-  bgDefault: DEFAULT_TERMINAL_BG,
+  bgDefault: "#282c34",
   bgPaper: "#2d2d2d",
   textPrimary: "#f2f2f2",
   textSecondary: "#cccccc",
@@ -45,3 +45,35 @@ export const DARK_PALETTE: AppPalette = {
     titlebarButtonHover: "rgba(255,255,255,0.06)",
   },
 };
+
+export const LIGHT_PALETTE: AppPalette = {
+  bgDefault: "#ffffff",
+  bgPaper: "#f3f3f3",
+  textPrimary: "#1f1f1f",
+  textSecondary: "#424242",
+  textDisabled: "#8e8e8e",
+  divider: "#e5e5e5",
+  primary: "#0078d4",
+  error: "#c42b1c",
+  actionHover: "rgba(0,0,0,0.04)",
+  actionSelected: "rgba(0,0,0,0.08)",
+  custom: {
+    subtleDivider: "rgba(0,0,0,0.1)",
+    resizeHandleIdle: "rgba(0,0,0,0.05)",
+    resizeHandleHover: "rgba(0,0,0,0.15)",
+    scrollbarThumb: "rgb(193,193,193)",
+    scrollbarThumbHover: "rgb(168,168,168)",
+    titlebarFocused: "#f8f8f8",
+    titlebarButtonHover: "rgba(0,0,0,0.04)",
+  },
+};
+
+export const APP_PALETTES: Record<AppThemeId, AppPalette> = {
+  dark: DARK_PALETTE,
+  light: LIGHT_PALETTE,
+};
+
+export const APP_THEME_OPTIONS: Array<{ id: AppThemeId; label: string }> = [
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+];

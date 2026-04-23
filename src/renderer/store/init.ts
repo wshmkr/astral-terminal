@@ -1,13 +1,10 @@
-import {
-  type AppState,
-  DEFAULT_TERMINAL_BG,
-  type Workspace,
-} from "../../shared/types";
+import type { AppState, Workspace } from "../../shared/types";
 import { DEFAULT_SIDEBAR_WIDTH_PX } from "../components/Layout/layout-constants";
 import {
   collectSurfaceIds,
   findFirstLeaf,
 } from "../components/Layout/pane-tree";
+import { DEFAULT_APPEARANCE } from "./appearance";
 import { initializeStore } from "./core";
 import { createDefaultWorkspace, nextWorkspaceName } from "./factories";
 import { loadState } from "./persistence";
@@ -34,10 +31,11 @@ function initState(): AppState {
       activeWorkspaceId: activeWs?.id ?? null,
       focusedPaneId: activeWs ? findFirstLeaf(activeWs.layout) : null,
       sidebarWidth: loaded.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH_PX,
-      terminalBackground: DEFAULT_TERMINAL_BG,
+      appearance: loaded.appearance ?? DEFAULT_APPEARANCE,
       notificationSettings:
         loaded.notificationSettings ?? DEFAULT_NOTIFICATION_SETTINGS,
       windowFocused: INITIAL_WINDOW_FOCUSED,
+      settingsOpen: false,
     };
   }
   const seed = createDefaultWorkspace(nextWorkspaceName([]));
@@ -46,9 +44,10 @@ function initState(): AppState {
     activeWorkspaceId: seed.id,
     focusedPaneId: seed.layout.id,
     sidebarWidth: DEFAULT_SIDEBAR_WIDTH_PX,
-    terminalBackground: DEFAULT_TERMINAL_BG,
+    appearance: DEFAULT_APPEARANCE,
     notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
     windowFocused: INITIAL_WINDOW_FOCUSED,
+    settingsOpen: false,
   };
 }
 

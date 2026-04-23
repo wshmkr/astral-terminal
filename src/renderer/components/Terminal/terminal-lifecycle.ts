@@ -11,10 +11,6 @@ import { parseOsc } from "./osc";
 
 const RESIZE_DEBOUNCE_MS = 100;
 
-const TERMINAL_FONT =
-  "'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace";
-const TERMINAL_FONT_SIZE = 16;
-
 function findDecorationsFromTheme(
   theme: TerminalTheme,
 ): ISearchDecorationOptions {
@@ -26,12 +22,12 @@ function findDecorationsFromTheme(
   };
 }
 
-export function preloadTerminalFont(): Promise<unknown> {
+export function preloadFont(fontStack: string, size: number): Promise<unknown> {
   return Promise.all([
-    document.fonts.load(`${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
-    document.fonts.load(`bold ${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
-    document.fonts.load(`italic ${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
-    document.fonts.load(`bold italic ${TERMINAL_FONT_SIZE}px ${TERMINAL_FONT}`),
+    document.fonts.load(`${size}px ${fontStack}`),
+    document.fonts.load(`bold ${size}px ${fontStack}`),
+    document.fonts.load(`italic ${size}px ${fontStack}`),
+    document.fonts.load(`bold italic ${size}px ${fontStack}`),
   ]);
 }
 
@@ -43,19 +39,24 @@ interface TerminalAddons {
 
 function createTerminal(
   container: HTMLElement,
-  config: AppConfig,
+  opts: {
+    config: AppConfig;
+    theme: TerminalTheme;
+    fontFamily: string;
+    fontSize: number;
+  },
 ): TerminalAddons {
-  container.style.backgroundColor = config.terminalTheme.background;
+  container.style.backgroundColor = opts.theme.background;
 
   const term = new Terminal({
-    fontFamily: TERMINAL_FONT,
-    fontSize: TERMINAL_FONT_SIZE,
+    fontFamily: opts.fontFamily,
+    fontSize: opts.fontSize,
     lineHeight: 1.2,
     cursorBlink: true,
     cursorStyle: "bar",
     scrollback: 10000,
-    theme: config.terminalTheme,
-    windowsPty: windowsPtyOptions(config),
+    theme: opts.theme,
+    windowsPty: windowsPtyOptions(opts.config),
     allowProposedApi: true,
   });
 
@@ -127,6 +128,9 @@ function attachClipboardHandlers(
 export interface TerminalControllerOptions {
   container: HTMLElement;
   config: AppConfig;
+  theme: TerminalTheme;
+  fontFamily: string;
+  fontSize: number;
   surfaceId: string;
   cwd: string;
   getLiveSurface: () => { cwd: string };
@@ -148,6 +152,7 @@ export class TerminalController {
   private readonly findDecorations: ISearchDecorationOptions;
   private readonly resizeObserver: ResizeObserver;
   private readonly cleanupFns: Array<() => void> = [];
+  private readonly container: HTMLElement;
 
   private ptyId: string | null = null;
   private disposed = false;
@@ -155,14 +160,17 @@ export class TerminalController {
   private preReplayBuffer: string[] | null = [];
 
   constructor(private readonly opts: TerminalControllerOptions) {
-    const { term, fitAddon, searchAddon } = createTerminal(
-      opts.container,
-      opts.config,
-    );
+    this.container = opts.container;
+    const { term, fitAddon, searchAddon } = createTerminal(opts.container, {
+      config: opts.config,
+      theme: opts.theme,
+      fontFamily: opts.fontFamily,
+      fontSize: opts.fontSize,
+    });
     this.term = term;
     this.fitAddon = fitAddon;
     this.searchAddon = searchAddon;
-    this.findDecorations = findDecorationsFromTheme(opts.config.terminalTheme);
+    this.findDecorations = findDecorationsFromTheme(opts.theme);
 
     this.cleanupFns.push(
       attachClipboardHandlers(
@@ -193,11 +201,18 @@ export class TerminalController {
     this.term.focus();
   }
 
-  setTheme(theme: import("@xterm/xterm").ITheme): void {
+  setTheme(theme: TerminalTheme): void {
     if (this.disposed) return;
     this.term.options.theme = theme;
-    if (theme.background)
-      this.opts.container.style.backgroundColor = theme.background;
+    this.container.style.backgroundColor = theme.background;
+    Object.assign(this.findDecorations, findDecorationsFromTheme(theme));
+  }
+
+  setFont(fontFamily: string, fontSize: number): void {
+    if (this.disposed) return;
+    this.term.options.fontFamily = fontFamily;
+    this.term.options.fontSize = fontSize;
+    this.safeFit();
   }
 
   findNext(query: string, caseSensitive: boolean): void {
@@ -245,7 +260,7 @@ export class TerminalController {
   }
 
   private safeFit(): void {
-    const { container } = this.opts;
+    const container = this.container;
     if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
     const proposed = this.fitAddon.proposeDimensions();
     if (!proposed) return;

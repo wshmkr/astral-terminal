@@ -1,10 +1,11 @@
 import Box from "@mui/material/Box";
+import { useColorScheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState } from "react";
 import { agentProviders } from "../shared/agent-hooks";
-import { loadAppConfig } from "./app/config-loader";
 import { findLeafPane } from "./components/Layout/pane-tree";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
+import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TitleBar } from "./components/ui/TitleBar";
@@ -15,7 +16,7 @@ import {
   onNotificationAdded,
   setActiveSurface,
   setActiveWorkspace,
-  setTerminalBackground,
+  setSettingsOpen,
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
@@ -23,6 +24,8 @@ import {
 export function App() {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
+  const settingsOpen = useWorkspaceStore((s) => s.settingsOpen);
   const workspacesContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{
     width: number;
@@ -30,6 +33,17 @@ export function App() {
   } | null>(null);
 
   useKeyboard();
+
+  const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
+  const { setMode } = useColorScheme();
+
+  useEffect(() => {
+    setMode(appThemeId);
+  }, [appThemeId, setMode]);
+
+  useEffect(() => {
+    document.documentElement.style.zoom = String(uiScale);
+  }, [uiScale]);
 
   useEffect(() => {
     const el = workspacesContainerRef.current;
@@ -52,12 +66,6 @@ export function App() {
       height: Math.round(rect.height),
     });
     return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    loadAppConfig().then((config) =>
-      setTerminalBackground(config.terminalTheme.background),
-    );
   }, []);
 
   useEffect(() => {
@@ -204,6 +212,10 @@ export function App() {
           )}
         </Box>
       </Box>
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </Box>
   );
 }

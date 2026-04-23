@@ -13,7 +13,7 @@ const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");
 const root = createRoot(rootEl);
 root.render(
-  <ThemeProvider theme={theme}>
+  <ThemeProvider theme={theme} defaultMode="dark">
     <CssBaseline />
     <App />
   </ThemeProvider>,

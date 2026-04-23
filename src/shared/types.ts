@@ -97,6 +97,22 @@ export interface NotificationSettings {
   osNotificationsEnabled: boolean;
 }
 
+export type AppThemeId = "dark" | "light";
+export type TerminalThemeId = "one-dark" | "one-light";
+export type FontFamilyId =
+  | "jetbrains-mono"
+  | "cascadia-code"
+  | "consolas"
+  | "system-monospace";
+
+export interface AppearanceSettings {
+  appThemeId: AppThemeId;
+  terminalThemeId: TerminalThemeId;
+  fontFamily: FontFamilyId;
+  fontSize: number;
+  uiScale: number;
+}
+
 export interface NotificationFirePayload {
   workspaceId: string;
   paneId: string;
@@ -106,38 +122,11 @@ export interface NotificationFirePayload {
 }
 
 export interface AppConfig {
-  terminalTheme: TerminalTheme;
   platform: {
     isWindows: boolean;
     windowsBuild?: number;
   };
 }
-
-export const DEFAULT_TERMINAL_THEME: TerminalTheme = {
-  background: DEFAULT_TERMINAL_BG,
-  foreground: "#dcdfe4",
-  cursor: "#dcdfe4",
-  cursorAccent: DEFAULT_TERMINAL_BG,
-  selectionBackground: "#264f78",
-  selectionForeground: "#ffffff",
-  black: DEFAULT_TERMINAL_BG,
-  red: "#e06c75",
-  green: "#98c379",
-  yellow: "#e5c07b",
-  blue: "#61afef",
-  magenta: "#c678dd",
-  cyan: "#56b6c2",
-  white: "#dcdfe4",
-  brightBlack: "#5a6374",
-  brightRed: "#e06c75",
-  brightGreen: "#98c379",
-  brightYellow: "#e5c07b",
-  brightBlue: "#61afef",
-  brightMagenta: "#c678dd",
-  brightCyan: "#56b6c2",
-  brightWhite: "#dcdfe4",
-  searchHighlight: "#e5c07b",
-};
 
 export type ConfigureAgentHooksResult =
   | { status: "configured" }
@@ -149,9 +138,10 @@ export interface AppState {
   activeWorkspaceId: string | null;
   focusedPaneId: string | null;
   sidebarWidth: number;
-  terminalBackground: string;
+  appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
   windowFocused: boolean;
+  settingsOpen: boolean;
 }
 
 export const IPC = {

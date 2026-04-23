@@ -1,4 +1,5 @@
 import type {
+  AppearanceSettings,
   AppState,
   NotificationSettings,
   PaneNode,
@@ -12,6 +13,7 @@ interface PersistedState {
   workspaces: Array<Omit<Workspace, "notifications">>;
   activeWorkspaceId: string | null;
   sidebarWidth?: number;
+  appearance?: AppearanceSettings;
   notificationSettings?: NotificationSettings;
 }
 
@@ -24,6 +26,7 @@ export function saveState(state: AppState): void {
     })),
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,
+    appearance: state.appearance,
     notificationSettings: state.notificationSettings,
   };
   try {
@@ -80,6 +83,7 @@ function isValidPersisted(v: unknown): v is PersistedState {
     return false;
   if (v.sidebarWidth !== undefined && typeof v.sidebarWidth !== "number")
     return false;
+  if (v.appearance !== undefined && !isObject(v.appearance)) return false;
   if (v.notificationSettings !== undefined && !isObject(v.notificationSettings))
     return false;
   return true;

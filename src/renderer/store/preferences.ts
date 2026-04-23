@@ -40,16 +40,16 @@ export function updateNotificationSettings(
   commit();
 }
 
-export function setTerminalBackground(color: string): void {
-  const s = getState();
-  if (s.terminalBackground === color) return;
-  setState({ ...s, terminalBackground: color });
-  notify();
-}
-
 export function setWindowFocused(focused: boolean): void {
   const s = getState();
   if (s.windowFocused === focused) return;
   setState({ ...s, windowFocused: focused });
+  notify();
+}
+
+export function setSettingsOpen(open: boolean): void {
+  const s = getState();
+  if (s.settingsOpen === open) return;
+  setState({ ...s, settingsOpen: open });
   notify();
 }

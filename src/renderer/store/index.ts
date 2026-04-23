@@ -1,3 +1,11 @@
+export {
+  clampFontSize,
+  setAppTheme,
+  setFontFamily,
+  setFontSize,
+  setTerminalTheme,
+  setUiScale,
+} from "./appearance";
 export { getState, getWorkspace, useWorkspaceStore } from "./core";
 export { bootStore } from "./init";
 
@@ -14,8 +22,8 @@ export {
 
 export {
   clampSidebarWidth,
+  setSettingsOpen,
   setSidebarWidth,
-  setTerminalBackground,
   setWindowFocused,
   updateNotificationSettings,
 } from "./preferences";
