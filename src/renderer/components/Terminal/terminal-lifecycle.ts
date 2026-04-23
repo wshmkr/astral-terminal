@@ -141,6 +141,7 @@ export interface TerminalControllerOptions {
   cwd: string;
   getLiveSurface: () => { cwd: string };
   onCwdChange: (cwd: string) => void;
+  onActivity: () => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
   onRequestFind: () => void;
@@ -359,5 +360,6 @@ export class TerminalController {
     if (osc.title) this.opts.onTitleChange(osc.title);
     for (const n of osc.notifications)
       this.opts.onNotification(n.title, n.body);
+    this.opts.onActivity();
   }
 }

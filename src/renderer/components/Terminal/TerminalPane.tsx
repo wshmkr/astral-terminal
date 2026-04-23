@@ -16,6 +16,8 @@ import { FindBar } from "./FindBar";
 import { preloadFont, TerminalController } from "./terminal-lifecycle";
 import "@xterm/xterm/css/xterm.css";
 
+const BRANCH_REFRESH_DEBOUNCE_MS = 500;
+
 interface Props {
   workspaceId: string;
   paneId: string;
@@ -61,6 +63,7 @@ export function TerminalPane({
     if (!container) return;
 
     let disposed = false;
+    let clearDebounce: (() => void) | null = null;
     const surfaceId = surface.id;
     const { cwd } = surfaceRef.current;
     const initial = getState().appearance;
@@ -72,6 +75,46 @@ export function TerminalPane({
     ]).then(([config]) => {
       if (disposed) return;
 
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+      let fetchInFlight: Promise<unknown> | null = null;
+
+      const runBranchRefresh = () => {
+        if (fetchInFlight) return;
+        const live = surfaceRef.current;
+        const target = live.cwd;
+        if (!target || target === "~") {
+          if (live.branch !== undefined) {
+            updateTerminalSurface(workspaceId, paneIdRef.current, surfaceId, {
+              branch: undefined,
+            });
+          }
+          return;
+        }
+        fetchInFlight = window.app
+          .getGitBranch(target)
+          .then((next) => {
+            if (disposed) return;
+            const current = surfaceRef.current.branch;
+            if (current !== next) {
+              updateTerminalSurface(workspaceId, paneIdRef.current, surfaceId, {
+                branch: next,
+              });
+            }
+          })
+          .finally(() => {
+            fetchInFlight = null;
+          });
+      };
+
+      const scheduleBranchRefresh = () => {
+        if (disposed) return;
+        if (debounceTimer !== null) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          debounceTimer = null;
+          runBranchRefresh();
+        }, BRANCH_REFRESH_DEBOUNCE_MS);
+      };
+
       controllerRef.current = new TerminalController({
         container,
         config,
@@ -81,10 +124,13 @@ export function TerminalPane({
         surfaceId,
         cwd,
         getLiveSurface: () => surfaceRef.current,
-        onCwdChange: (next) =>
+        onCwdChange: (next) => {
           updateTerminalSurface(workspaceId, paneIdRef.current, surfaceId, {
             cwd: next,
-          }),
+          });
+          scheduleBranchRefresh();
+        },
+        onActivity: scheduleBranchRefresh,
         onTitleChange: (title) =>
           renameSurface(workspaceId, paneIdRef.current, surfaceId, title),
         onNotification: (title, body) => {
@@ -104,10 +150,17 @@ export function TerminalPane({
           findInputRef.current?.select();
         },
       });
+
+      runBranchRefresh();
+
+      clearDebounce = () => {
+        if (debounceTimer !== null) clearTimeout(debounceTimer);
+      };
     });
 
     return () => {
       disposed = true;
+      clearDebounce?.();
       controllerRef.current?.dispose();
       controllerRef.current = null;
       setFindOpen(false);

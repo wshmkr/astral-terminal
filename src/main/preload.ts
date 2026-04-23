@@ -88,4 +88,7 @@ contextBridge.exposeInMainWorld("app", {
   uninstallAgentHooks: (params: { providerName: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
   getAgentHookStatuses: () => ipcRenderer.invoke(IPC.agentHooks.status),
+
+  getGitBranch: (cwd: string): Promise<string | undefined> =>
+    ipcRenderer.invoke(IPC.git.getBranch, cwd),
 });

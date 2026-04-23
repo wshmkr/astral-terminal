@@ -19,6 +19,7 @@ import {
   getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
+import { getGitBranch } from "./git-branch";
 import { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
@@ -150,6 +151,10 @@ export function registerSettingsIpc(): void {
   ipcMain.handle(IPC.settings.write, (_event, settings: PersistedSettings) =>
     saveSettings(settings),
   );
+}
+
+export function registerGitIpc(): void {
+  ipcMain.handle(IPC.git.getBranch, (_event, cwd: string) => getGitBranch(cwd));
 }
 
 export function registerAgentHookIpc(): void {

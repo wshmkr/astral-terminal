@@ -8,6 +8,7 @@ import { loadConfig } from "./config";
 import { IS_DEV } from "./env";
 import {
   registerAgentHookIpc,
+  registerGitIpc,
   registerNotificationIpc,
   registerPtyIpc,
   registerSettingsIpc,
@@ -75,6 +76,7 @@ app.whenReady().then(() => {
   registerNotificationIpc({ getMainWindow });
   registerSettingsIpc();
   registerAgentHookIpc();
+  registerGitIpc();
   createWindow();
   checkForUpdatesOnStartup();
 });
