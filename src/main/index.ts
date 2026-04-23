@@ -12,6 +12,13 @@ import {
 import { PtyManager } from "./pty-manager";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
 
+if (!app.isPackaged) {
+  const devName = `${app.getName()} (dev)`;
+  app.setName(devName);
+  app.setPath("userData", path.join(app.getPath("appData"), devName));
+  app.setAppUserModelId("net.wshmkr.terminal.dev");
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
@@ -27,13 +34,6 @@ app.on("second-instance", () => {
 
 if (squirrelStartup) {
   app.quit();
-}
-
-if (!app.isPackaged) {
-  const devName = `${app.getName()} (dev)`;
-  app.setName(devName);
-  app.setPath("userData", path.join(app.getPath("appData"), devName));
-  app.setAppUserModelId("net.wshmkr.terminal.dev");
 }
 
 let ptyManager: PtyManager;
