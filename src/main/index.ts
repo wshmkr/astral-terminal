@@ -29,6 +29,13 @@ if (squirrelStartup) {
   app.quit();
 }
 
+if (!app.isPackaged) {
+  const devName = `${app.getName()} (dev)`;
+  app.setName(devName);
+  app.setPath("userData", path.join(app.getPath("appData"), devName));
+  app.setAppUserModelId("net.wshmkr.terminal.dev");
+}
+
 let ptyManager: PtyManager;
 
 let cachedConfig: AppConfig | null = null;
