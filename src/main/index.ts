@@ -9,7 +9,20 @@ import {
   registerWindowIpc,
 } from "./ipc";
 import { PtyManager } from "./pty-manager";
-import { createWindow, getMainWindow } from "./window";
+import { createWindow, focusMainWindow, getMainWindow } from "./window";
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on("second-instance", () => {
+  const win = getMainWindow();
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    focusMainWindow(win);
+  }
+});
 
 let ptyManager: PtyManager;
 
