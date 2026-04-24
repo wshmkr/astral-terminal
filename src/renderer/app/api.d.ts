@@ -37,6 +37,7 @@ export interface AppAPI {
   onWindowMaximizedChange: (
     callback: (maximized: boolean) => void,
   ) => () => void;
+  getGitBranch: (cwd: string) => Promise<string | undefined>;
 }
 
 declare global {

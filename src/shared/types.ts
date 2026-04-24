@@ -24,6 +24,8 @@ export interface TerminalSurface {
   name: string;
   cwd: string;
   startupCommand?: string;
+  branch?: string;
+  agentCwd?: string;
 }
 
 export type Surface = TerminalSurface;
@@ -180,6 +182,9 @@ export const IPC = {
   agentHooks: {
     configure: "agent-hooks:configure",
     detect: "agent-hooks:detect",
+  },
+  git: {
+    getBranch: "git:getBranch",
   },
 } as const;
 

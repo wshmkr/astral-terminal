@@ -17,6 +17,7 @@ export interface OscNotification {
 export interface OscResult {
   title?: string;
   cwd?: string;
+  agentCwd?: string;
   notifications: OscNotification[];
 }
 
@@ -26,6 +27,7 @@ export function parseOsc(data: string): OscResult {
   }
   let title: string | undefined;
   let cwd: string | undefined;
+  let agentCwd: string | undefined;
   const notifications: OscNotification[] = [];
 
   for (const [, code, payload] of data.matchAll(OSC_PATTERN)) {
@@ -45,9 +47,11 @@ export function parseOsc(data: string): OscResult {
           title: parts[1] || "Notification",
           body: parts[2],
         });
+      } else if (parts[0] === "agentCwd") {
+        agentCwd = parts[1] ?? "";
       }
     }
   }
 
-  return { title, cwd, notifications };
+  return { title, cwd, agentCwd, notifications };
 }

@@ -132,6 +132,8 @@ export interface TerminalControllerOptions {
   startupCommand: string | undefined;
   getLiveSurface: () => { cwd: string; startupCommand?: string };
   onCwdChange: (cwd: string) => void;
+  onAgentCwdChange: (cwd: string | null) => void;
+  onActivity: () => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
   onRequestFind: () => void;
@@ -313,8 +315,11 @@ export class TerminalController {
     const osc = parseOsc(data);
     if (osc.cwd && osc.cwd !== this.opts.getLiveSurface().cwd)
       this.opts.onCwdChange(osc.cwd);
+    if (osc.agentCwd !== undefined)
+      this.opts.onAgentCwdChange(osc.agentCwd || null);
     if (osc.title) this.opts.onTitleChange(osc.title);
     for (const n of osc.notifications)
       this.opts.onNotification(n.title, n.body);
+    this.opts.onActivity();
   }
 }
