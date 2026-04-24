@@ -52,7 +52,8 @@ const INPUT_SX = {
 const BUTTON_BASE_SX = { p: 0.25, flexShrink: 0 } as const;
 const BUTTON_SX = { ...BUTTON_BASE_SX, color: "text.secondary" } as const;
 const BUTTON_ACTIVE_SX = { ...BUTTON_BASE_SX, color: "primary.main" } as const;
-const CLOSE_BUTTON_SX = BUTTON_BASE_SX;
+
+const preventFocusSteal = (e: React.MouseEvent) => e.preventDefault();
 
 const COUNT_SX = {
   fontSize: "12px",
@@ -93,7 +94,6 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
   useLayoutEffect(() => {
     if (!query) {
       controller.clearFind();
-      setMatches(undefined);
       return;
     }
     controller.findNext(query, caseSensitive);
@@ -142,23 +142,39 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
         <IconButton
           size="small"
           onClick={() => setCaseSensitive((v) => !v)}
+          onMouseDown={preventFocusSteal}
           sx={caseSensitive ? BUTTON_ACTIVE_SX : BUTTON_SX}
         >
           <VscCaseSensitive size={ICON_SIZE} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Previous (Shift+Enter)">
-        <IconButton size="small" onClick={findPrev} sx={BUTTON_SX}>
+        <IconButton
+          size="small"
+          onClick={findPrev}
+          onMouseDown={preventFocusSteal}
+          sx={BUTTON_SX}
+        >
           <VscArrowUp size={ICON_SIZE} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Next (Enter)">
-        <IconButton size="small" onClick={findNext} sx={BUTTON_SX}>
+        <IconButton
+          size="small"
+          onClick={findNext}
+          onMouseDown={preventFocusSteal}
+          sx={BUTTON_SX}
+        >
           <VscArrowDown size={ICON_SIZE} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Close (Esc)">
-        <CloseButton size="small" onClick={onClose} sx={CLOSE_BUTTON_SX}>
+        <CloseButton
+          size="small"
+          onClick={onClose}
+          onMouseDown={preventFocusSteal}
+          sx={BUTTON_BASE_SX}
+        >
           <VscClose size={ICON_SIZE} />
         </CloseButton>
       </Tooltip>

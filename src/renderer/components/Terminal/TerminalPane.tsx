@@ -33,6 +33,7 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
   const surfaceRef = useRef(surface);
   surfaceRef.current = surface;
   const [findOpen, setFindOpen] = useState(false);
+  // Lifted so Ctrl+F can refocus when the bar is already open
   const findInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
