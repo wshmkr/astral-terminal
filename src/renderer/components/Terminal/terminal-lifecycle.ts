@@ -5,27 +5,11 @@ import {
 } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
-import { findAgentProvider } from "../../../shared/agent-hooks";
 import { windowsPtyOptions } from "../../../shared/pty-options";
-import type {
-  AppConfig,
-  CreatePtyResult,
-  TerminalTheme,
-} from "../../../shared/types";
+import type { AppConfig, TerminalTheme } from "../../../shared/types";
 import { parseOsc } from "./osc";
 
-const STARTUP_COMMAND_DELAY_MS = 200;
 const RESIZE_DEBOUNCE_MS = 100;
-
-function resumeCommandFor(
-  session: CreatePtyResult["restoredAgentSession"],
-): string | undefined {
-  if (!session) return undefined;
-  const provider = findAgentProvider(session.agentId);
-  if (!provider) return undefined;
-  if (!provider.sessionIdPattern.test(session.sessionId)) return undefined;
-  return provider.resumeCommand(session.sessionId);
-}
 
 const TERMINAL_FONT =
   "'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace";
@@ -145,8 +129,7 @@ export interface TerminalControllerOptions {
   config: AppConfig;
   surfaceId: string;
   cwd: string;
-  startupCommand: string | undefined;
-  getLiveSurface: () => { cwd: string; startupCommand?: string };
+  getLiveSurface: () => { cwd: string };
   onCwdChange: (cwd: string) => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
@@ -272,7 +255,7 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
-    const { ptyId: id, restoredAgentSession } = await window.app.createPty({
+    const { ptyId: id } = await window.app.createPty({
       cwd: this.opts.cwd,
       surfaceId: this.opts.surfaceId,
     });
@@ -306,18 +289,6 @@ export class TerminalController {
     this.safeFit();
     window.app.resizePty(id, this.term.cols, this.term.rows);
     this.term.focus();
-
-    const startupCommand =
-      this.opts.startupCommand ?? resumeCommandFor(restoredAgentSession);
-    if (startupCommand) {
-      const line =
-        startupCommand.endsWith("\n") || startupCommand.endsWith("\r")
-          ? startupCommand
-          : `${startupCommand}\r`;
-      window.setTimeout(() => {
-        if (!this.disposed && this.ptyId === id) window.app.writePty(id, line);
-      }, STARTUP_COMMAND_DELAY_MS);
-    }
   }
 
   private onPtyData(data: string): void {

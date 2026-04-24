@@ -113,3 +113,13 @@ export const agentProviders: AgentHookProvider[] = [claudeProvider];
 export function findAgentProvider(id: string): AgentHookProvider | undefined {
   return agentProviders.find((p) => p.id === id);
 }
+
+export function resumeCommandFor(
+  session: { agentId: string; sessionId: string } | undefined,
+): string | undefined {
+  if (!session) return undefined;
+  const provider = findAgentProvider(session.agentId);
+  if (!provider) return undefined;
+  if (!provider.sessionIdPattern.test(session.sessionId)) return undefined;
+  return provider.resumeCommand(session.sessionId);
+}

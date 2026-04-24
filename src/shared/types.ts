@@ -23,7 +23,6 @@ export interface TerminalSurface {
   id: string;
   name: string;
   cwd: string;
-  startupCommand?: string;
 }
 
 export type Surface = TerminalSurface;
@@ -142,7 +141,6 @@ export const DEFAULT_TERMINAL_THEME: TerminalTheme = {
 
 export interface CreatePtyResult {
   ptyId: string;
-  restoredAgentSession?: { agentId: string; sessionId: string };
 }
 
 export type ConfigureAgentHooksResult =

@@ -105,7 +105,7 @@ export function updateTerminalSurface(
   workspaceId: string,
   paneId: string,
   surfaceId: string,
-  patch: Partial<Pick<TerminalSurface, "cwd" | "startupCommand">>,
+  patch: Partial<Pick<TerminalSurface, "cwd">>,
 ) {
   const changed = updateLeaf(workspaceId, paneId, (leaf) => {
     const current = leaf.surfaces.find((s) => s.id === surfaceId);

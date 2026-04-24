@@ -6,7 +6,7 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
-import { findAgentProvider } from "../shared/agent-hooks";
+import { findAgentProvider, resumeCommandFor } from "../shared/agent-hooks";
 import {
   AGENT_SESSION_OSC_IDENT,
   parseAgentSessionOsc,
@@ -39,6 +39,26 @@ function resolveCwd(raw: string | undefined, isWindows: boolean): string {
   }
   if (raw.startsWith("~")) return fallback;
   return raw;
+}
+
+// Run startup command inside a login shell so PATH/rc files apply before
+// exec-ing the user's interactive shell — no race against prompt readiness.
+function buildShellArgs(opts: {
+  isWindows: boolean;
+  wslCwd: string;
+  loginShellPath: string;
+  startupCommand: string | undefined;
+}): string[] {
+  const { isWindows, wslCwd, loginShellPath, startupCommand } = opts;
+  if (isWindows) {
+    const tail = 'exec "$SHELL" -l';
+    const cmd = startupCommand ? `${startupCommand}; ${tail}` : tail;
+    return ["--cd", wslCwd, "-e", "sh", "-c", cmd];
+  }
+  if (startupCommand) {
+    return ["-l", "-c", `${startupCommand}; exec ${loginShellPath} -l`];
+  }
+  return ["-l"];
 }
 
 export interface PtyCallbacks {
@@ -166,9 +186,12 @@ export class PtyManager {
 
     const shell = isWindows ? "wsl.exe" : process.env.SHELL || "/bin/bash";
     const wslCwd = cwd || DEFAULT_CWD;
-    const args = isWindows
-      ? ["--cd", wslCwd, "-e", "sh", "-c", 'exec "$SHELL" -l']
-      : ["-l"];
+    const args = buildShellArgs({
+      isWindows,
+      wslCwd,
+      loginShellPath: shell,
+      startupCommand: resumeCommandFor(restoredAgentSession),
+    });
 
     const spawnCwd = isWindows ? os.homedir() : resolveCwd(cwd, false);
 
@@ -239,7 +262,7 @@ export class PtyManager {
       callbacks?.onExit?.(exitCode, signal);
     });
 
-    return { ptyId: id, restoredAgentSession };
+    return { ptyId: id };
   }
 
   beginReplay(id: string): string {
