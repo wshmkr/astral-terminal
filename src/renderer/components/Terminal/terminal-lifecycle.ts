@@ -1,8 +1,12 @@
 import { FitAddon } from "@xterm/addon-fit";
+import {
+  type ISearchDecorationOptions,
+  SearchAddon,
+} from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import { windowsPtyOptions } from "../../../shared/pty-options";
-import type { AppConfig } from "../../../shared/types";
+import type { AppConfig, TerminalTheme } from "../../../shared/types";
 import { parseOsc } from "./osc";
 
 const STARTUP_COMMAND_DELAY_MS = 200;
@@ -10,6 +14,17 @@ const RESIZE_DEBOUNCE_MS = 100;
 const TERMINAL_FONT =
   "'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace";
 const TERMINAL_FONT_SIZE = 16;
+
+function findDecorationsFromTheme(
+  theme: TerminalTheme,
+): ISearchDecorationOptions {
+  return {
+    matchBackground: theme.searchHighlight,
+    matchOverviewRuler: theme.searchHighlight,
+    activeMatchBackground: theme.searchHighlight,
+    activeMatchColorOverviewRuler: theme.searchHighlight,
+  };
+}
 
 export function preloadTerminalFont(): Promise<unknown> {
   return Promise.all([
@@ -23,6 +38,7 @@ export function preloadTerminalFont(): Promise<unknown> {
 interface TerminalAddons {
   term: Terminal;
   fitAddon: FitAddon;
+  searchAddon: SearchAddon;
 }
 
 function createTerminal(
@@ -40,20 +56,24 @@ function createTerminal(
     scrollback: 10000,
     theme: config.terminalTheme,
     windowsPty: windowsPtyOptions(config),
+    allowProposedApi: true,
   });
 
   const fitAddon = new FitAddon();
+  const searchAddon = new SearchAddon();
   term.loadAddon(fitAddon);
+  term.loadAddon(searchAddon);
   term.loadAddon(new WebLinksAddon());
 
   term.open(container);
-  return { term, fitAddon };
+  return { term, fitAddon, searchAddon };
 }
 
 function attachClipboardHandlers(
   term: Terminal,
   container: HTMLElement,
   getPtyId: () => string | null,
+  onRequestFind: () => void,
 ): () => void {
   const pasteFromClipboard = () => {
     navigator.clipboard
@@ -78,6 +98,11 @@ function attachClipboardHandlers(
     if (e.ctrlKey && e.shiftKey && e.key === "V") {
       e.preventDefault();
       pasteFromClipboard();
+      return false;
+    }
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      onRequestFind();
       return false;
     }
     if (e.key === "ScrollLock") return false;
@@ -109,11 +134,19 @@ export interface TerminalControllerOptions {
   onCwdChange: (cwd: string) => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
+  onRequestFind: () => void;
+}
+
+export interface FindMatches {
+  resultIndex: number;
+  resultCount: number;
 }
 
 export class TerminalController {
   readonly term: Terminal;
   private readonly fitAddon: FitAddon;
+  private readonly searchAddon: SearchAddon;
+  private readonly findDecorations: ISearchDecorationOptions;
   private readonly resizeObserver: ResizeObserver;
   private readonly cleanupFns: Array<() => void> = [];
 
@@ -123,12 +156,22 @@ export class TerminalController {
   private preReplayBuffer: string[] | null = [];
 
   constructor(private readonly opts: TerminalControllerOptions) {
-    const { term, fitAddon } = createTerminal(opts.container, opts.config);
+    const { term, fitAddon, searchAddon } = createTerminal(
+      opts.container,
+      opts.config,
+    );
     this.term = term;
     this.fitAddon = fitAddon;
+    this.searchAddon = searchAddon;
+    this.findDecorations = findDecorationsFromTheme(opts.config.terminalTheme);
 
     this.cleanupFns.push(
-      attachClipboardHandlers(term, opts.container, () => this.ptyId),
+      attachClipboardHandlers(
+        term,
+        opts.container,
+        () => this.ptyId,
+        opts.onRequestFind,
+      ),
     );
 
     this.resizeObserver = new ResizeObserver(() => {
@@ -156,6 +199,41 @@ export class TerminalController {
     this.term.options.theme = theme;
     if (theme.background)
       this.opts.container.style.backgroundColor = theme.background;
+  }
+
+  findNext(query: string, caseSensitive: boolean): void {
+    if (this.disposed) return;
+    if (!query) {
+      this.searchAddon.clearDecorations();
+      return;
+    }
+    this.searchAddon.findNext(query, {
+      caseSensitive,
+      decorations: this.findDecorations,
+    });
+  }
+
+  findPrevious(query: string, caseSensitive: boolean): void {
+    if (this.disposed) return;
+    if (!query) {
+      this.searchAddon.clearDecorations();
+      return;
+    }
+    this.searchAddon.findPrevious(query, {
+      caseSensitive,
+      decorations: this.findDecorations,
+    });
+  }
+
+  clearFind(): void {
+    if (this.disposed) return;
+    this.searchAddon.clearDecorations();
+    this.term.clearSelection();
+  }
+
+  onFindResults(cb: (m: FindMatches | undefined) => void): () => void {
+    const sub = this.searchAddon.onDidChangeResults(cb);
+    return () => sub.dispose();
   }
 
   dispose(): void {

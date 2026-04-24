@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import Box from "@mui/material/Box";
+import { useEffect, useRef, useState } from "react";
 import type { TerminalSurface } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
 import {
@@ -8,6 +9,7 @@ import {
   renameSurface,
   updateTerminalSurface,
 } from "../../store";
+import { FindBar } from "./FindBar";
 import { preloadTerminalFont, TerminalController } from "./terminal-lifecycle";
 import "@xterm/xterm/css/xterm.css";
 
@@ -17,11 +19,22 @@ interface Props {
   isVisible: boolean;
 }
 
+const WRAPPER_SX = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  containerType: "inline-size",
+} as const;
+
 export function TerminalPane({ paneId, surface, isVisible }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<TerminalController | null>(null);
   const surfaceRef = useRef(surface);
   surfaceRef.current = surface;
+  const [findOpen, setFindOpen] = useState(false);
+  // Lifted so Ctrl+F can refocus when the bar is already open
+  const findInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -50,6 +63,11 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
           const resolved = title ?? getWorkspace(wsId)?.name ?? "Notification";
           addNotification(wsId, paneId, surfaceId, resolved, body);
         },
+        onRequestFind: () => {
+          setFindOpen(true);
+          findInputRef.current?.focus();
+          findInputRef.current?.select();
+        },
       });
     });
 
@@ -57,18 +75,32 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
       disposed = true;
       controllerRef.current?.dispose();
       controllerRef.current = null;
+      setFindOpen(false);
     };
   }, [surface.id, paneId]);
 
   useEffect(() => {
     if (!isVisible) return;
-    requestAnimationFrame(() => {
-      const c = controllerRef.current;
-      if (!c) return;
-      c.fit();
-      c.focus();
-    });
+    requestAnimationFrame(() => controllerRef.current?.fit());
   }, [isVisible]);
 
-  return <div className="terminal-container" ref={containerRef} />;
+  useEffect(() => {
+    if (!isVisible || findOpen) return;
+    requestAnimationFrame(() => controllerRef.current?.focus());
+  }, [isVisible, findOpen]);
+
+  const closeFind = () => setFindOpen(false);
+
+  return (
+    <Box sx={WRAPPER_SX}>
+      <div className="terminal-container" ref={containerRef} />
+      {findOpen && controllerRef.current && (
+        <FindBar
+          controller={controllerRef.current}
+          onClose={closeFind}
+          inputRef={findInputRef}
+        />
+      )}
+    </Box>
+  );
 }
