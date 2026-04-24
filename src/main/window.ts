@@ -1,9 +1,20 @@
 import path from "node:path";
 import { app, BrowserWindow, shell } from "electron";
 import { APP_NAME } from "../shared/meta";
-import { DEFAULT_TERMINAL_BG, IPC } from "../shared/types";
+import {
+  ASTRAL_MODE_ARG_PREFIX,
+  DEFAULT_TERMINAL_BG,
+  IPC,
+} from "../shared/types";
 
 const DEV_URL = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL;
+const IS_DEV = !app.isPackaged;
+const WINDOW_TITLE = IS_DEV ? `${APP_NAME} (dev)` : APP_NAME;
+const ICON_BASENAME = IS_DEV ? "icon-dev" : "icon";
+const ICON_FILE =
+  process.platform === "win32"
+    ? `${ICON_BASENAME}.ico`
+    : `${ICON_BASENAME}.png`;
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -26,17 +37,16 @@ export function createWindow(): void {
     minHeight: 400,
     frame: false,
     backgroundColor: DEFAULT_TERMINAL_BG,
-    title: APP_NAME,
-    icon: path.join(
-      app.getAppPath(),
-      "build",
-      process.platform === "win32" ? "icon.ico" : "icon.png",
-    ),
+    title: WINDOW_TITLE,
+    icon: path.join(app.getAppPath(), "build", ICON_FILE),
     webPreferences: {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      additionalArguments: [
+        `${ASTRAL_MODE_ARG_PREFIX}${IS_DEV ? "dev" : "packaged"}`,
+      ],
     },
   });
 
@@ -45,6 +55,10 @@ export function createWindow(): void {
   } else {
     mainWindow.loadFile(path.join(__dirname, "../index.html"));
   }
+
+  mainWindow.webContents.on("page-title-updated", (event) => {
+    event.preventDefault();
+  });
 
   mainWindow.webContents.on(
     "did-fail-load",

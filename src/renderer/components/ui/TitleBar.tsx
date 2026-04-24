@@ -10,11 +10,16 @@ import {
   VscChromeRestore,
 } from "react-icons/vsc";
 import iconUrl from "../../../../build/icon.svg?url";
+import iconDevUrl from "../../../../build/icon-dev.svg?url";
 import { APP_NAME_SHORT } from "../../../shared/meta";
 import { useWorkspaceStore } from "../../store";
 
 const TITLE_BAR_HEIGHT = 40;
-const APP_NAME_LC = APP_NAME_SHORT.toLowerCase();
+const IS_DEV = window.app.mode === "dev";
+const APP_NAME_LC = IS_DEV
+  ? `${APP_NAME_SHORT.toLowerCase()} (dev)`
+  : APP_NAME_SHORT.toLowerCase();
+const APP_ICON_URL = IS_DEV ? iconDevUrl : iconUrl;
 
 const TitleBarButton = styled(IconButton, {
   shouldForwardProp: (p) => p !== "$dimmed" && p !== "$isClose",
@@ -87,7 +92,7 @@ function TitleBarImpl() {
         userSelect: "none",
       }}
     >
-      <Box component="img" src={iconUrl} alt="" sx={APP_ICON_SX} />
+      <Box component="img" src={APP_ICON_URL} alt="" sx={APP_ICON_SX} />
 
       <Typography
         variant="caption"

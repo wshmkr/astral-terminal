@@ -1,3 +1,7 @@
+export type AppMode = "packaged" | "dev";
+
+export const ASTRAL_MODE_ARG_PREFIX = "--astral-mode=";
+
 export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";

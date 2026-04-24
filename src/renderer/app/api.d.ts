@@ -1,10 +1,12 @@
 import type {
   AppConfig,
+  AppMode,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
 } from "../../shared/types";
 
 export interface AppAPI {
+  mode: AppMode;
   readConfig: () => Promise<AppConfig>;
   createPty: (options: { cwd?: string; surfaceId: string }) => Promise<string>;
   writePty: (ptyId: string, data: string) => void;
