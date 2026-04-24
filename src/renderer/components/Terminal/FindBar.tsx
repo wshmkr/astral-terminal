@@ -49,15 +49,10 @@ const INPUT_SX = {
   "& input": { minWidth: 0 },
 } as const;
 
-const BUTTON_SX = { color: "text.secondary", p: 0.25, flexShrink: 0 } as const;
-
-const BUTTON_ACTIVE_SX = {
-  color: "primary.main",
-  p: 0.25,
-  flexShrink: 0,
-} as const;
-
-const CLOSE_BUTTON_SX = { p: 0.25, flexShrink: 0 } as const;
+const BUTTON_BASE_SX = { p: 0.25, flexShrink: 0 } as const;
+const BUTTON_SX = { ...BUTTON_BASE_SX, color: "text.secondary" } as const;
+const BUTTON_ACTIVE_SX = { ...BUTTON_BASE_SX, color: "primary.main" } as const;
+const CLOSE_BUTTON_SX = BUTTON_BASE_SX;
 
 const COUNT_SX = {
   fontSize: "12px",
@@ -71,6 +66,15 @@ const COUNT_SX = {
   fontVariantNumeric: "tabular-nums",
   "@container (max-width: 460px)": { display: "none" },
 };
+
+function getCountLabel(
+  query: string,
+  matches: FindMatches | undefined,
+): string {
+  if (!query) return "";
+  if (!matches || matches.resultCount === 0) return "No results";
+  return `${matches.resultIndex + 1} / ${matches.resultCount}`;
+}
 
 export function FindBar({ controller, onClose, inputRef }: Props) {
   const [query, setQuery] = useState("");
@@ -117,11 +121,7 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
     }
   };
 
-  const countLabel = !query
-    ? ""
-    : !matches || matches.resultCount === 0
-      ? "No results"
-      : `${matches.resultIndex + 1} / ${matches.resultCount}`;
+  const countLabel = getCountLabel(query, matches);
 
   return (
     <Box

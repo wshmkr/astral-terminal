@@ -146,7 +146,7 @@ export class TerminalController {
   readonly term: Terminal;
   private readonly fitAddon: FitAddon;
   private readonly searchAddon: SearchAddon;
-  private findDecorations: ISearchDecorationOptions;
+  private readonly findDecorations: ISearchDecorationOptions;
   private readonly resizeObserver: ResizeObserver;
   private readonly cleanupFns: Array<() => void> = [];
 
@@ -201,25 +201,25 @@ export class TerminalController {
       this.opts.container.style.backgroundColor = theme.background;
   }
 
-  findNext(query: string, caseSensitive: boolean): boolean {
-    if (this.disposed) return false;
+  findNext(query: string, caseSensitive: boolean): void {
+    if (this.disposed) return;
     if (!query) {
       this.searchAddon.clearDecorations();
-      return false;
+      return;
     }
-    return this.searchAddon.findNext(query, {
+    this.searchAddon.findNext(query, {
       caseSensitive,
       decorations: this.findDecorations,
     });
   }
 
-  findPrevious(query: string, caseSensitive: boolean): boolean {
-    if (this.disposed) return false;
+  findPrevious(query: string, caseSensitive: boolean): void {
+    if (this.disposed) return;
     if (!query) {
       this.searchAddon.clearDecorations();
-      return false;
+      return;
     }
-    return this.searchAddon.findPrevious(query, {
+    this.searchAddon.findPrevious(query, {
       caseSensitive,
       decorations: this.findDecorations,
     });

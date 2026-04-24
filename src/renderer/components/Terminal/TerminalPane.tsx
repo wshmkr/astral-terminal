@@ -34,7 +34,6 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
   surfaceRef.current = surface;
   const [findOpen, setFindOpen] = useState(false);
   const findInputRef = useRef<HTMLInputElement>(null);
-  const [controllerReady, setControllerReady] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -69,14 +68,12 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
           findInputRef.current?.select();
         },
       });
-      setControllerReady(true);
     });
 
     return () => {
       disposed = true;
       controllerRef.current?.dispose();
       controllerRef.current = null;
-      setControllerReady(false);
       setFindOpen(false);
     };
   }, [surface.id, paneId]);
@@ -96,7 +93,7 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
   return (
     <Box sx={WRAPPER_SX}>
       <div className="terminal-container" ref={containerRef} />
-      {findOpen && controllerReady && controllerRef.current && (
+      {findOpen && controllerRef.current && (
         <FindBar
           controller={controllerRef.current}
           onClose={closeFind}
