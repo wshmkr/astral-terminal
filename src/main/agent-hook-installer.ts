@@ -45,8 +45,8 @@ async function resolveWslPath(relativePath: string): Promise<string> {
   return resolved;
 }
 
-export async function detectAgentHooks(providerId: string): Promise<boolean> {
-  const provider = findAgentProvider(providerId);
+export async function detectAgentHooks(providerName: string): Promise<boolean> {
+  const provider = findAgentProvider(providerName);
   if (!provider) return false;
   try {
     const dir = await resolveWslPath(path.posix.dirname(provider.settingsPath));
@@ -216,13 +216,13 @@ async function runConfigure(
 }
 
 export async function configureAgentHooks(
-  providerId: string,
+  providerName: string,
 ): Promise<ConfigureAgentHooksResult> {
-  const provider = findAgentProvider(providerId);
+  const provider = findAgentProvider(providerName);
   if (!provider)
     return {
       status: "error",
-      message: `Unknown agent provider: ${providerId}`,
+      message: `Unknown agent provider: ${providerName}`,
     };
   const key = provider.settingsPath;
   const prev = pathLocks.get(key) ?? Promise.resolve();

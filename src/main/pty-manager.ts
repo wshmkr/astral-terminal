@@ -75,7 +75,7 @@ export interface CreatePtyOptions {
 }
 
 interface AgentSession {
-  agentId: string;
+  agentName: string;
   sessionId: string;
 }
 
@@ -146,12 +146,12 @@ export class PtyManager {
     surfaceId: string,
   ): AgentSession | undefined {
     const parsed = readJsonFileSync(this.metaFile(surfaceId)) as
-      | { agentId?: unknown; sessionId?: unknown }
+      | { agentName?: unknown; sessionId?: unknown }
       | undefined;
     this.deleteMeta(surfaceId);
-    if (typeof parsed?.agentId !== "string") return undefined;
+    if (typeof parsed?.agentName !== "string") return undefined;
     if (typeof parsed.sessionId !== "string") return undefined;
-    return { agentId: parsed.agentId, sessionId: parsed.sessionId };
+    return { agentName: parsed.agentName, sessionId: parsed.sessionId };
   }
 
   private writeMeta(surfaceId: string, session: AgentSession): void {
@@ -237,14 +237,14 @@ export class PtyManager {
     headless.parser.registerOscHandler(AGENT_SESSION_OSC_IDENT, (data) => {
       const parsed = parseAgentSessionOsc(data);
       if (!parsed) return false;
-      const provider = findAgentProvider(parsed.agentId);
+      const provider = findAgentProvider(parsed.agentName);
       if (!provider) return false;
       if (!provider.sessionIdPattern.test(parsed.sessionId)) return false;
-      const { agentId, event, sessionId } = parsed;
+      const { agentName, event, sessionId } = parsed;
       if (event === "start") {
-        entry.agentSession = { agentId, sessionId };
+        entry.agentSession = { agentName, sessionId };
       } else if (
-        entry.agentSession?.agentId === agentId &&
+        entry.agentSession?.agentName === agentName &&
         entry.agentSession.sessionId === sessionId
       ) {
         entry.agentSession = undefined;

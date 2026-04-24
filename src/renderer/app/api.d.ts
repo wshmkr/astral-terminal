@@ -23,9 +23,9 @@ export interface AppAPI {
     ptyId: string,
     callback: (exitCode: number, signal?: number) => void,
   ) => () => void;
-  detectAgentHooks: (params: { providerId: string }) => Promise<boolean>;
+  detectAgentHooks: (params: { providerName: string }) => Promise<boolean>;
   configureAgentHooks: (params: {
-    providerId: string;
+    providerName: string;
   }) => Promise<ConfigureAgentHooksResult>;
   fireNotification: (payload: NotificationFirePayload) => void;
   onNotificationClick: (

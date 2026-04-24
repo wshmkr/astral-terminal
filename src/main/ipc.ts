@@ -123,13 +123,13 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
 export function registerAgentHookIpc(): void {
   ipcMain.handle(
     IPC.agentHooks.detect,
-    (_event, { providerId }: { providerId: string }) =>
-      detectAgentHooks(providerId),
+    (_event, { providerName }: { providerName: string }) =>
+      detectAgentHooks(providerName),
   );
 
   ipcMain.handle(
     IPC.agentHooks.configure,
-    (_event, { providerId }: { providerId: string }) =>
-      configureAgentHooks(providerId),
+    (_event, { providerName }: { providerName: string }) =>
+      configureAgentHooks(providerName),
   );
 }

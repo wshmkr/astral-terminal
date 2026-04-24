@@ -116,11 +116,11 @@ export function App() {
       (async () => {
         try {
           const detected = await window.app.detectAgentHooks({
-            providerId: provider.id,
+            providerName: provider.name,
           });
           if (!detected) return;
           const result = await window.app.configureAgentHooks({
-            providerId: provider.id,
+            providerName: provider.name,
           });
           if (result.status === "configured") {
             console.log(`Configured ${provider.name} notification hooks`);

@@ -53,7 +53,7 @@ function notifyHook(entry: { title: string; body: string }) {
 }
 
 function sessionHook(opts: {
-  agentId: string;
+  agentName: string;
   event: AgentSessionEvent;
   extractSessionId: string;
 }) {
@@ -63,7 +63,6 @@ function sessionHook(opts: {
 }
 
 export interface AgentHookProvider {
-  id: string;
   name: string;
   settingsPath: string;
   sessionIdPattern: RegExp;
@@ -72,7 +71,6 @@ export interface AgentHookProvider {
 }
 
 const claudeProvider: AgentHookProvider = {
-  id: "claude",
   name: "Claude",
   settingsPath: ".claude/settings.json",
   sessionIdPattern: UUID_RE,
@@ -84,7 +82,7 @@ const claudeProvider: AgentHookProvider = {
     const s = agentHookStrings(this.name);
     const session = (event: AgentSessionEvent) =>
       sessionHook({
-        agentId: this.id,
+        agentName: this.name,
         event,
         extractSessionId: CLAUDE_SESSION_ID_EXTRACTOR,
       });
@@ -116,15 +114,15 @@ const claudeProvider: AgentHookProvider = {
 
 export const agentProviders: AgentHookProvider[] = [claudeProvider];
 
-export function findAgentProvider(id: string): AgentHookProvider | undefined {
-  return agentProviders.find((p) => p.id === id);
+export function findAgentProvider(name: string): AgentHookProvider | undefined {
+  return agentProviders.find((p) => p.name === name);
 }
 
 export function resumeCommandFor(
-  session: { agentId: string; sessionId: string } | undefined,
+  session: { agentName: string; sessionId: string } | undefined,
 ): string | undefined {
   if (!session) return undefined;
-  const provider = findAgentProvider(session.agentId);
+  const provider = findAgentProvider(session.agentName);
   if (!provider) return undefined;
   if (!provider.sessionIdPattern.test(session.sessionId)) return undefined;
   return provider.resumeCommand(session.sessionId);
