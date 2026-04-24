@@ -33,6 +33,7 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
   const surfaceRef = useRef(surface);
   surfaceRef.current = surface;
   const [findOpen, setFindOpen] = useState(false);
+  const findInputRef = useRef<HTMLInputElement>(null);
   const [controllerReady, setControllerReady] = useState(false);
 
   useEffect(() => {
@@ -62,7 +63,11 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
           const resolved = title ?? getWorkspace(wsId)?.name ?? "Notification";
           addNotification(wsId, paneId, surfaceId, resolved, body);
         },
-        onRequestFind: () => setFindOpen(true),
+        onRequestFind: () => {
+          setFindOpen(true);
+          findInputRef.current?.focus();
+          findInputRef.current?.select();
+        },
       });
       setControllerReady(true);
     });
@@ -92,7 +97,11 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
     <Box sx={WRAPPER_SX}>
       <div className="terminal-container" ref={containerRef} />
       {findOpen && controllerReady && controllerRef.current && (
-        <FindBar controller={controllerRef.current} onClose={closeFind} />
+        <FindBar
+          controller={controllerRef.current}
+          onClose={closeFind}
+          inputRef={findInputRef}
+        />
       )}
     </Box>
   );

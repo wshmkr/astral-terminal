@@ -3,18 +3,22 @@ import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import {
   VscArrowDown,
   VscArrowUp,
   VscCaseSensitive,
   VscClose,
 } from "react-icons/vsc";
+import { CloseButton } from "../ui/CloseButton";
 import type { FindMatches, TerminalController } from "./terminal-lifecycle";
+
+const ICON_SIZE = 16;
 
 interface Props {
   controller: TerminalController;
   onClose: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const BAR_SX = {
@@ -38,37 +42,40 @@ const BAR_SX = {
 
 const INPUT_SX = {
   fontSize: "13px",
-  px: 0.75,
+  px: 0.25,
   minWidth: 0,
   flex: "1 1 220px",
   color: "text.primary",
   "& input": { minWidth: 0 },
 } as const;
 
-const BUTTON_SX = { color: "text.secondary", p: 0.5, flexShrink: 0 } as const;
+const BUTTON_SX = { color: "text.secondary", p: 0.25, flexShrink: 0 } as const;
 
 const BUTTON_ACTIVE_SX = {
   color: "primary.main",
-  p: 0.5,
+  p: 0.25,
   flexShrink: 0,
 } as const;
+
+const CLOSE_BUTTON_SX = { p: 0.25, flexShrink: 0 } as const;
 
 const COUNT_SX = {
   fontSize: "12px",
   color: "text.disabled",
   width: 64,
   flexShrink: 0,
+  mr: -0.5,
+  userSelect: "none",
   whiteSpace: "nowrap",
-  textAlign: "right" as const,
+  textAlign: "left" as const,
   fontVariantNumeric: "tabular-nums",
   "@container (max-width: 460px)": { display: "none" },
 };
 
-export function FindBar({ controller, onClose }: Props) {
+export function FindBar({ controller, onClose, inputRef }: Props) {
   const [query, setQuery] = useState("");
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [matches, setMatches] = useState<FindMatches | undefined>(undefined);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     return controller.onFindResults(setMatches);
@@ -77,7 +84,7 @@ export function FindBar({ controller, onClose }: Props) {
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
-  }, []);
+  }, [inputRef]);
 
   useLayoutEffect(() => {
     if (!query) {
@@ -137,23 +144,23 @@ export function FindBar({ controller, onClose }: Props) {
           onClick={() => setCaseSensitive((v) => !v)}
           sx={caseSensitive ? BUTTON_ACTIVE_SX : BUTTON_SX}
         >
-          <VscCaseSensitive size={16} />
+          <VscCaseSensitive size={ICON_SIZE} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Previous (Shift+Enter)">
         <IconButton size="small" onClick={findPrev} sx={BUTTON_SX}>
-          <VscArrowUp size={14} />
+          <VscArrowUp size={ICON_SIZE} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Next (Enter)">
         <IconButton size="small" onClick={findNext} sx={BUTTON_SX}>
-          <VscArrowDown size={14} />
+          <VscArrowDown size={ICON_SIZE} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Close (Esc)">
-        <IconButton size="small" onClick={onClose} sx={BUTTON_SX}>
-          <VscClose size={14} />
-        </IconButton>
+        <CloseButton size="small" onClick={onClose} sx={CLOSE_BUTTON_SX}>
+          <VscClose size={ICON_SIZE} />
+        </CloseButton>
       </Tooltip>
     </Box>
   );

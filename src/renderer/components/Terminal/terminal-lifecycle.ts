@@ -19,12 +19,10 @@ function findDecorationsFromTheme(
   theme: TerminalTheme,
 ): ISearchDecorationOptions {
   return {
-    matchBackground: theme.yellow,
-    matchBorder: theme.brightYellow,
-    matchOverviewRuler: theme.yellow,
-    activeMatchBackground: theme.brightYellow,
-    activeMatchBorder: theme.yellow,
-    activeMatchColorOverviewRuler: theme.brightYellow,
+    matchBackground: theme.searchHighlight,
+    matchOverviewRuler: theme.searchHighlight,
+    activeMatchBackground: theme.searchHighlight,
+    activeMatchColorOverviewRuler: theme.searchHighlight,
   };
 }
 
@@ -230,6 +228,7 @@ export class TerminalController {
   clearFind(): void {
     if (this.disposed) return;
     this.searchAddon.clearDecorations();
+    this.term.clearSelection();
   }
 
   onFindResults(cb: (m: FindMatches | undefined) => void): () => void {

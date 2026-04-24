@@ -75,6 +75,7 @@ export interface TerminalTheme {
   brightMagenta: string;
   brightCyan: string;
   brightWhite: string;
+  searchHighlight: string;
 }
 
 export interface NotificationSettings {
@@ -121,6 +122,7 @@ export const DEFAULT_TERMINAL_THEME: TerminalTheme = {
   brightMagenta: "#c678dd",
   brightCyan: "#56b6c2",
   brightWhite: "#dcdfe4",
+  searchHighlight: "#e5c07b",
 };
 
 export type ConfigureAgentHooksResult =
