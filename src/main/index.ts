@@ -1,8 +1,10 @@
 import path from "node:path";
 import { app, BrowserWindow, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
+import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import type { AppConfig } from "../shared/types";
 import { loadConfig } from "./config";
+import { IS_DEV } from "./env";
 import {
   registerAgentHookIpc,
   registerNotificationIpc,
@@ -11,6 +13,13 @@ import {
 } from "./ipc";
 import { PtyManager } from "./pty-manager";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
+
+if (IS_DEV) {
+  const devName = `${app.getName()}${DEV_SUFFIX}`;
+  app.setName(devName);
+  app.setPath("userData", path.join(app.getPath("appData"), devName));
+  app.setAppUserModelId(`${APP_ID}.dev`);
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -38,7 +47,7 @@ function getConfig(): AppConfig {
 }
 
 function installCsp() {
-  const csp = !app.isPackaged
+  const csp = IS_DEV
     ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:*;"
     : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self';";
 

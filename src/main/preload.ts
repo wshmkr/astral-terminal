@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { NotificationFirePayload } from "../shared/types";
-import { IPC, ptyDataChannel, ptyExitChannel } from "../shared/types";
+import {
+  decodeAppModeArg,
+  IPC,
+  ptyDataChannel,
+  ptyExitChannel,
+} from "../shared/types";
+
+const mode = decodeAppModeArg(process.argv);
 
 function subscribe<Args extends unknown[]>(
   channel: string,
@@ -13,6 +20,8 @@ function subscribe<Args extends unknown[]>(
 }
 
 contextBridge.exposeInMainWorld("app", {
+  mode,
+
   readConfig: () => ipcRenderer.invoke(IPC.config.read),
 
   createPty: (options: { cwd?: string; surfaceId: string }) =>
