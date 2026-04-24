@@ -5,10 +5,13 @@ const AGENT_SESSION_OSC_PREFIX = "AgentSession=";
 
 export type AgentSessionEvent = "start" | "end";
 
-interface ParsedAgentSessionOsc {
+export interface AgentSession {
   agentName: string;
-  event: AgentSessionEvent;
   sessionId: string;
+}
+
+interface ParsedAgentSessionOsc extends AgentSession {
+  event: AgentSessionEvent;
 }
 
 export function parseAgentSessionOsc(

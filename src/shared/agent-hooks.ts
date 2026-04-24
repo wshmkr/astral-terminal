@@ -1,4 +1,5 @@
 import {
+  type AgentSession,
   type AgentSessionEvent,
   buildSessionHookShellCommand,
 } from "./agent-session";
@@ -119,7 +120,7 @@ export function findAgentProvider(name: string): AgentHookProvider | undefined {
 }
 
 export function resumeCommandFor(
-  session: { agentName: string; sessionId: string } | undefined,
+  session: AgentSession | undefined,
 ): string | undefined {
   if (!session) return undefined;
   const provider = findAgentProvider(session.agentName);

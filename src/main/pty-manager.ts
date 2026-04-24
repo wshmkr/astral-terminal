@@ -9,6 +9,7 @@ import * as pty from "node-pty";
 import { findAgentProvider, resumeCommandFor } from "../shared/agent-hooks";
 import {
   AGENT_SESSION_OSC_IDENT,
+  type AgentSession,
   parseAgentSessionOsc,
 } from "../shared/agent-session";
 import { APP_PACKAGE_NAME } from "../shared/meta";
@@ -18,7 +19,6 @@ import {
   type CreatePtyResult,
   DEFAULT_CWD,
 } from "../shared/types";
-import { readJsonFileSync } from "./json-file";
 
 const HEADLESS_SCROLLBACK = 10000;
 const SERIALIZE_SCROLLBACK = 5000;
@@ -72,11 +72,6 @@ export interface CreatePtyOptions {
   cwd?: string;
   config: AppConfig;
   callbacks?: (id: string) => PtyCallbacks;
-}
-
-interface AgentSession {
-  agentName: string;
-  sessionId: string;
 }
 
 interface PtyEntry {
@@ -145,13 +140,20 @@ export class PtyManager {
   private loadAndConsumeAgentSession(
     surfaceId: string,
   ): AgentSession | undefined {
-    const parsed = readJsonFileSync(this.metaFile(surfaceId)) as
-      | { agentName?: unknown; sessionId?: unknown }
-      | undefined;
-    this.deleteMeta(surfaceId);
-    if (typeof parsed?.agentName !== "string") return undefined;
-    if (typeof parsed.sessionId !== "string") return undefined;
-    return { agentName: parsed.agentName, sessionId: parsed.sessionId };
+    try {
+      const raw = fs.readFileSync(this.metaFile(surfaceId), "utf-8");
+      const parsed = JSON.parse(raw) as {
+        agentName?: unknown;
+        sessionId?: unknown;
+      };
+      if (typeof parsed?.agentName !== "string") return undefined;
+      if (typeof parsed.sessionId !== "string") return undefined;
+      return { agentName: parsed.agentName, sessionId: parsed.sessionId };
+    } catch {
+      return undefined;
+    } finally {
+      this.deleteMeta(surfaceId);
+    }
   }
 
   private writeMeta(surfaceId: string, session: AgentSession): void {

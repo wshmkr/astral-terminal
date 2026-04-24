@@ -1,12 +1,8 @@
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { app } from "electron";
-import {
-  type AppConfig,
-  DEFAULT_TERMINAL_THEME,
-  type TerminalTheme,
-} from "../shared/types";
-import { readJsonFileSync } from "./json-file";
+import { type AppConfig, DEFAULT_TERMINAL_THEME } from "../shared/types";
 
 function getConfigPath(): string {
   return path.join(app.getPath("userData"), "config.json");
@@ -25,11 +21,14 @@ function detectPlatform(): AppConfig["platform"] {
 
 export function loadConfig(): AppConfig {
   const platform = detectPlatform();
-  const parsed = readJsonFileSync(getConfigPath()) as
-    | { terminalTheme?: Partial<TerminalTheme> }
-    | undefined;
-  return {
-    terminalTheme: { ...DEFAULT_TERMINAL_THEME, ...parsed?.terminalTheme },
-    platform,
-  };
+  try {
+    const raw = fs.readFileSync(getConfigPath(), "utf-8");
+    const parsed = JSON.parse(raw);
+    return {
+      terminalTheme: { ...DEFAULT_TERMINAL_THEME, ...parsed.terminalTheme },
+      platform,
+    };
+  } catch {
+    return { terminalTheme: DEFAULT_TERMINAL_THEME, platform };
+  }
 }
