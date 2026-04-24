@@ -1,11 +1,11 @@
 import { APP_PACKAGE_NAME } from "./meta";
 
 export const AGENT_SESSION_OSC_IDENT = 778;
-export const AGENT_SESSION_OSC_PREFIX = "AstralAgentSession=";
+const AGENT_SESSION_OSC_PREFIX = "AgentSession=";
 
 export type AgentSessionEvent = "start" | "end";
 
-export interface ParsedAgentSessionOsc {
+interface ParsedAgentSessionOsc {
   agentId: string;
   event: AgentSessionEvent;
   sessionId: string;

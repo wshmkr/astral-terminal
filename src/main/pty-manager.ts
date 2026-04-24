@@ -41,8 +41,8 @@ function resolveCwd(raw: string | undefined, isWindows: boolean): string {
   return raw;
 }
 
-// Run startup command inside a login shell so PATH/rc files apply before
-// exec-ing the user's interactive shell — no race against prompt readiness.
+// Login shell runs the startup command (so PATH/rc files apply) before
+// exec-ing the interactive shell — avoids racing a timer against prompt readiness.
 function buildShellArgs(opts: {
   isWindows: boolean;
   wslCwd: string;
@@ -139,6 +139,8 @@ export class PtyManager {
     } catch {}
   }
 
+  // Single-shot: a crash before the agent re-emits `start` must not resume
+  // the same dead session on the next boot.
   private loadAndConsumeAgentSession(
     surfaceId: string,
   ): AgentSession | undefined {

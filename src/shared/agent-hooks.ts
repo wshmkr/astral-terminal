@@ -13,7 +13,7 @@ export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// sed extractor for Claude hook stdin JSON (expects top-level "session_id")
+// Matches the first `session_id`; assumes Claude emits it at the top level.
 const CLAUDE_SESSION_ID_EXTRACTOR = `sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1`;
 
 export function agentHookStrings(agent: string) {
@@ -44,25 +44,22 @@ function oscNotifyCommand(title: string, body: string): string {
   return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then printf '\\033]777;notify;${t};${b}\\007' > /dev/tty; fi`;
 }
 
-function cmd(entry: { title: string; body: string }) {
-  return {
-    type: "command",
-    command: oscNotifyCommand(entry.title, entry.body),
-  };
+function hook(command: string) {
+  return { type: "command", command };
 }
 
-function sessionCmd(opts: {
+function notifyHook(entry: { title: string; body: string }) {
+  return hook(oscNotifyCommand(entry.title, entry.body));
+}
+
+function sessionHook(opts: {
   agentId: string;
   event: AgentSessionEvent;
   extractSessionId: string;
 }) {
-  return {
-    type: "command",
-    command: buildSessionHookShellCommand({
-      ...opts,
-      hookMarker: HOOK_MARKER,
-    }),
-  };
+  return hook(
+    buildSessionHookShellCommand({ ...opts, hookMarker: HOOK_MARKER }),
+  );
 }
 
 export interface AgentHookProvider {
@@ -86,7 +83,7 @@ const claudeProvider: AgentHookProvider = {
   generateHooksConfig() {
     const s = agentHookStrings(this.name);
     const session = (event: AgentSessionEvent) =>
-      sessionCmd({
+      sessionHook({
         agentId: this.id,
         event,
         extractSessionId: CLAUDE_SESSION_ID_EXTRACTOR,
@@ -94,13 +91,22 @@ const claudeProvider: AgentHookProvider = {
     return {
       hooks: {
         Notification: [
-          { matcher: "permission_prompt", hooks: [cmd(s.permissionPrompt)] },
-          { matcher: "elicitation_dialog", hooks: [cmd(s.elicitationDialog)] },
+          {
+            matcher: "permission_prompt",
+            hooks: [notifyHook(s.permissionPrompt)],
+          },
+          {
+            matcher: "elicitation_dialog",
+            hooks: [notifyHook(s.elicitationDialog)],
+          },
         ],
         PreToolUse: [
-          { matcher: "AskUserQuestion", hooks: [cmd(s.askUserQuestion)] },
+          {
+            matcher: "AskUserQuestion",
+            hooks: [notifyHook(s.askUserQuestion)],
+          },
         ],
-        Stop: [{ hooks: [cmd(s.stop)] }],
+        Stop: [{ hooks: [notifyHook(s.stop)] }],
         SessionStart: [{ hooks: [session("start")] }],
         SessionEnd: [{ hooks: [session("end")] }],
       },
