@@ -14,11 +14,7 @@ import {
 } from "../shared/agent-session";
 import { APP_PACKAGE_NAME } from "../shared/meta";
 import { windowsPtyOptions } from "../shared/pty-options";
-import {
-  type AppConfig,
-  type CreatePtyResult,
-  DEFAULT_CWD,
-} from "../shared/types";
+import { type AppConfig, DEFAULT_CWD } from "../shared/types";
 
 const HEADLESS_SCROLLBACK = 10000;
 const SERIALIZE_SCROLLBACK = 5000;
@@ -174,7 +170,7 @@ export class PtyManager {
     return entry.serializeAddon.serialize(SERIALIZE_OPTS);
   }
 
-  create(opts: CreatePtyOptions): CreatePtyResult {
+  create(opts: CreatePtyOptions): string {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
@@ -260,7 +256,7 @@ export class PtyManager {
       callbacks?.onExit?.(exitCode, signal);
     });
 
-    return { ptyId: id };
+    return id;
   }
 
   beginReplay(id: string): string {

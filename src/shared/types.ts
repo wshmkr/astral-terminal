@@ -139,10 +139,6 @@ export const DEFAULT_TERMINAL_THEME: TerminalTheme = {
   searchHighlight: "#e5c07b",
 };
 
-export interface CreatePtyResult {
-  ptyId: string;
-}
-
 export type ConfigureAgentHooksResult =
   | { status: "configured" }
   | { status: "already-configured" }

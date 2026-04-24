@@ -45,12 +45,11 @@ function oscNotifyCommand(title: string, body: string): string {
   return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then printf '\\033]777;notify;${t};${b}\\007' > /dev/tty; fi`;
 }
 
-function hook(command: string) {
-  return { type: "command", command };
-}
-
 function notifyHook(entry: { title: string; body: string }) {
-  return hook(oscNotifyCommand(entry.title, entry.body));
+  return {
+    type: "command",
+    command: oscNotifyCommand(entry.title, entry.body),
+  };
 }
 
 function sessionHook(opts: {
@@ -58,9 +57,13 @@ function sessionHook(opts: {
   event: AgentSessionEvent;
   extractSessionId: string;
 }) {
-  return hook(
-    buildSessionHookShellCommand({ ...opts, hookMarker: HOOK_MARKER }),
-  );
+  return {
+    type: "command",
+    command: buildSessionHookShellCommand({
+      ...opts,
+      hookMarker: HOOK_MARKER,
+    }),
+  };
 }
 
 export interface AgentHookProvider {

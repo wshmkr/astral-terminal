@@ -255,7 +255,7 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
-    const { ptyId: id } = await window.app.createPty({
+    const id = await window.app.createPty({
       cwd: this.opts.cwd,
       surfaceId: this.opts.surfaceId,
     });
