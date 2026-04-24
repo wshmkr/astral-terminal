@@ -62,8 +62,8 @@ contextBridge.exposeInMainWorld("app", {
       callback,
     ),
 
-  detectAgentHooks: (params: { providerName: string }) =>
+  detectAgentHooks: (params: { providerId: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.detect, params) as Promise<boolean>,
-  configureAgentHooks: (params: { providerName: string }) =>
+  configureAgentHooks: (params: { providerId: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.configure, params),
 });
