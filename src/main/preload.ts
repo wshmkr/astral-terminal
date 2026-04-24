@@ -1,15 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { AppMode, NotificationFirePayload } from "../shared/types";
+import type { NotificationFirePayload } from "../shared/types";
 import {
-  ASTRAL_MODE_ARG_PREFIX,
+  decodeAppModeArg,
   IPC,
   ptyDataChannel,
   ptyExitChannel,
 } from "../shared/types";
 
-const modeArg = process.argv.find((a) => a.startsWith(ASTRAL_MODE_ARG_PREFIX));
-const mode: AppMode =
-  modeArg?.slice(ASTRAL_MODE_ARG_PREFIX.length) === "dev" ? "dev" : "packaged";
+const mode = decodeAppModeArg(process.argv);
 
 function subscribe<Args extends unknown[]>(
   channel: string,

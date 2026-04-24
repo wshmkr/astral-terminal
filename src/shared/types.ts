@@ -1,6 +1,17 @@
 export type AppMode = "packaged" | "dev";
 
-export const ASTRAL_MODE_ARG_PREFIX = "--astral-mode=";
+const ASTRAL_MODE_ARG_PREFIX = "--astral-mode=";
+
+export function encodeAppModeArg(mode: AppMode): string {
+  return `${ASTRAL_MODE_ARG_PREFIX}${mode}`;
+}
+
+export function decodeAppModeArg(argv: readonly string[]): AppMode {
+  const raw = argv
+    .find((a) => a.startsWith(ASTRAL_MODE_ARG_PREFIX))
+    ?.slice(ASTRAL_MODE_ARG_PREFIX.length);
+  return raw === "dev" ? "dev" : "packaged";
+}
 
 export type SplitDirection = "horizontal" | "vertical";
 

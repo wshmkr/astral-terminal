@@ -8,6 +8,7 @@ const brandingDefines = {
   __APP_NAME__: JSON.stringify(pkg.productName),
   __APP_NAME_SHORT__: JSON.stringify(pkg.productNameShort),
   __APP_PACKAGE_NAME__: JSON.stringify(pkg.name),
+  __APP_ID__: JSON.stringify(pkg.build.appId),
 };
 
 function htmlBranding(): Plugin {

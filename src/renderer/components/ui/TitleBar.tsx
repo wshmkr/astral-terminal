@@ -11,14 +11,12 @@ import {
 } from "react-icons/vsc";
 import iconUrl from "../../../../build/icon.svg?url";
 import iconDevUrl from "../../../../build/icon-dev.svg?url";
-import { APP_NAME_SHORT } from "../../../shared/meta";
+import { APP_NAME_SHORT, DEV_SUFFIX } from "../../../shared/meta";
 import { useWorkspaceStore } from "../../store";
 
 const TITLE_BAR_HEIGHT = 40;
 const IS_DEV = window.app.mode === "dev";
-const APP_NAME_LC = IS_DEV
-  ? `${APP_NAME_SHORT.toLowerCase()} (dev)`
-  : APP_NAME_SHORT.toLowerCase();
+const APP_NAME_LC = `${APP_NAME_SHORT.toLowerCase()}${IS_DEV ? DEV_SUFFIX : ""}`;
 const APP_ICON_URL = IS_DEV ? iconDevUrl : iconUrl;
 
 const TitleBarButton = styled(IconButton, {

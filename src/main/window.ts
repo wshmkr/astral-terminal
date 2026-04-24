@@ -1,15 +1,11 @@
 import path from "node:path";
 import { app, BrowserWindow, shell } from "electron";
-import { APP_NAME } from "../shared/meta";
-import {
-  ASTRAL_MODE_ARG_PREFIX,
-  DEFAULT_TERMINAL_BG,
-  IPC,
-} from "../shared/types";
+import { APP_NAME, DEV_SUFFIX } from "../shared/meta";
+import { DEFAULT_TERMINAL_BG, encodeAppModeArg, IPC } from "../shared/types";
+import { APP_MODE, IS_DEV } from "./env";
 
-const DEV_URL = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL;
-const IS_DEV = !app.isPackaged;
-const WINDOW_TITLE = IS_DEV ? `${APP_NAME} (dev)` : APP_NAME;
+const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
+const WINDOW_TITLE = IS_DEV ? `${APP_NAME}${DEV_SUFFIX}` : APP_NAME;
 const ICON_BASENAME = IS_DEV ? "icon-dev" : "icon";
 const ICON_FILE =
   process.platform === "win32"
@@ -44,9 +40,7 @@ export function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      additionalArguments: [
-        `${ASTRAL_MODE_ARG_PREFIX}${IS_DEV ? "dev" : "packaged"}`,
-      ],
+      additionalArguments: [encodeAppModeArg(APP_MODE)],
     },
   });
 
