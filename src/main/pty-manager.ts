@@ -18,6 +18,7 @@ import {
   type CreatePtyResult,
   DEFAULT_CWD,
 } from "../shared/types";
+import { readJsonFileSync } from "./json-file";
 
 const HEADLESS_SCROLLBACK = 10000;
 const SERIALIZE_SCROLLBACK = 5000;
@@ -144,20 +145,13 @@ export class PtyManager {
   private loadAndConsumeAgentSession(
     surfaceId: string,
   ): AgentSession | undefined {
-    try {
-      const raw = fs.readFileSync(this.metaFile(surfaceId), "utf-8");
-      const obj = JSON.parse(raw) as {
-        agentId?: unknown;
-        sessionId?: unknown;
-      };
-      if (typeof obj?.agentId !== "string") return undefined;
-      if (typeof obj.sessionId !== "string") return undefined;
-      return { agentId: obj.agentId, sessionId: obj.sessionId };
-    } catch {
-      return undefined;
-    } finally {
-      this.deleteMeta(surfaceId);
-    }
+    const parsed = readJsonFileSync(this.metaFile(surfaceId)) as
+      | { agentId?: unknown; sessionId?: unknown }
+      | undefined;
+    this.deleteMeta(surfaceId);
+    if (typeof parsed?.agentId !== "string") return undefined;
+    if (typeof parsed.sessionId !== "string") return undefined;
+    return { agentId: parsed.agentId, sessionId: parsed.sessionId };
   }
 
   private writeMeta(surfaceId: string, session: AgentSession): void {
