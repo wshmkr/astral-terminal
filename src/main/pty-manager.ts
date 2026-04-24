@@ -38,8 +38,10 @@ function resolveCwd(raw: string | undefined, isWindows: boolean): string {
   return raw;
 }
 
-// Login shell runs the startup command (so PATH/rc files apply) before
-// exec-ing the interactive shell — avoids racing a timer against prompt readiness.
+// Run the startup command under the user's login+interactive shell so rc
+// files (nvm / fnm / volta / etc.) set up PATH before it runs, then `exec`
+// into a plain interactive shell so login profile isn't sourced twice.
+// Avoids racing a timer against prompt readiness.
 function buildShellArgs(opts: {
   isWindows: boolean;
   wslCwd: string;
@@ -48,14 +50,15 @@ function buildShellArgs(opts: {
 }): string[] {
   const { isWindows, wslCwd, loginShellPath, startupCommand } = opts;
   if (isWindows) {
-    const tail = 'exec "$SHELL" -l';
-    const cmd = startupCommand ? `${startupCommand}; ${tail}` : tail;
-    return ["--cd", wslCwd, "-e", "sh", "-c", cmd];
+    if (!startupCommand) {
+      return ["--cd", wslCwd, "-e", "sh", "-c", 'exec "$SHELL" -l'];
+    }
+    const escaped = startupCommand.replace(/'/g, "'\\''");
+    const inner = `${escaped}; exec "$SHELL"`;
+    return ["--cd", wslCwd, "-e", "sh", "-c", `exec "$SHELL" -lic '${inner}'`];
   }
-  if (startupCommand) {
-    return ["-l", "-c", `${startupCommand}; exec ${loginShellPath} -l`];
-  }
-  return ["-l"];
+  if (!startupCommand) return ["-l"];
+  return ["-lic", `${startupCommand}; exec ${loginShellPath}`];
 }
 
 export interface PtyCallbacks {
