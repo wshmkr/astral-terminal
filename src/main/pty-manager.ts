@@ -218,7 +218,9 @@ export class PtyManager {
     headless.parser.registerOscHandler(AGENT_SESSION_OSC_IDENT, (data) => {
       const parsed = parseAgentSessionOsc(data);
       if (!parsed) return false;
-      if (!findAgentProvider(parsed.agentId)) return false;
+      const provider = findAgentProvider(parsed.agentId);
+      if (!provider) return false;
+      if (!provider.sessionIdPattern.test(parsed.sessionId)) return false;
       const { agentId, event, sessionId } = parsed;
       if (event === "start") {
         entry.agentSession = { agentId, sessionId };
@@ -237,7 +239,7 @@ export class PtyManager {
       callbacks?.onExit?.(exitCode, signal);
     });
 
-    return { ptyId: id, agentSession: restoredAgentSession };
+    return { ptyId: id, restoredAgentSession };
   }
 
   beginReplay(id: string): string {

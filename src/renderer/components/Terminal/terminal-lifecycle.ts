@@ -18,7 +18,7 @@ const STARTUP_COMMAND_DELAY_MS = 200;
 const RESIZE_DEBOUNCE_MS = 100;
 
 function resumeCommandFor(
-  session: CreatePtyResult["agentSession"],
+  session: CreatePtyResult["restoredAgentSession"],
 ): string | undefined {
   if (!session) return undefined;
   const provider = findAgentProvider(session.agentId);
@@ -272,7 +272,7 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
-    const { ptyId: id, agentSession } = await window.app.createPty({
+    const { ptyId: id, restoredAgentSession } = await window.app.createPty({
       cwd: this.opts.cwd,
       surfaceId: this.opts.surfaceId,
     });
@@ -308,7 +308,7 @@ export class TerminalController {
     this.term.focus();
 
     const startupCommand =
-      this.opts.startupCommand ?? resumeCommandFor(agentSession);
+      this.opts.startupCommand ?? resumeCommandFor(restoredAgentSession);
     if (startupCommand) {
       const line =
         startupCommand.endsWith("\n") || startupCommand.endsWith("\r")

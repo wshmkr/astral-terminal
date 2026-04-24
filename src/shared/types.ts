@@ -142,7 +142,7 @@ export const DEFAULT_TERMINAL_THEME: TerminalTheme = {
 
 export interface CreatePtyResult {
   ptyId: string;
-  agentSession?: { agentId: string; sessionId: string };
+  restoredAgentSession?: { agentId: string; sessionId: string };
 }
 
 export type ConfigureAgentHooksResult =
