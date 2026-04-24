@@ -86,12 +86,15 @@ function TabItem({
     id: surface.id,
     data: { type: "tab", paneId },
   });
-  const dragStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1 : "auto",
-  };
+  const dragStyle = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 1 : undefined,
+    }),
+    [transform, transition, isDragging],
+  );
   return (
     <Box
       ref={setNodeRef}

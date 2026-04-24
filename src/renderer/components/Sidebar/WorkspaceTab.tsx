@@ -2,7 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { VscClose, VscEdit } from "react-icons/vsc";
 import type { Workspace } from "../../../shared/types";
 import {
@@ -115,13 +115,15 @@ export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
     disabled: editing,
   });
 
-  const dragStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1 : "auto",
-    position: "relative" as const,
-  };
+  const dragStyle = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 1 : undefined,
+    }),
+    [transform, transition, isDragging],
+  );
 
   return (
     <Box

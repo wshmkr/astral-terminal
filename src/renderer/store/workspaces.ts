@@ -308,7 +308,9 @@ export function reorderSurfacesInPane(
     surfaces.splice(toIndex, 0, moved);
     return { ...leaf, surfaces };
   });
-  if (changed) commit();
+  if (!changed) return;
+  setState({ ...getState(), focusedPaneId: paneId });
+  commit();
 }
 
 export function moveSurfaceToPane(
@@ -331,31 +333,29 @@ export function moveSurfaceToPane(
     activeSurfaceId: surface.id,
   }));
 
+  let nextLayout: PaneNode;
   if (sourceLeaf.surfaces.length === 1) {
     const pruned = pruneNode(afterAdd, sourcePaneId);
-    if (!pruned) {
-      removeWorkspace(ws.id);
-      commit();
-      return;
-    }
-    setWorkspaceLayout(ws.id, pruned);
-    setState({ ...getState(), focusedPaneId: targetPaneId });
-    commit();
-    return;
+    if (!pruned) return;
+    nextLayout = pruned;
+  } else {
+    nextLayout = updateLeafInLayout(afterAdd, sourcePaneId, (leaf) => {
+      const removedIndex = leaf.surfaces.findIndex((s) => s.id === surfaceId);
+      if (removedIndex < 0) return leaf;
+      const remaining = leaf.surfaces.filter((s) => s.id !== surfaceId);
+      const fallback = remaining[removedIndex - 1] ?? remaining[0];
+      const nextActiveId =
+        leaf.activeSurfaceId === surfaceId
+          ? (fallback?.id ?? leaf.activeSurfaceId)
+          : leaf.activeSurfaceId;
+      return { ...leaf, surfaces: remaining, activeSurfaceId: nextActiveId };
+    });
   }
 
-  const finalLayout = updateLeafInLayout(afterAdd, sourcePaneId, (leaf) => {
-    const removedIndex = leaf.surfaces.findIndex((s) => s.id === surfaceId);
-    if (removedIndex < 0) return leaf;
-    const remaining = leaf.surfaces.filter((s) => s.id !== surfaceId);
-    const fallback = remaining[removedIndex - 1] ?? remaining[0];
-    const nextActiveId =
-      leaf.activeSurfaceId === surfaceId
-        ? (fallback?.id ?? leaf.activeSurfaceId)
-        : leaf.activeSurfaceId;
-    return { ...leaf, surfaces: remaining, activeSurfaceId: nextActiveId };
+  setState({
+    ...getState(),
+    workspaces: mapWorkspaceById(ws.id, (w) => ({ ...w, layout: nextLayout })),
+    focusedPaneId: targetPaneId,
   });
-  setWorkspaceLayout(ws.id, finalLayout);
-  setState({ ...getState(), focusedPaneId: targetPaneId });
   commit();
 }
