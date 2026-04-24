@@ -6,10 +6,11 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
+import { findAgentProvider } from "../shared/agent-hooks";
 import {
-  CLAUDE_SESSION_OSC_IDENT,
-  CLAUDE_SESSION_OSC_PREFIX,
-} from "../shared/agent-hooks";
+  AGENT_SESSION_OSC_IDENT,
+  parseAgentSessionOsc,
+} from "../shared/agent-session";
 import { APP_PACKAGE_NAME } from "../shared/meta";
 import { windowsPtyOptions } from "../shared/pty-options";
 import {
@@ -52,13 +53,18 @@ export interface CreatePtyOptions {
   callbacks?: (id: string) => PtyCallbacks;
 }
 
+interface AgentSession {
+  agentId: string;
+  sessionId: string;
+}
+
 interface PtyEntry {
   pty: IPty;
   surfaceId: string;
   headless: HeadlessTerminal;
   serializeAddon: SerializeAddon;
   pendingForward: ((data: string) => void) | undefined;
-  claudeSessionId: string | undefined;
+  agentSession: AgentSession | undefined;
 }
 
 export class PtyManager {
@@ -113,30 +119,28 @@ export class PtyManager {
     } catch {}
   }
 
-  private loadAndConsumeMeta(
+  private loadAndConsumeAgentSession(
     surfaceId: string,
-  ): { claudeSessionId?: string } | null {
-    let parsed: { claudeSessionId?: string } | null = null;
+  ): AgentSession | undefined {
     try {
       const raw = fs.readFileSync(this.metaFile(surfaceId), "utf-8");
-      const obj = JSON.parse(raw);
-      if (obj && typeof obj === "object") {
-        const id = (obj as { claudeSessionId?: unknown }).claudeSessionId;
-        parsed = typeof id === "string" ? { claudeSessionId: id } : {};
-      }
+      const obj = JSON.parse(raw) as {
+        agentId?: unknown;
+        sessionId?: unknown;
+      };
+      if (typeof obj?.agentId !== "string") return undefined;
+      if (typeof obj.sessionId !== "string") return undefined;
+      return { agentId: obj.agentId, sessionId: obj.sessionId };
     } catch {
-      parsed = null;
+      return undefined;
+    } finally {
+      this.deleteMeta(surfaceId);
     }
-    this.deleteMeta(surfaceId);
-    return parsed;
   }
 
-  private writeMeta(
-    surfaceId: string,
-    meta: { claudeSessionId?: string },
-  ): void {
+  private writeMeta(surfaceId: string, session: AgentSession): void {
     try {
-      fs.writeFileSync(this.metaFile(surfaceId), JSON.stringify(meta));
+      fs.writeFileSync(this.metaFile(surfaceId), JSON.stringify(session));
     } catch (err) {
       console.error("Failed to write terminal meta:", err);
     }
@@ -157,7 +161,7 @@ export class PtyManager {
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
     const carriedScrollback = this.evictBySurfaceId(surfaceId);
-    const persistedMeta = this.loadAndConsumeMeta(surfaceId);
+    const restoredAgentSession = this.loadAndConsumeAgentSession(surfaceId);
     const isWindows = process.platform === "win32";
 
     const shell = isWindows ? "wsl.exe" : process.env.SHELL || "/bin/bash";
@@ -207,22 +211,22 @@ export class PtyManager {
       headless,
       serializeAddon,
       pendingForward: callbacks?.onData,
-      claudeSessionId: undefined,
+      agentSession: undefined,
     };
     this.entries.set(id, entry);
 
-    headless.parser.registerOscHandler(CLAUDE_SESSION_OSC_IDENT, (data) => {
-      if (!data.startsWith(CLAUDE_SESSION_OSC_PREFIX)) return false;
-      const payload = data.slice(CLAUDE_SESSION_OSC_PREFIX.length);
-      const sep = payload.indexOf(";");
-      if (sep < 0) return false;
-      const event = payload.slice(0, sep);
-      const sessionId = payload.slice(sep + 1);
-      if (!sessionId) return false;
+    headless.parser.registerOscHandler(AGENT_SESSION_OSC_IDENT, (data) => {
+      const parsed = parseAgentSessionOsc(data);
+      if (!parsed) return false;
+      if (!findAgentProvider(parsed.agentId)) return false;
+      const { agentId, event, sessionId } = parsed;
       if (event === "start") {
-        entry.claudeSessionId = sessionId;
-      } else if (event === "end" && entry.claudeSessionId === sessionId) {
-        entry.claudeSessionId = undefined;
+        entry.agentSession = { agentId, sessionId };
+      } else if (
+        entry.agentSession?.agentId === agentId &&
+        entry.agentSession.sessionId === sessionId
+      ) {
+        entry.agentSession = undefined;
       }
       return true;
     });
@@ -233,7 +237,7 @@ export class PtyManager {
       callbacks?.onExit?.(exitCode, signal);
     });
 
-    return { ptyId: id, claudeSessionId: persistedMeta?.claudeSessionId };
+    return { ptyId: id, agentSession: restoredAgentSession };
   }
 
   beginReplay(id: string): string {
@@ -297,10 +301,8 @@ export class PtyManager {
       } catch (err) {
         console.error("Failed to serialize terminal buffer:", err);
       }
-      if (entry.claudeSessionId) {
-        this.writeMeta(entry.surfaceId, {
-          claudeSessionId: entry.claudeSessionId,
-        });
+      if (entry.agentSession) {
+        this.writeMeta(entry.surfaceId, entry.agentSession);
       } else {
         this.deleteMeta(entry.surfaceId);
       }

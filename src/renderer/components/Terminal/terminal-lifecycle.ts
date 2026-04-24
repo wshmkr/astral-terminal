@@ -5,20 +5,28 @@ import {
 } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
+import { findAgentProvider } from "../../../shared/agent-hooks";
 import { windowsPtyOptions } from "../../../shared/pty-options";
-import type { AppConfig, TerminalTheme } from "../../../shared/types";
+import type {
+  AppConfig,
+  CreatePtyResult,
+  TerminalTheme,
+} from "../../../shared/types";
 import { parseOsc } from "./osc";
 
 const STARTUP_COMMAND_DELAY_MS = 200;
 const RESIZE_DEBOUNCE_MS = 100;
-const CLAUDE_SESSION_ID_RE = /^[0-9a-fA-F-]{16,}$/;
 
-function claudeResumeCommand(
-  sessionId: string | undefined,
+function resumeCommandFor(
+  session: CreatePtyResult["agentSession"],
 ): string | undefined {
-  if (!sessionId || !CLAUDE_SESSION_ID_RE.test(sessionId)) return undefined;
-  return `claude --resume ${sessionId}`;
+  if (!session) return undefined;
+  const provider = findAgentProvider(session.agentId);
+  if (!provider) return undefined;
+  if (!provider.sessionIdPattern.test(session.sessionId)) return undefined;
+  return provider.resumeCommand(session.sessionId);
 }
+
 const TERMINAL_FONT =
   "'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace";
 const TERMINAL_FONT_SIZE = 16;
@@ -264,7 +272,7 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
-    const { ptyId: id, claudeSessionId } = await window.app.createPty({
+    const { ptyId: id, agentSession } = await window.app.createPty({
       cwd: this.opts.cwd,
       surfaceId: this.opts.surfaceId,
     });
@@ -300,7 +308,7 @@ export class TerminalController {
     this.term.focus();
 
     const startupCommand =
-      this.opts.startupCommand ?? claudeResumeCommand(claudeSessionId);
+      this.opts.startupCommand ?? resumeCommandFor(agentSession);
     if (startupCommand) {
       const line =
         startupCommand.endsWith("\n") || startupCommand.endsWith("\r")
