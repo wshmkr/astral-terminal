@@ -38,10 +38,8 @@ function resolveCwd(raw: string | undefined, isWindows: boolean): string {
   return raw;
 }
 
-// Run the startup command under the user's login+interactive shell so rc
-// files (nvm / fnm / volta / etc.) set up PATH before it runs, then `exec`
-// into a plain interactive shell so login profile isn't sourced twice.
-// Avoids racing a timer against prompt readiness.
+// `-lic` sources login+interactive rc so nvm/fnm/volta-installed binaries
+// are on PATH before the command runs; tail `exec` avoids a second login.
 function buildShellArgs(opts: {
   isWindows: boolean;
   wslCwd: string;
@@ -134,8 +132,7 @@ export class PtyManager {
     } catch {}
   }
 
-  // Single-shot: a crash before the agent re-emits `start` must not resume
-  // the same dead session on the next boot.
+  // Crash before the next `start` must not re-resume a dead session.
   private loadAndConsumeAgentSession(
     surfaceId: string,
   ): AgentSession | undefined {
