@@ -38,25 +38,19 @@ function resolveCwd(raw: string | undefined, isWindows: boolean): string {
   return raw;
 }
 
-// `-lic` sources login+interactive rc so nvm/fnm/volta-installed binaries
-// are on PATH before the command runs; tail `exec` avoids a second login.
 function buildShellArgs(opts: {
   isWindows: boolean;
   wslCwd: string;
-  loginShellPath: string;
   startupCommand: string | undefined;
 }): string[] {
-  const { isWindows, wslCwd, loginShellPath, startupCommand } = opts;
-  if (isWindows) {
-    if (!startupCommand) {
-      return ["--cd", wslCwd, "-e", "sh", "-c", 'exec "$SHELL" -l'];
-    }
-    const escaped = startupCommand.replace(/'/g, "'\\''");
-    const inner = `${escaped}; exec "$SHELL"`;
-    return ["--cd", wslCwd, "-e", "sh", "-c", `exec "$SHELL" -lic '${inner}'`];
-  }
-  if (!startupCommand) return ["-l"];
-  return ["-lic", `${startupCommand}; exec ${loginShellPath}`];
+  const { isWindows, wslCwd, startupCommand } = opts;
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: POSIX shell parameter expansion
+  const sh = '"${SHELL:-/bin/sh}"';
+  const inner = startupCommand
+    ? `exec ${sh} -lic '${startupCommand.replace(/'/g, "'\\''")}; exec ${sh}'`
+    : `exec ${sh} -l`;
+  if (isWindows) return ["--cd", wslCwd, "-e", "sh", "-c", inner];
+  return ["-c", inner];
 }
 
 export interface PtyCallbacks {
@@ -132,7 +126,7 @@ export class PtyManager {
     } catch {}
   }
 
-  // Crash before the next `start` must not re-resume a dead session.
+  // Crash before the next `start` must not re-resume a dead session
   private loadAndConsumeAgentSession(
     surfaceId: string,
   ): AgentSession | undefined {
@@ -178,12 +172,11 @@ export class PtyManager {
     const restoredAgentSession = this.loadAndConsumeAgentSession(surfaceId);
     const isWindows = process.platform === "win32";
 
-    const shell = isWindows ? "wsl.exe" : process.env.SHELL || "/bin/bash";
+    const shell = isWindows ? "wsl.exe" : "/bin/sh";
     const wslCwd = cwd || DEFAULT_CWD;
     const args = buildShellArgs({
       isWindows,
       wslCwd,
-      loginShellPath: shell,
       startupCommand: resumeCommandFor(restoredAgentSession),
     });
 
@@ -219,7 +212,10 @@ export class PtyManager {
       serializeAddon as unknown as import("@xterm/headless").ITerminalAddon,
     );
 
-    const restored = carriedScrollback ?? this.loadBuffer(surfaceId);
+    // Skip scrollback restore when auto-resuming
+    const restored = restoredAgentSession
+      ? null
+      : (carriedScrollback ?? this.loadBuffer(surfaceId));
     if (restored) headless.write(restored);
 
     const entry: PtyEntry = {

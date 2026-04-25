@@ -14,7 +14,7 @@ export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Matches the first `session_id`; assumes Claude emits it at the top level.
+// Matches the first `session_id`; assumes Claude emits it at the top level
 const CLAUDE_SESSION_ID_EXTRACTOR = `sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1`;
 
 export function agentHookStrings(agent: string) {
