@@ -81,8 +81,6 @@ export interface PtyCallbacks {
 export interface CreatePtyOptions {
   surfaceId: string;
   cwd?: string;
-  // Omit cols/rows when the renderer has no container size yet (hidden tab).
-  // Restore happens at saved dims; first visible resize will reflow.
   cols?: number;
   rows?: number;
   config: AppConfig;
@@ -184,11 +182,6 @@ export class PtyManager {
     } catch {}
   }
 
-  // Invariant: headless.{cols,rows} mirror the renderer xterm. Maintained by
-  // the resizePty IPC path (renderer term.onResize → main resize() →
-  // headless.resize). Any bypass of term.onResize will desync these and cause
-  // snapshot() to capture stale dims, reintroducing the scrollback-replay
-  // corruption this module exists to prevent.
   private snapshot(entry: PtyEntry): StoredBuffer {
     return {
       cols: entry.headless.cols,
@@ -203,6 +196,7 @@ export class PtyManager {
     const callbacks = opts.callbacks?.(id);
     const carried = this.evictBySurfaceId(surfaceId);
     const restoredAgentSession = this.loadAndConsumeAgentSession(surfaceId);
+
     // Skip scrollback restore when auto-resuming
     const restored = restoredAgentSession
       ? null
