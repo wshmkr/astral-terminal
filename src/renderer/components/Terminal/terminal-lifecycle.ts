@@ -72,15 +72,13 @@ function createTerminal(
 function attachClipboardHandlers(
   term: Terminal,
   container: HTMLElement,
-  getPtyId: () => string | null,
   onRequestFind: () => void,
 ): () => void {
   const pasteFromClipboard = () => {
     navigator.clipboard
       .readText()
       .then((text) => {
-        const id = getPtyId();
-        if (text && id) window.app.writePty(id, text);
+        if (text) term.paste(text);
       })
       .catch((err) => {
         console.warn("Clipboard read failed:", err);
@@ -165,12 +163,7 @@ export class TerminalController {
     this.findDecorations = findDecorationsFromTheme(opts.config.terminalTheme);
 
     this.cleanupFns.push(
-      attachClipboardHandlers(
-        term,
-        opts.container,
-        () => this.ptyId,
-        opts.onRequestFind,
-      ),
+      attachClipboardHandlers(term, opts.container, opts.onRequestFind),
     );
 
     this.resizeObserver = new ResizeObserver(() => {
