@@ -8,6 +8,7 @@ import { commit, getState, notify, setState } from "./core";
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   soundEnabled: false,
   osNotificationsEnabled: false,
+  agentHooks: {},
 };
 
 export function clampSidebarWidth(
@@ -36,6 +37,24 @@ export function updateNotificationSettings(
   setState({
     ...s,
     notificationSettings: { ...s.notificationSettings, ...settings },
+  });
+  commit();
+}
+
+export function setAgentHookEnabled(
+  providerName: string,
+  enabled: boolean,
+): void {
+  const s = getState();
+  setState({
+    ...s,
+    notificationSettings: {
+      ...s.notificationSettings,
+      agentHooks: {
+        ...s.notificationSettings.agentHooks,
+        [providerName]: enabled,
+      },
+    },
   });
   commit();
 }

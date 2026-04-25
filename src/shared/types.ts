@@ -95,6 +95,7 @@ export interface TerminalTheme {
 export interface NotificationSettings {
   soundEnabled: boolean;
   osNotificationsEnabled: boolean;
+  agentHooks: Record<string, boolean>;
 }
 
 export type AppThemeId = "dark" | "light";
@@ -133,6 +134,11 @@ export type ConfigureAgentHooksResult =
   | { status: "already-configured" }
   | { status: "error"; message: string };
 
+export type UninstallAgentHooksResult =
+  | { status: "uninstalled" }
+  | { status: "not-installed" }
+  | { status: "error"; message: string };
+
 export interface AppState {
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
@@ -169,6 +175,7 @@ export const IPC = {
   agentHooks: {
     configure: "agent-hooks:configure",
     detect: "agent-hooks:detect",
+    uninstall: "agent-hooks:uninstall",
   },
 } as const;
 

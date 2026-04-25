@@ -3,6 +3,7 @@ import type {
   AppMode,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
+  UninstallAgentHooksResult,
 } from "../../shared/types";
 
 export interface AppAPI {
@@ -23,6 +24,9 @@ export interface AppAPI {
   configureAgentHooks: (params: {
     providerName: string;
   }) => Promise<ConfigureAgentHooksResult>;
+  uninstallAgentHooks: (params: {
+    providerName: string;
+  }) => Promise<UninstallAgentHooksResult>;
   fireNotification: (payload: NotificationFirePayload) => void;
   onNotificationClick: (
     callback: (data: {

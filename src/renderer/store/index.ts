@@ -22,6 +22,7 @@ export {
 
 export {
   clampSidebarWidth,
+  setAgentHookEnabled,
   setSettingsOpen,
   setSidebarWidth,
   setWindowFocused,

@@ -7,7 +7,11 @@ import {
   ptyDataChannel,
   ptyExitChannel,
 } from "../shared/types";
-import { configureAgentHooks, detectAgentHooks } from "./agent-hook-installer";
+import {
+  configureAgentHooks,
+  detectAgentHooks,
+  uninstallAgentHooks,
+} from "./agent-hook-installer";
 import { PtyManager } from "./pty-manager";
 import { focusMainWindow } from "./window";
 
@@ -131,5 +135,11 @@ export function registerAgentHookIpc(): void {
     IPC.agentHooks.configure,
     (_event, { providerName }: { providerName: string }) =>
       configureAgentHooks(providerName),
+  );
+
+  ipcMain.handle(
+    IPC.agentHooks.uninstall,
+    (_event, { providerName }: { providerName: string }) =>
+      uninstallAgentHooks(providerName),
   );
 }

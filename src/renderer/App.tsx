@@ -120,13 +120,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const enabled = getState().notificationSettings.agentHooks;
     for (const provider of agentProviders) {
+      if (!enabled[provider.name]) continue;
       (async () => {
         try {
-          const detected = await window.app.detectAgentHooks({
-            providerName: provider.name,
-          });
-          if (!detected) return;
           const result = await window.app.configureAgentHooks({
             providerName: provider.name,
           });

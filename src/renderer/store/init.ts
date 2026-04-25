@@ -32,8 +32,10 @@ function initState(): AppState {
       focusedPaneId: activeWs ? findFirstLeaf(activeWs.layout) : null,
       sidebarWidth: loaded.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH_PX,
       appearance: loaded.appearance ?? DEFAULT_APPEARANCE,
-      notificationSettings:
-        loaded.notificationSettings ?? DEFAULT_NOTIFICATION_SETTINGS,
+      notificationSettings: {
+        ...DEFAULT_NOTIFICATION_SETTINGS,
+        ...(loaded.notificationSettings ?? {}),
+      },
       windowFocused: INITIAL_WINDOW_FOCUSED,
       settingsOpen: false,
     };

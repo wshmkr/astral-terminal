@@ -10,7 +10,10 @@ import {
   HOOK_MARKER_PREFIX,
   HOOK_MARKER_VERSION,
 } from "../shared/agent-hooks";
-import type { ConfigureAgentHooksResult } from "../shared/types";
+import type {
+  ConfigureAgentHooksResult,
+  UninstallAgentHooksResult,
+} from "../shared/types";
 
 const pathLocks = new Map<string, Promise<unknown>>();
 const execFileAsync = promisify(execFile);
@@ -229,6 +232,69 @@ export async function configureAgentHooks(
   const next = prev.then(
     () => runConfigure(provider),
     () => runConfigure(provider),
+  );
+  pathLocks.set(
+    key,
+    next.catch(() => {}),
+  );
+  return next;
+}
+
+async function runUninstall(
+  provider: AgentHookProvider,
+): Promise<UninstallAgentHooksResult> {
+  const { settingsPath } = provider;
+  try {
+    const filePath = await resolveWslPath(settingsPath);
+
+    let raw: string | null = null;
+    try {
+      raw = fs.readFileSync(filePath, "utf-8");
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        return { status: "not-installed" };
+      }
+      throw err;
+    }
+    if (!raw?.trim()) return { status: "not-installed" };
+
+    const settings = JSON.parse(raw) as Record<string, unknown>;
+    const existing =
+      (settings.hooks as Record<string, unknown[]> | undefined) ?? {};
+    if (!hookTreeHas(existing, isOwnHookCommand)) {
+      return { status: "not-installed" };
+    }
+
+    const purged = purgeOwnHooks(existing);
+    if (Object.keys(purged).length === 0) {
+      delete settings.hooks;
+    } else {
+      settings.hooks = purged;
+    }
+    fs.writeFileSync(filePath, JSON.stringify(settings, null, 2), "utf-8");
+
+    console.log(`Removed notification hooks from ~/${settingsPath}`);
+    return { status: "uninstalled" };
+  } catch (err) {
+    console.error("Failed to uninstall agent hooks:", err);
+    return { status: "error", message: String(err) };
+  }
+}
+
+export async function uninstallAgentHooks(
+  providerName: string,
+): Promise<UninstallAgentHooksResult> {
+  const provider = findAgentProvider(providerName);
+  if (!provider)
+    return {
+      status: "error",
+      message: `Unknown agent provider: ${providerName}`,
+    };
+  const key = provider.settingsPath;
+  const prev = pathLocks.get(key) ?? Promise.resolve();
+  const next = prev.then(
+    () => runUninstall(provider),
+    () => runUninstall(provider),
   );
   pathLocks.set(
     key,
