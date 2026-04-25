@@ -5,7 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import {
   type AgentHookProvider,
-  agentProviders,
+  findAgentProvider,
   HOOK_MARKER,
   HOOK_MARKER_PREFIX,
   HOOK_MARKER_VERSION,
@@ -45,12 +45,8 @@ async function resolveWslPath(relativePath: string): Promise<string> {
   return resolved;
 }
 
-function findProvider(providerName: string): AgentHookProvider | null {
-  return agentProviders.find((p) => p.name === providerName) ?? null;
-}
-
 export async function detectAgentHooks(providerName: string): Promise<boolean> {
-  const provider = findProvider(providerName);
+  const provider = findAgentProvider(providerName);
   if (!provider) return false;
   try {
     const dir = await resolveWslPath(path.posix.dirname(provider.settingsPath));
@@ -222,7 +218,7 @@ async function runConfigure(
 export async function configureAgentHooks(
   providerName: string,
 ): Promise<ConfigureAgentHooksResult> {
-  const provider = findProvider(providerName);
+  const provider = findAgentProvider(providerName);
   if (!provider)
     return {
       status: "error",

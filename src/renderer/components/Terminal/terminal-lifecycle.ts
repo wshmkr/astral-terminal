@@ -9,8 +9,8 @@ import { windowsPtyOptions } from "../../../shared/pty-options";
 import type { AppConfig, TerminalTheme } from "../../../shared/types";
 import { parseOsc } from "./osc";
 
-const STARTUP_COMMAND_DELAY_MS = 200;
 const RESIZE_DEBOUNCE_MS = 100;
+
 const TERMINAL_FONT =
   "'JetBrains Mono', 'Cascadia Mono', 'Consolas', monospace";
 const TERMINAL_FONT_SIZE = 16;
@@ -129,8 +129,7 @@ export interface TerminalControllerOptions {
   config: AppConfig;
   surfaceId: string;
   cwd: string;
-  startupCommand: string | undefined;
-  getLiveSurface: () => { cwd: string; startupCommand?: string };
+  getLiveSurface: () => { cwd: string };
   onCwdChange: (cwd: string) => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
@@ -290,17 +289,6 @@ export class TerminalController {
     this.safeFit();
     window.app.resizePty(id, this.term.cols, this.term.rows);
     this.term.focus();
-
-    const startupCommand = this.opts.startupCommand;
-    if (startupCommand) {
-      const line =
-        startupCommand.endsWith("\n") || startupCommand.endsWith("\r")
-          ? startupCommand
-          : `${startupCommand}\r`;
-      window.setTimeout(() => {
-        if (!this.disposed && this.ptyId === id) window.app.writePty(id, line);
-      }, STARTUP_COMMAND_DELAY_MS);
-    }
   }
 
   private onPtyData(data: string): void {

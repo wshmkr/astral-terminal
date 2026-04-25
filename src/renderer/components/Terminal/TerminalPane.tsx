@@ -42,7 +42,7 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
 
     let disposed = false;
     const surfaceId = surface.id;
-    const { startupCommand, cwd } = surfaceRef.current;
+    const { cwd } = surfaceRef.current;
 
     Promise.all([loadAppConfig(), preloadTerminalFont()]).then(([config]) => {
       if (disposed) return;
@@ -54,7 +54,6 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
         config,
         surfaceId,
         cwd,
-        startupCommand,
         getLiveSurface: () => surfaceRef.current,
         onCwdChange: (next) =>
           updateTerminalSurface(wsId, paneId, surfaceId, { cwd: next }),

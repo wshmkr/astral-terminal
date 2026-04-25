@@ -23,7 +23,6 @@ export interface TerminalSurface {
   id: string;
   name: string;
   cwd: string;
-  startupCommand?: string;
 }
 
 export type Surface = TerminalSurface;

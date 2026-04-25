@@ -42,8 +42,6 @@ function isValidSurface(v: unknown): v is Surface {
   if (v.type !== "terminal") return false;
   if (typeof v.id !== "string" || typeof v.name !== "string") return false;
   if (typeof v.cwd !== "string") return false;
-  if (v.startupCommand !== undefined && typeof v.startupCommand !== "string")
-    return false;
   return true;
 }
 
