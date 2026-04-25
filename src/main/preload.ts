@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
 import type { NotificationFirePayload } from "../shared/types";
 import {
   decodeAppModeArg,
@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld("app", {
     ptyId: string,
     callback: (exitCode: number, signal?: number) => void,
   ) => subscribe<[number, number | undefined]>(ptyExitChannel(ptyId), callback),
+
+  setUiZoom: (factor: number) => webFrame.setZoomFactor(factor),
 
   windowMinimize: () => ipcRenderer.send(IPC.window.minimize),
   windowMaximize: () => ipcRenderer.send(IPC.window.maximize),

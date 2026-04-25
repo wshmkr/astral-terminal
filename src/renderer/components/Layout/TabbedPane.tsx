@@ -54,6 +54,7 @@ interface TabItemProps {
   hasUnread: boolean;
   showDivider: boolean;
   activeBg: string;
+  activeFg: string;
 }
 
 function TabItem({
@@ -63,6 +64,7 @@ function TabItem({
   hasUnread,
   showDivider,
   activeBg,
+  activeFg,
 }: TabItemProps) {
   return (
     <Box
@@ -92,7 +94,7 @@ function TabItem({
             }
           : {},
         bgcolor: isActive ? activeBg : "transparent",
-        color: isActive ? "text.primary" : "text.secondary",
+        color: isActive ? activeFg : "text.secondary",
         userSelect: "none",
         "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
         "&:hover .tab-close": { opacity: 1 },
@@ -162,8 +164,8 @@ function selectActiveNotifications(s: AppState): Notification[] | null {
 }
 
 function TabbedPaneImpl({ pane }: Props) {
-  const terminalBackground = useWorkspaceStore(
-    (s) => TERMINAL_THEMES[s.appearance.terminalThemeId].background,
+  const terminalTheme = useWorkspaceStore(
+    (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
   const notifications = useWorkspaceStore(selectActiveNotifications);
   const unreadSurfaceIds = useMemo(() => {
@@ -190,7 +192,8 @@ function TabbedPaneImpl({ pane }: Props) {
                 isActive={isActive}
                 hasUnread={unreadSurfaceIds.has(surface.id)}
                 showDivider={!isActive && !nextIsActive}
-                activeBg={terminalBackground}
+                activeBg={terminalTheme.background}
+                activeFg={terminalTheme.foreground}
               />
             );
           })}

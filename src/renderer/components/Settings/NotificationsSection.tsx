@@ -1,39 +1,23 @@
 import Box from "@mui/material/Box";
-import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
+import Divider from "@mui/material/Divider";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import { SiClaude } from "react-icons/si";
 import { agentProviders } from "../../../shared/agent-hooks";
 import {
   setAgentHookEnabled,
   updateNotificationSettings,
   useWorkspaceStore,
 } from "../../store";
+import { DIVIDER_SX, ROOT_SX, SettingRow, SUBHEAD_SX } from "./shared";
 
-const ROOT_SX = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 2,
-} as const;
+const SWITCH_SX = { ml: -1 } as const;
 
-const DESC_SX = {
-  color: "text.secondary",
-  fontSize: 12,
-  ml: 5.5,
-  mt: -1,
-} as const;
+const CHECKBOX_SX = { p: 0.5 } as const;
 
-const SUBHEAD_SX = {
-  fontWeight: 600,
-  mt: 1,
-} as const;
-
-const ERROR_SX = {
-  color: "error.main",
-  fontSize: 12,
-  ml: 5.5,
-  mt: -0.5,
-} as const;
+const HOOKS_SUBHEAD_SX = { ...SUBHEAD_SX, mb: -1 } as const;
 
 export function NotificationsSection() {
   const settings = useWorkspaceStore((s) => s.notificationSettings);
@@ -67,70 +51,60 @@ export function NotificationsSection() {
 
   return (
     <Box sx={ROOT_SX}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-        Notifications
-      </Typography>
+      <SettingRow
+        title="OS notifications"
+        control={
+          <Switch
+            size="small"
+            sx={SWITCH_SX}
+            checked={settings.osNotificationsEnabled}
+            onChange={(_, checked) =>
+              updateNotificationSettings({ osNotificationsEnabled: checked })
+            }
+          />
+        }
+      />
 
-      <Box>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={settings.osNotificationsEnabled}
-              onChange={(_, checked) =>
-                updateNotificationSettings({
-                  osNotificationsEnabled: checked,
-                })
-              }
-            />
-          }
-          label="OS notifications"
-        />
-        <Typography sx={DESC_SX}>
-          Show desktop notifications when a terminal signals activity.
-        </Typography>
-      </Box>
+      <SettingRow
+        title="Play sound"
+        control={
+          <Switch
+            size="small"
+            sx={SWITCH_SX}
+            checked={settings.soundEnabled}
+            onChange={(_, checked) =>
+              updateNotificationSettings({ soundEnabled: checked })
+            }
+          />
+        }
+      />
 
-      <Box>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={settings.soundEnabled}
-              onChange={(_, checked) =>
-                updateNotificationSettings({ soundEnabled: checked })
-              }
-            />
-          }
-          label="Play sound"
-        />
-        <Typography sx={DESC_SX}>
-          Play a tone when a notification fires.
-        </Typography>
-      </Box>
+      <Divider sx={DIVIDER_SX} />
 
-      <Typography variant="subtitle2" sx={SUBHEAD_SX}>
+      <Typography variant="subtitle1" sx={HOOKS_SUBHEAD_SX}>
         Hooks
       </Typography>
 
       {agentProviders.map((p) => (
-        <Box key={p.name}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={!!settings.agentHooks[p.name]}
-                disabled={!!pending[p.name]}
-                onChange={(_, checked) => toggleAgentHooks(p.name, checked)}
-              />
-            }
-            label={p.name}
-          />
-          <Typography sx={DESC_SX}>
-            Install hooks in <code>~/{p.settingsPath}</code> so {p.name} emits
-            notifications to this terminal.
-          </Typography>
-          {errors[p.name] && (
-            <Typography sx={ERROR_SX}>{errors[p.name]}</Typography>
-          )}
-        </Box>
+        <SettingRow
+          key={p.name}
+          title={p.name}
+          icon={
+            p.name === "Claude" ? (
+              <SiClaude size={16} color="#D97757" />
+            ) : undefined
+          }
+          error={errors[p.name]}
+          control={
+            <Checkbox
+              size="small"
+              sx={CHECKBOX_SX}
+              checked={!!settings.agentHooks[p.name]}
+              disabled={!!pending[p.name]}
+              onChange={(_, checked) => toggleAgentHooks(p.name, checked)}
+            />
+          }
+        />
       ))}
     </Box>
   );

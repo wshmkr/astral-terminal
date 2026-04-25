@@ -37,3 +37,4 @@ npm run dev
 
 - Font: [JetBrains Mono](https://www.jetbrains.com/lp/mono/)
 - Terminal theme: [One Half](https://github.com/sonph/onehalf)
+- Icons: [Codicons](https://github.com/microsoft/vscode-codicons), [Simple Icons](https://simpleicons.org/) (via [react-icons](https://github.com/react-icons/react-icons))

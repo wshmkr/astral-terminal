@@ -99,7 +99,7 @@ export interface NotificationSettings {
 }
 
 export type AppThemeId = "dark" | "light";
-export type TerminalThemeId = "one-dark" | "one-light";
+export type TerminalThemeId = "one-half-dark" | "one-half-light";
 export type FontFamilyId =
   | "jetbrains-mono"
   | "cascadia-code"

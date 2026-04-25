@@ -42,7 +42,7 @@ export function App() {
   }, [appThemeId, setMode]);
 
   useEffect(() => {
-    document.documentElement.style.zoom = String(uiScale);
+    window.app.setUiZoom(uiScale);
   }, [uiScale]);
 
   useEffect(() => {

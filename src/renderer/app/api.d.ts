@@ -35,6 +35,7 @@ export interface AppAPI {
       surfaceId: string;
     }) => void,
   ) => () => void;
+  setUiZoom: (factor: number) => void;
   windowMinimize: () => void;
   windowMaximize: () => void;
   windowClose: () => void;

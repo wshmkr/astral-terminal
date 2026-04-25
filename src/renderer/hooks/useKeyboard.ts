@@ -5,6 +5,7 @@ import {
   getState,
   setActiveWorkspace,
   splitPane,
+  stepUiScale,
 } from "../store";
 
 export function useKeyboard() {
@@ -29,6 +30,18 @@ export function useKeyboard() {
             e.preventDefault();
             createWorkspace();
             return;
+        }
+      }
+      if (e.ctrlKey && !e.altKey) {
+        if (e.code === "Equal") {
+          e.preventDefault();
+          stepUiScale(1);
+          return;
+        }
+        if (e.code === "Minus") {
+          e.preventDefault();
+          stepUiScale(-1);
+          return;
         }
       }
       if (e.ctrlKey && !e.shiftKey && e.code.startsWith("Digit")) {

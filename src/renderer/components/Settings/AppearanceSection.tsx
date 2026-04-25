@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import Select, { type SelectChangeEvent } from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
@@ -24,6 +25,7 @@ import {
 } from "../../theme/fonts";
 import { APP_THEME_OPTIONS } from "../../theme/palettes";
 import { TERMINAL_THEME_OPTIONS } from "../../theme/terminal-themes";
+import { DIVIDER_SX, ROOT_SX, SUBHEAD_SX } from "./shared";
 
 const FIELD_SX = {
   display: "flex",
@@ -37,10 +39,12 @@ const LABEL_SX = {
   fontWeight: 500,
 } as const;
 
-const ROOT_SX = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 2.5,
+const SELECT_SX = {
+  "& .MuiSelect-select": { py: 0.5 },
+} as const;
+
+const TEXTFIELD_SX = {
+  "& .MuiInputBase-input": { py: 0.5 },
 } as const;
 
 export function AppearanceSection() {
@@ -48,18 +52,19 @@ export function AppearanceSection() {
 
   return (
     <Box sx={ROOT_SX}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-        Appearance
+      <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+        App
       </Typography>
 
       <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>App theme</Typography>
+        <Typography sx={LABEL_SX}>Theme</Typography>
         <Select
           size="small"
           value={appearance.appThemeId}
           onChange={(e: SelectChangeEvent<AppThemeId>) =>
             setAppTheme(e.target.value as AppThemeId)
           }
+          sx={{ ...SELECT_SX, maxWidth: 160 }}
         >
           {APP_THEME_OPTIONS.map((opt) => (
             <MenuItem key={opt.id} value={opt.id}>
@@ -77,7 +82,7 @@ export function AppearanceSection() {
           onChange={(e: SelectChangeEvent<number>) =>
             setUiScale(Number(e.target.value))
           }
-          sx={{ maxWidth: 160 }}
+          sx={{ ...SELECT_SX, maxWidth: 160 }}
         >
           {UI_SCALE_OPTIONS.map((opt) => (
             <MenuItem key={opt.value} value={opt.value}>
@@ -87,14 +92,21 @@ export function AppearanceSection() {
         </Select>
       </Box>
 
+      <Divider sx={DIVIDER_SX} />
+
+      <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+        Terminal
+      </Typography>
+
       <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>Terminal theme</Typography>
+        <Typography sx={LABEL_SX}>Theme</Typography>
         <Select
           size="small"
           value={appearance.terminalThemeId}
           onChange={(e: SelectChangeEvent<TerminalThemeId>) =>
             setTerminalTheme(e.target.value as TerminalThemeId)
           }
+          sx={{ ...SELECT_SX, maxWidth: 240 }}
         >
           {TERMINAL_THEME_OPTIONS.map((opt) => (
             <MenuItem key={opt.id} value={opt.id}>
@@ -105,13 +117,14 @@ export function AppearanceSection() {
       </Box>
 
       <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>Terminal font</Typography>
+        <Typography sx={LABEL_SX}>Font</Typography>
         <Select
           size="small"
           value={appearance.fontFamily}
           onChange={(e: SelectChangeEvent<FontFamilyId>) =>
             setFontFamily(e.target.value as FontFamilyId)
           }
+          sx={{ ...SELECT_SX, maxWidth: 240 }}
         >
           {FONT_OPTIONS.map((opt) => (
             <MenuItem key={opt.id} value={opt.id}>
@@ -122,7 +135,7 @@ export function AppearanceSection() {
       </Box>
 
       <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>Terminal font size</Typography>
+        <Typography sx={LABEL_SX}>Font size</Typography>
         <TextField
           size="small"
           type="number"
@@ -138,7 +151,7 @@ export function AppearanceSection() {
             const n = Number(e.target.value);
             if (Number.isFinite(n)) setFontSize(n);
           }}
-          sx={{ maxWidth: 120 }}
+          sx={{ ...TEXTFIELD_SX, maxWidth: 120 }}
         />
       </Box>
     </Box>

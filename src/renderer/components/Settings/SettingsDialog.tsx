@@ -4,11 +4,15 @@ import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
+import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
+import { CUSTOM_SCROLLBAR_SX } from "../../theme/scrollbar";
 import { AppearanceSection } from "./AppearanceSection";
 import { NotificationsSection } from "./NotificationsSection";
+
+const HEADER_HEIGHT = 40;
 
 type SectionId = "appearance" | "notifications";
 
@@ -29,15 +33,40 @@ const PAPER_SX = {
 } as const;
 
 const HEADER_SX = {
+  position: "relative",
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  px: 2,
-  height: 40,
-  borderBottom: "1px solid",
-  borderColor: "custom.subtleDivider",
+  height: HEADER_HEIGHT,
+  bgcolor: "custom.titlebarFocused",
+  borderBottom: 1,
+  borderColor: "divider",
   userSelect: "none",
 } as const;
+
+const HEADER_TITLE_SX = {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  textAlign: "center",
+  fontSize: "11pt",
+  fontWeight: 600,
+  color: "text.secondary",
+  pointerEvents: "none",
+} as const;
+
+const CloseButton = styled(IconButton)(({ theme }) => {
+  const vars = theme.vars ?? theme;
+  return {
+    borderRadius: 0,
+    width: 46,
+    height: HEADER_HEIGHT,
+    color: vars.palette.text.secondary,
+    "&:hover": {
+      backgroundColor: vars.palette.error.main,
+      color: vars.palette.common.white,
+    },
+  };
+});
 
 const BODY_SX = {
   display: "flex",
@@ -50,23 +79,24 @@ const NAV_SX = {
   flexShrink: 0,
   borderRight: "1px solid",
   borderColor: "custom.subtleDivider",
-  py: 1,
 } as const;
 
 const NAV_ITEM_SX = {
-  py: 0.5,
-  px: 2,
+  py: 1,
+  px: 2.5,
   borderRadius: 0,
   "&.Mui-selected": {
     bgcolor: "action.selected",
+    "& .MuiListItemText-primary": { fontWeight: 600 },
     "&:hover": { bgcolor: "action.selected" },
   },
 } as const;
 
 const CONTENT_SX = {
   flex: 1,
-  p: 3,
+  p: 2,
   overflowY: "auto",
+  ...CUSTOM_SCROLLBAR_SX,
 } as const;
 
 interface Props {
@@ -84,12 +114,13 @@ export function SettingsDialog({ open, onClose }: Props) {
       slotProps={{ paper: { sx: PAPER_SX } }}
     >
       <Box sx={HEADER_SX}>
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+        <Typography variant="caption" sx={HEADER_TITLE_SX}>
           Settings
         </Typography>
-        <IconButton size="small" onClick={onClose} aria-label="Close settings">
-          <VscChromeClose size={14} />
-        </IconButton>
+        <Box sx={{ flex: 1 }} />
+        <CloseButton onClick={onClose} aria-label="Close settings">
+          <VscChromeClose size={16} />
+        </CloseButton>
       </Box>
       <Box sx={BODY_SX}>
         <List sx={NAV_SX} disablePadding>

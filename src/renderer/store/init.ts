@@ -4,7 +4,7 @@ import {
   collectSurfaceIds,
   findFirstLeaf,
 } from "../components/Layout/pane-tree";
-import { DEFAULT_APPEARANCE } from "./appearance";
+import { DEFAULT_APPEARANCE, normalizeAppearance } from "./appearance";
 import { initializeStore } from "./core";
 import { createDefaultWorkspace, nextWorkspaceName } from "./factories";
 import { loadState } from "./persistence";
@@ -31,7 +31,7 @@ function initState(): AppState {
       activeWorkspaceId: activeWs?.id ?? null,
       focusedPaneId: activeWs ? findFirstLeaf(activeWs.layout) : null,
       sidebarWidth: loaded.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH_PX,
-      appearance: loaded.appearance ?? DEFAULT_APPEARANCE,
+      appearance: normalizeAppearance(loaded.appearance),
       notificationSettings: {
         ...DEFAULT_NOTIFICATION_SETTINGS,
         ...(loaded.notificationSettings ?? {}),

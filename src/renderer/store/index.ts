@@ -5,6 +5,7 @@ export {
   setFontSize,
   setTerminalTheme,
   setUiScale,
+  stepUiScale,
 } from "./appearance";
 export { getState, getWorkspace, useWorkspaceStore } from "./core";
 export { bootStore } from "./init";
