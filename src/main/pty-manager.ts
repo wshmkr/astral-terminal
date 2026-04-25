@@ -126,7 +126,6 @@ export class PtyManager {
     } catch {}
   }
 
-  // Crash before the next `start` must not re-resume a dead session
   private loadAndConsumeAgentSession(
     surfaceId: string,
   ): AgentSession | undefined {
