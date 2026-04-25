@@ -17,7 +17,9 @@ export interface AppAPI {
   writePty: (ptyId: string, data: string) => void;
   resizePty: (ptyId: string, cols: number, rows: number) => void;
   killPty: (ptyId: string) => void;
-  replayPty: (ptyId: string) => Promise<string>;
+  replayPty: (
+    ptyId: string,
+  ) => Promise<{ cols: number; rows: number; content: string }>;
   pruneTerminalBuffers: (surfaceIds: string[]) => Promise<void>;
   onPtyData: (ptyId: string, callback: (data: string) => void) => () => void;
   onPtyExit: (

@@ -279,7 +279,10 @@ export class TerminalController {
 
     const replay = await window.app.replayPty(id);
     if (this.disposed) return;
-    if (replay) this.term.write(replay);
+    if (replay.content) {
+      this.term.resize(replay.cols, replay.rows);
+      this.term.write(replay.content);
+    }
 
     const buffered = this.preReplayBuffer ?? [];
     this.preReplayBuffer = null;

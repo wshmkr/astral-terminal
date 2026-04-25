@@ -35,7 +35,9 @@ contextBridge.exposeInMainWorld("app", {
   resizePty: (ptyId: string, cols: number, rows: number) =>
     ipcRenderer.send(IPC.pty.resize, { ptyId, cols, rows }),
   killPty: (ptyId: string) => ipcRenderer.send(IPC.pty.kill, { ptyId }),
-  replayPty: (ptyId: string): Promise<string> =>
+  replayPty: (
+    ptyId: string,
+  ): Promise<{ cols: number; rows: number; content: string }> =>
     ipcRenderer.invoke(IPC.pty.replay, { ptyId }),
   pruneTerminalBuffers: (surfaceIds: string[]): Promise<void> =>
     ipcRenderer.invoke(IPC.pty.pruneBuffers, { surfaceIds }),

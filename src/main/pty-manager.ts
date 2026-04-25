@@ -39,8 +39,8 @@ function isStoredBuffer(v: unknown): v is StoredBuffer {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
   return (
-    Number.isFinite(o.cols) &&
-    Number.isFinite(o.rows) &&
+    Number.isInteger(o.cols) &&
+    Number.isInteger(o.rows) &&
     typeof o.content === "string" &&
     (o.cols as number) > 0 &&
     (o.rows as number) > 0
@@ -81,6 +81,8 @@ export interface PtyCallbacks {
 export interface CreatePtyOptions {
   surfaceId: string;
   cwd?: string;
+  // Omit cols/rows when the renderer has no container size yet (hidden tab).
+  // Restore happens at saved dims; first visible resize will reflow.
   cols?: number;
   rows?: number;
   config: AppConfig;
@@ -182,6 +184,11 @@ export class PtyManager {
     } catch {}
   }
 
+  // Invariant: headless.{cols,rows} mirror the renderer xterm. Maintained by
+  // the resizePty IPC path (renderer term.onResize → main resize() →
+  // headless.resize). Any bypass of term.onResize will desync these and cause
+  // snapshot() to capture stale dims, reintroducing the scrollback-replay
+  // corruption this module exists to prevent.
   private snapshot(entry: PtyEntry): StoredBuffer {
     return {
       cols: entry.headless.cols,
@@ -201,10 +208,18 @@ export class PtyManager {
       ? null
       : (carried ?? this.loadBuffer(surfaceId));
 
-    const targetCols =
-      opts.cols && opts.cols > 0 ? Math.floor(opts.cols) : DEFAULT_COLS;
-    const targetRows =
-      opts.rows && opts.rows > 0 ? Math.floor(opts.rows) : DEFAULT_ROWS;
+    let targetCols: number;
+    let targetRows: number;
+    if (opts.cols && opts.cols > 0 && opts.rows && opts.rows > 0) {
+      targetCols = Math.floor(opts.cols);
+      targetRows = Math.floor(opts.rows);
+    } else if (restored) {
+      targetCols = restored.cols;
+      targetRows = restored.rows;
+    } else {
+      targetCols = DEFAULT_COLS;
+      targetRows = DEFAULT_ROWS;
+    }
 
     const isWindows = process.platform === "win32";
     const shell = isWindows ? "wsl.exe" : "/bin/sh";
@@ -291,15 +306,15 @@ export class PtyManager {
     return id;
   }
 
-  beginReplay(id: string): string {
+  beginReplay(id: string): { cols: number; rows: number; content: string } {
     const entry = this.entries.get(id);
-    if (!entry) return "";
-    const buf = entry.serializeAddon.serialize(SERIALIZE_OPTS);
+    if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+    const content = entry.serializeAddon.serialize(SERIALIZE_OPTS);
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
     }
-    return buf;
+    return { cols: entry.headless.cols, rows: entry.headless.rows, content };
   }
 
   write(id: string, data: string): void {
