@@ -15,6 +15,7 @@ const INITIAL_WINDOW_FOCUSED =
 
 function initState(): AppState {
   const loaded = loadState();
+  const isFirstRun = loaded === null;
   if (loaded && loaded.workspaces.length > 0) {
     const workspaces: Workspace[] = loaded.workspaces.map((pw) => ({
       id: pw.id,
@@ -38,6 +39,7 @@ function initState(): AppState {
       },
       windowFocused: INITIAL_WINDOW_FOCUSED,
       settingsOpen: false,
+      welcomeOpen: false,
     };
   }
   const seed = createDefaultWorkspace(nextWorkspaceName([]));
@@ -50,6 +52,7 @@ function initState(): AppState {
     notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
     windowFocused: INITIAL_WINDOW_FOCUSED,
     settingsOpen: false,
+    welcomeOpen: isFirstRun,
   };
 }
 

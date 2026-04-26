@@ -89,3 +89,17 @@ export function setSettingsOpen(open: boolean): void {
   setState({ ...s, settingsOpen: open });
   notify();
 }
+
+export function setWelcomeOpen(open: boolean): void {
+  const s = getState();
+  if (s.welcomeOpen === open) return;
+  setState({ ...s, welcomeOpen: open });
+  notify();
+}
+
+export function dismissWelcome(): void {
+  const s = getState();
+  if (!s.welcomeOpen) return;
+  setState({ ...s, welcomeOpen: false });
+  commit();
+}

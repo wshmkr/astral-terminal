@@ -73,7 +73,7 @@ export const APP_PALETTES: Record<AppThemeId, AppPalette> = {
   light: LIGHT_PALETTE,
 };
 
-export const APP_THEME_OPTIONS: Array<{ id: AppThemeId; label: string }> = [
-  { id: "dark", label: "Dark" },
-  { id: "light", label: "Light" },
+export const APP_THEME_OPTIONS: Array<{ value: AppThemeId; label: string }> = [
+  { value: "dark", label: "Dark" },
+  { value: "light", label: "Light" },
 ];
