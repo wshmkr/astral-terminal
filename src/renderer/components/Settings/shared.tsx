@@ -34,11 +34,6 @@ const DESC_SX = {
   fontSize: 12,
 } as const;
 
-const ERROR_SX = {
-  color: "error.main",
-  fontSize: 12,
-} as const;
-
 const ICON_SX = {
   display: "inline-flex",
   color: "text.secondary",
@@ -50,7 +45,7 @@ interface SettingRowProps {
   icon?: ReactNode;
   title: string;
   description?: ReactNode;
-  error?: string;
+  descriptionTone?: "default" | "error";
 }
 
 export function SettingRow({
@@ -58,8 +53,10 @@ export function SettingRow({
   icon,
   title,
   description,
-  error,
+  descriptionTone = "default",
 }: SettingRowProps) {
+  const descSx =
+    descriptionTone === "error" ? { ...DESC_SX, color: "error.main" } : DESC_SX;
   return (
     <Box sx={ROW_SX}>
       {control}
@@ -68,8 +65,7 @@ export function SettingRow({
         <Typography variant="body2" sx={TITLE_SX}>
           {title}
         </Typography>
-        {description && <Typography sx={DESC_SX}>{description}</Typography>}
-        {error && <Typography sx={ERROR_SX}>{error}</Typography>}
+        {description && <Typography sx={descSx}>{description}</Typography>}
       </Stack>
     </Box>
   );

@@ -117,12 +117,14 @@ export function NotificationsSection() {
 
       {agentProviders.map((p) => {
         const { icon: Icon, color } = PROVIDER_ICONS[p.name];
+        const error = errors[p.name];
         return (
           <SettingRow
             key={p.name}
             title={p.name}
             icon={<Icon size={16} color={color} />}
-            error={errors[p.name]}
+            description={error}
+            descriptionTone={error ? "error" : "default"}
             control={
               <Checkbox
                 size="small"
