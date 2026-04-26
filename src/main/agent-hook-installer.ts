@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -53,7 +53,10 @@ export async function detectAgentHooks(providerName: string): Promise<boolean> {
   if (!provider) return false;
   try {
     const dir = await resolveWslPath(path.posix.dirname(provider.settingsPath));
-    return fs.existsSync(dir);
+    return await fs.stat(dir).then(
+      () => true,
+      () => false,
+    );
   } catch (err) {
     console.error("detectAgentHooks failed:", err);
     return false;
@@ -167,7 +170,7 @@ async function runConfigure(
     let settings: Record<string, unknown> = {};
     let raw: string | null = null;
     try {
-      raw = fs.readFileSync(filePath, "utf-8");
+      raw = await fs.readFile(filePath, "utf-8");
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     }
@@ -207,8 +210,8 @@ async function runConfigure(
     settings.hooks = merged;
 
     const dir = path.dirname(filePath);
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(settings, null, 2), "utf-8");
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
 
     console.log(`Installed notification hooks in ~/${settingsPath}`);
     return { status: "configured" };
@@ -249,7 +252,7 @@ async function runUninstall(
 
     let raw: string | null = null;
     try {
-      raw = fs.readFileSync(filePath, "utf-8");
+      raw = await fs.readFile(filePath, "utf-8");
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
         return { status: "not-installed" };
@@ -271,7 +274,7 @@ async function runUninstall(
     } else {
       settings.hooks = purged;
     }
-    fs.writeFileSync(filePath, JSON.stringify(settings, null, 2), "utf-8");
+    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
 
     console.log(`Removed notification hooks from ~/${settingsPath}`);
     return { status: "uninstalled" };
