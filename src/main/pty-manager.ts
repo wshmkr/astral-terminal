@@ -311,7 +311,7 @@ export class PtyManager {
     return id;
   }
 
-  beginReplay(id: string): StoredBuffer {
+  beginReplay(id: string): { cols: number; rows: number; content: string } {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
     const snap = this.snapshot(entry);

@@ -170,7 +170,6 @@ export class TerminalController {
     this.findDecorations = findDecorationsFromTheme(opts.config.terminalTheme);
 
     // xterm's renderer can't measure cell metrics on a 0×0 container
-    // defer term.open until the container is laid out
     if (opts.container.offsetWidth > 0 && opts.container.offsetHeight > 0) {
       this.term.open(opts.container);
     } else {
@@ -320,10 +319,7 @@ export class TerminalController {
     );
 
     this.safeFit();
-    // safeFit no-ops on a 0×0 container, leaving pendingOpen/pendingReplay set
-    // and term dims at xterm defaults or saved-replay dims. Skip the pty sync
-    // until a later safeFit lands real fit dims, otherwise we'd push 80×24
-    // (or stale saved dims) to main.
+    // pre-fit term dims would push 80×24 or stale saved dims to main
     if (!this.pendingReplay && !this.pendingOpen) {
       window.app.resizePty(id, this.term.cols, this.term.rows);
     }
