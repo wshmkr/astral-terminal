@@ -38,6 +38,7 @@ const HEADER_SX = {
   position: "relative",
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-end",
   height: HEADER_HEIGHT,
   bgcolor: "custom.titlebarFocused",
   borderBottom: 1,
@@ -119,7 +120,6 @@ export function SettingsDialog({ open, onClose }: Props) {
         <Typography variant="caption" sx={HEADER_TITLE_SX}>
           Settings
         </Typography>
-        <Box sx={{ flex: 1 }} />
         <CloseButton onClick={onClose} aria-label="Close settings">
           <VscChromeClose size={16} />
         </CloseButton>
