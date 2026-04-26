@@ -122,8 +122,9 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
     const el = containerRef.current;
     if (!el) return;
     el.style.zoom = String(1 / uiScale);
+    if (!isVisible) return;
     requestAnimationFrame(() => controllerRef.current?.fit());
-  }, [uiScale]);
+  }, [uiScale, isVisible]);
 
   const closeFind = () => setFindOpen(false);
 
