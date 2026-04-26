@@ -1,7 +1,7 @@
 import path from "node:path";
 import { app, BrowserWindow, shell } from "electron";
 import { APP_NAME, DEV_SUFFIX } from "../shared/meta";
-import { DEFAULT_TERMINAL_BG, encodeAppModeArg, IPC } from "../shared/types";
+import { encodeAppModeArg, INITIAL_WINDOW_BG, IPC } from "../shared/types";
 import { APP_MODE, IS_DEV } from "./env";
 
 const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
@@ -32,7 +32,7 @@ export function createWindow(): void {
     minWidth: 600,
     minHeight: 400,
     frame: false,
-    backgroundColor: DEFAULT_TERMINAL_BG,
+    backgroundColor: INITIAL_WINDOW_BG,
     title: WINDOW_TITLE,
     icon: path.join(app.getAppPath(), "build", ICON_FILE),
     webPreferences: {

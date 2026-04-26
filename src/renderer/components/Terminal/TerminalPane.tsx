@@ -5,12 +5,16 @@ import { loadAppConfig } from "../../app/config-loader";
 import {
   addNotification,
   findWorkspaceIdForPane,
+  getState,
   getWorkspace,
   renameSurface,
   updateTerminalSurface,
+  useWorkspaceStore,
 } from "../../store";
+import { FONT_BY_ID } from "../../theme/fonts";
+import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { FindBar } from "./FindBar";
-import { preloadTerminalFont, TerminalController } from "./terminal-lifecycle";
+import { preloadFont, TerminalController } from "./terminal-lifecycle";
 import "@xterm/xterm/css/xterm.css";
 
 interface Props {
@@ -36,6 +40,13 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
   // Lifted so Ctrl+F can refocus when the bar is already open
   const findInputRef = useRef<HTMLInputElement>(null);
 
+  const terminalThemeId = useWorkspaceStore(
+    (s) => s.appearance.terminalThemeId,
+  );
+  const fontFamilyId = useWorkspaceStore((s) => s.appearance.fontFamily);
+  const fontSize = useWorkspaceStore((s) => s.appearance.fontSize);
+  const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -43,8 +54,13 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
     let disposed = false;
     const surfaceId = surface.id;
     const { cwd } = surfaceRef.current;
+    const initial = getState().appearance;
+    const initialFont = FONT_BY_ID[initial.fontFamily];
 
-    Promise.all([loadAppConfig(), preloadTerminalFont()]).then(([config]) => {
+    Promise.all([
+      loadAppConfig(),
+      preloadFont(initialFont.stack, initial.fontSize),
+    ]).then(([config]) => {
       if (disposed) return;
       const wsId = findWorkspaceIdForPane(paneId);
       if (!wsId) return;
@@ -52,6 +68,9 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
       controllerRef.current = new TerminalController({
         container,
         config,
+        theme: TERMINAL_THEMES[initial.terminalThemeId],
+        fontFamily: initialFont.stack,
+        fontSize: initial.fontSize,
         surfaceId,
         cwd,
         getLiveSurface: () => surfaceRef.current,
@@ -79,6 +98,17 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
   }, [surface.id, paneId]);
 
   useEffect(() => {
+    controllerRef.current?.setTheme(TERMINAL_THEMES[terminalThemeId]);
+  }, [terminalThemeId]);
+
+  useEffect(() => {
+    const font = FONT_BY_ID[fontFamilyId];
+    preloadFont(font.stack, fontSize)
+      .catch((err) => console.warn("Font preload failed:", err))
+      .finally(() => controllerRef.current?.setFont(font.stack, fontSize));
+  }, [fontFamilyId, fontSize]);
+
+  useEffect(() => {
     if (!isVisible) return;
     requestAnimationFrame(() => controllerRef.current?.fit());
   }, [isVisible]);
@@ -87,6 +117,14 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
     if (!isVisible || findOpen) return;
     requestAnimationFrame(() => controllerRef.current?.focus());
   }, [isVisible, findOpen]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.style.zoom = String(1 / uiScale);
+    if (!isVisible) return;
+    requestAnimationFrame(() => controllerRef.current?.fit());
+  }, [uiScale, isVisible]);
 
   const closeFind = () => setFindOpen(false);
 

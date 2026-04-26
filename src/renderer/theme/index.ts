@@ -1,8 +1,8 @@
 import { createTheme, type PaletteOptions } from "@mui/material/styles";
 import {
+  APP_PALETTES,
   type AppPalette,
   type AppPaletteCustom,
-  DARK_PALETTE,
 } from "./palettes";
 
 declare module "@mui/material/styles" {
@@ -12,30 +12,6 @@ declare module "@mui/material/styles" {
   interface PaletteOptions {
     custom?: Partial<AppPaletteCustom>;
   }
-}
-
-export function buildAppTheme(schemes: Record<string, AppPalette>) {
-  const colorSchemes = Object.fromEntries(
-    Object.entries(schemes).map(([name, p]) => [
-      name,
-      { palette: paletteFromApp(p) },
-    ]),
-  );
-  return createTheme({
-    cssVariables: true,
-    defaultColorScheme: "dark",
-    colorSchemes,
-    typography: {
-      fontFamily: "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif",
-    },
-    components: {
-      MuiIconButton: {
-        styleOverrides: {
-          root: { borderRadius: 4 },
-        },
-      },
-    },
-  });
 }
 
 function paletteFromApp(p: AppPalette): PaletteOptions {
@@ -54,4 +30,21 @@ function paletteFromApp(p: AppPalette): PaletteOptions {
   };
 }
 
-export const theme = buildAppTheme({ dark: DARK_PALETTE });
+export const theme = createTheme({
+  cssVariables: { colorSchemeSelector: "data-mui-color-scheme" },
+  defaultColorScheme: "dark",
+  colorSchemes: {
+    dark: { palette: paletteFromApp(APP_PALETTES.dark) },
+    light: { palette: paletteFromApp(APP_PALETTES.light) },
+  },
+  typography: {
+    fontFamily: "'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif",
+  },
+  components: {
+    MuiIconButton: {
+      styleOverrides: {
+        root: { borderRadius: 4 },
+      },
+    },
+  },
+});

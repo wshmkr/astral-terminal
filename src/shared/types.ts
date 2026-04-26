@@ -1,3 +1,5 @@
+import type { AgentName } from "./agent-hooks";
+
 export type AppMode = "packaged" | "dev";
 
 const ASTRAL_MODE_ARG_PREFIX = "--astral-mode=";
@@ -16,7 +18,7 @@ export function decodeAppModeArg(argv: readonly string[]): AppMode {
 export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
-export const DEFAULT_TERMINAL_BG = "#282c34";
+export const INITIAL_WINDOW_BG = "#282c34";
 
 export interface TerminalSurface {
   type: "terminal";
@@ -95,6 +97,23 @@ export interface TerminalTheme {
 export interface NotificationSettings {
   soundEnabled: boolean;
   osNotificationsEnabled: boolean;
+  agentHooks: Partial<Record<AgentName, boolean>>;
+}
+
+export type AppThemeId = "dark" | "light";
+export type TerminalThemeId = "one-half-dark" | "one-half-light";
+export type FontFamilyId =
+  | "jetbrains-mono"
+  | "cascadia-code"
+  | "consolas"
+  | "system-monospace";
+
+export interface AppearanceSettings {
+  appThemeId: AppThemeId;
+  terminalThemeId: TerminalThemeId;
+  fontFamily: FontFamilyId;
+  fontSize: number;
+  uiScale: number;
 }
 
 export interface NotificationFirePayload {
@@ -106,42 +125,20 @@ export interface NotificationFirePayload {
 }
 
 export interface AppConfig {
-  terminalTheme: TerminalTheme;
   platform: {
     isWindows: boolean;
     windowsBuild?: number;
   };
 }
 
-export const DEFAULT_TERMINAL_THEME: TerminalTheme = {
-  background: DEFAULT_TERMINAL_BG,
-  foreground: "#dcdfe4",
-  cursor: "#dcdfe4",
-  cursorAccent: DEFAULT_TERMINAL_BG,
-  selectionBackground: "#264f78",
-  selectionForeground: "#ffffff",
-  black: DEFAULT_TERMINAL_BG,
-  red: "#e06c75",
-  green: "#98c379",
-  yellow: "#e5c07b",
-  blue: "#61afef",
-  magenta: "#c678dd",
-  cyan: "#56b6c2",
-  white: "#dcdfe4",
-  brightBlack: "#5a6374",
-  brightRed: "#e06c75",
-  brightGreen: "#98c379",
-  brightYellow: "#e5c07b",
-  brightBlue: "#61afef",
-  brightMagenta: "#c678dd",
-  brightCyan: "#56b6c2",
-  brightWhite: "#dcdfe4",
-  searchHighlight: "#e5c07b",
-};
-
 export type ConfigureAgentHooksResult =
   | { status: "configured" }
   | { status: "already-configured" }
+  | { status: "error"; message: string };
+
+export type UninstallAgentHooksResult =
+  | { status: "uninstalled" }
+  | { status: "not-installed" }
   | { status: "error"; message: string };
 
 export interface AppState {
@@ -149,9 +146,10 @@ export interface AppState {
   activeWorkspaceId: string | null;
   focusedPaneId: string | null;
   sidebarWidth: number;
-  terminalBackground: string;
+  appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
   windowFocused: boolean;
+  settingsOpen: boolean;
 }
 
 export const IPC = {
@@ -178,7 +176,7 @@ export const IPC = {
   },
   agentHooks: {
     configure: "agent-hooks:configure",
-    detect: "agent-hooks:detect",
+    uninstall: "agent-hooks:uninstall",
   },
 } as const;
 

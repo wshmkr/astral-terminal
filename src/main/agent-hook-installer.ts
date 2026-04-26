@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import fs from "node:fs";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -10,7 +10,10 @@ import {
   HOOK_MARKER_PREFIX,
   HOOK_MARKER_VERSION,
 } from "../shared/agent-hooks";
-import type { ConfigureAgentHooksResult } from "../shared/types";
+import type {
+  ConfigureAgentHooksResult,
+  UninstallAgentHooksResult,
+} from "../shared/types";
 
 const pathLocks = new Map<string, Promise<unknown>>();
 const execFileAsync = promisify(execFile);
@@ -43,18 +46,6 @@ async function resolveWslPath(relativePath: string): Promise<string> {
     throw new Error(`Refusing path outside WSL home: ${relativePath}`);
   }
   return resolved;
-}
-
-export async function detectAgentHooks(providerName: string): Promise<boolean> {
-  const provider = findAgentProvider(providerName);
-  if (!provider) return false;
-  try {
-    const dir = await resolveWslPath(path.posix.dirname(provider.settingsPath));
-    return fs.existsSync(dir);
-  } catch (err) {
-    console.error("detectAgentHooks failed:", err);
-    return false;
-  }
 }
 
 function isOwnHookCommand(value: unknown): boolean {
@@ -154,24 +145,61 @@ function purgeOwnHooks(
   return result;
 }
 
+interface ParsedSettings {
+  settings: Record<string, unknown>;
+  hooks: Record<string, unknown[]>;
+}
+
+async function readSettings(filePath: string): Promise<ParsedSettings | null> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(filePath, "utf-8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw err;
+  }
+  if (!raw.trim()) return null;
+  const settings = JSON.parse(raw) as Record<string, unknown>;
+  const hooks = (settings.hooks as Record<string, unknown[]> | undefined) ?? {};
+  return { settings, hooks };
+}
+
+function withProviderLock<T>(
+  provider: AgentHookProvider,
+  run: () => Promise<T>,
+): Promise<T> {
+  const key = provider.settingsPath;
+  const prev = pathLocks.get(key) ?? Promise.resolve();
+  const next = prev.then(run, run);
+  pathLocks.set(
+    key,
+    next.catch(() => {}),
+  );
+  return next;
+}
+
 async function runConfigure(
   provider: AgentHookProvider,
 ): Promise<ConfigureAgentHooksResult> {
   const { settingsPath } = provider;
   try {
     const filePath = await resolveWslPath(settingsPath);
-
-    let settings: Record<string, unknown> = {};
-    let raw: string | null = null;
-    try {
-      raw = fs.readFileSync(filePath, "utf-8");
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    const dir = path.dirname(filePath);
+    const dirExists = await fs.access(dir).then(
+      () => true,
+      () => false,
+    );
+    if (!dirExists) {
+      return {
+        status: "error",
+        message: `${provider.name} is not installed (~/${path.posix.dirname(settingsPath)} not found)`,
+      };
     }
-    if (raw?.trim()) settings = JSON.parse(raw);
-
-    const existing =
-      (settings.hooks as Record<string, unknown[]> | undefined) ?? {};
+    const parsed = (await readSettings(filePath)) ?? {
+      settings: {},
+      hooks: {},
+    };
+    const { settings, hooks: existing } = parsed;
     const hasCurrent = hookTreeHas(existing, isCurrentHookCommand);
     const hasStale = hookTreeHas(
       existing,
@@ -203,9 +231,7 @@ async function runConfigure(
     }
     settings.hooks = merged;
 
-    const dir = path.dirname(filePath);
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(settings, null, 2), "utf-8");
+    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
 
     console.log(`Installed notification hooks in ~/${settingsPath}`);
     return { status: "configured" };
@@ -224,15 +250,46 @@ export async function configureAgentHooks(
       status: "error",
       message: `Unknown agent provider: ${providerName}`,
     };
-  const key = provider.settingsPath;
-  const prev = pathLocks.get(key) ?? Promise.resolve();
-  const next = prev.then(
-    () => runConfigure(provider),
-    () => runConfigure(provider),
-  );
-  pathLocks.set(
-    key,
-    next.catch(() => {}),
-  );
-  return next;
+  return withProviderLock(provider, () => runConfigure(provider));
+}
+
+async function runUninstall(
+  provider: AgentHookProvider,
+): Promise<UninstallAgentHooksResult> {
+  const { settingsPath } = provider;
+  try {
+    const filePath = await resolveWslPath(settingsPath);
+    const parsed = await readSettings(filePath);
+    if (!parsed) return { status: "not-installed" };
+    const { settings, hooks: existing } = parsed;
+    if (!hookTreeHas(existing, isOwnHookCommand)) {
+      return { status: "not-installed" };
+    }
+
+    const purged = purgeOwnHooks(existing);
+    if (Object.keys(purged).length === 0) {
+      delete settings.hooks;
+    } else {
+      settings.hooks = purged;
+    }
+    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
+
+    console.log(`Removed notification hooks from ~/${settingsPath}`);
+    return { status: "uninstalled" };
+  } catch (err) {
+    console.error("Failed to uninstall agent hooks:", err);
+    return { status: "error", message: String(err) };
+  }
+}
+
+export async function uninstallAgentHooks(
+  providerName: string,
+): Promise<UninstallAgentHooksResult> {
+  const provider = findAgentProvider(providerName);
+  if (!provider)
+    return {
+      status: "error",
+      message: `Unknown agent provider: ${providerName}`,
+    };
+  return withProviderLock(provider, () => runUninstall(provider));
 }

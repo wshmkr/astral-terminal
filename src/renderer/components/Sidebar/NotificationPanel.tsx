@@ -16,6 +16,7 @@ import {
   unreadCount,
   useWorkspaceStore,
 } from "../../store";
+import { CUSTOM_SCROLLBAR_SX } from "../../theme/scrollbar";
 import { NotificationRow } from "./NotificationRow";
 
 const BELL_BUTTON_SX = { color: "text.disabled" } as const;
@@ -66,11 +67,7 @@ const LIST_SX = {
   flex: 1,
   minHeight: 0,
   overflowY: "auto",
-  "&::-webkit-scrollbar": { width: 10, backgroundColor: "transparent" },
-  "&::-webkit-scrollbar-thumb": { backgroundColor: "custom.scrollbarThumb" },
-  "&::-webkit-scrollbar-thumb:hover": {
-    backgroundColor: "custom.scrollbarThumbHover",
-  },
+  ...CUSTOM_SCROLLBAR_SX,
 } as const;
 
 const EMPTY_SX = { textAlign: "center", py: 4 } as const;

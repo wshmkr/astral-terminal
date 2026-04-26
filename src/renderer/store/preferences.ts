@@ -1,4 +1,9 @@
-import type { NotificationSettings } from "../../shared/types";
+import type { AgentName } from "../../shared/agent-hooks";
+import type {
+  ConfigureAgentHooksResult,
+  NotificationSettings,
+  UninstallAgentHooksResult,
+} from "../../shared/types";
 import {
   SIDEBAR_MAX_WIDTH_PX,
   SIDEBAR_MIN_WIDTH_PX,
@@ -8,6 +13,7 @@ import { commit, getState, notify, setState } from "./core";
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   soundEnabled: false,
   osNotificationsEnabled: false,
+  agentHooks: {},
 };
 
 export function clampSidebarWidth(
@@ -33,23 +39,53 @@ export function updateNotificationSettings(
   settings: Partial<NotificationSettings>,
 ): void {
   const s = getState();
+  const current = s.notificationSettings;
+  const changed = (
+    Object.keys(settings) as (keyof NotificationSettings)[]
+  ).some((k) => settings[k] !== current[k]);
+  if (!changed) return;
   setState({
     ...s,
-    notificationSettings: { ...s.notificationSettings, ...settings },
+    notificationSettings: { ...current, ...settings },
   });
   commit();
 }
 
-export function setTerminalBackground(color: string): void {
+export async function setAgentHook(
+  providerName: AgentName,
+  enabled: boolean,
+): Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult> {
+  const result = enabled
+    ? await window.app.configureAgentHooks({ providerName })
+    : await window.app.uninstallAgentHooks({ providerName });
+  if (result.status === "error") return result;
   const s = getState();
-  if (s.terminalBackground === color) return;
-  setState({ ...s, terminalBackground: color });
-  notify();
+  if (s.notificationSettings.agentHooks[providerName] === enabled)
+    return result;
+  setState({
+    ...s,
+    notificationSettings: {
+      ...s.notificationSettings,
+      agentHooks: {
+        ...s.notificationSettings.agentHooks,
+        [providerName]: enabled,
+      },
+    },
+  });
+  commit();
+  return result;
 }
 
 export function setWindowFocused(focused: boolean): void {
   const s = getState();
   if (s.windowFocused === focused) return;
   setState({ ...s, windowFocused: focused });
+  notify();
+}
+
+export function setSettingsOpen(open: boolean): void {
+  const s = getState();
+  if (s.settingsOpen === open) return;
+  setState({ ...s, settingsOpen: open });
   notify();
 }

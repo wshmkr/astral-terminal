@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webFrame } from "electron";
 import type { NotificationFirePayload } from "../shared/types";
 import {
   decodeAppModeArg,
@@ -48,6 +48,8 @@ contextBridge.exposeInMainWorld("app", {
     callback: (exitCode: number, signal?: number) => void,
   ) => subscribe<[number, number | undefined]>(ptyExitChannel(ptyId), callback),
 
+  setUiZoom: (factor: number) => webFrame.setZoomFactor(factor),
+
   windowMinimize: () => ipcRenderer.send(IPC.window.minimize),
   windowMaximize: () => ipcRenderer.send(IPC.window.maximize),
   windowClose: () => ipcRenderer.send(IPC.window.close),
@@ -68,8 +70,8 @@ contextBridge.exposeInMainWorld("app", {
       callback,
     ),
 
-  detectAgentHooks: (params: { providerName: string }) =>
-    ipcRenderer.invoke(IPC.agentHooks.detect, params) as Promise<boolean>,
   configureAgentHooks: (params: { providerName: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.configure, params),
+  uninstallAgentHooks: (params: { providerName: string }) =>
+    ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
 });

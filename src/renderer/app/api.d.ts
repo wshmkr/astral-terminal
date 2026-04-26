@@ -3,6 +3,7 @@ import type {
   AppMode,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
+  UninstallAgentHooksResult,
 } from "../../shared/types";
 
 export interface AppAPI {
@@ -26,10 +27,12 @@ export interface AppAPI {
     ptyId: string,
     callback: (exitCode: number, signal?: number) => void,
   ) => () => void;
-  detectAgentHooks: (params: { providerName: string }) => Promise<boolean>;
   configureAgentHooks: (params: {
     providerName: string;
   }) => Promise<ConfigureAgentHooksResult>;
+  uninstallAgentHooks: (params: {
+    providerName: string;
+  }) => Promise<UninstallAgentHooksResult>;
   fireNotification: (payload: NotificationFirePayload) => void;
   onNotificationClick: (
     callback: (data: {
@@ -38,6 +41,7 @@ export interface AppAPI {
       surfaceId: string;
     }) => void,
   ) => () => void;
+  setUiZoom: (factor: number) => void;
   windowMinimize: () => void;
   windowMaximize: () => void;
   windowClose: () => void;

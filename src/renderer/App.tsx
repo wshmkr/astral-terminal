@@ -1,10 +1,11 @@
 import Box from "@mui/material/Box";
+import { useColorScheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState } from "react";
 import { agentProviders } from "../shared/agent-hooks";
-import { loadAppConfig } from "./app/config-loader";
 import { findLeafPane } from "./components/Layout/pane-tree";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
+import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TitleBar } from "./components/ui/TitleBar";
@@ -15,7 +16,8 @@ import {
   onNotificationAdded,
   setActiveSurface,
   setActiveWorkspace,
-  setTerminalBackground,
+  setAgentHook,
+  setSettingsOpen,
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
@@ -23,6 +25,8 @@ import {
 export function App() {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
+  const settingsOpen = useWorkspaceStore((s) => s.settingsOpen);
   const workspacesContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{
     width: number;
@@ -30,6 +34,17 @@ export function App() {
   } | null>(null);
 
   useKeyboard();
+
+  const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
+  const { setMode } = useColorScheme();
+
+  useEffect(() => {
+    setMode(appThemeId);
+  }, [appThemeId, setMode]);
+
+  useEffect(() => {
+    window.app.setUiZoom(uiScale);
+  }, [uiScale]);
 
   useEffect(() => {
     const el = workspacesContainerRef.current;
@@ -55,12 +70,6 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    loadAppConfig().then((config) =>
-      setTerminalBackground(config.terminalTheme.background),
-    );
-  }, []);
-
-  useEffect(() => {
     const onFocus = () => setWindowFocused(true);
     const onBlur = () => setWindowFocused(false);
     window.addEventListener("focus", onFocus);
@@ -72,17 +81,18 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const cleanupClick = window.app.onNotificationClick(
+    return window.app.onNotificationClick(
       ({ workspaceId, paneId, surfaceId }) => {
         setActiveWorkspace(workspaceId);
         setActiveSurface(paneId, surfaceId);
       },
     );
-    const cleanupAdded = onNotificationAdded((notif) => {
+  }, []);
+
+  useEffect(() => {
+    return onNotificationAdded((notif) => {
       const s = getState();
-      playNotificationSound({
-        enabled: s.notificationSettings.soundEnabled,
-      });
+      playNotificationSound({ enabled: s.notificationSettings.soundEnabled });
       const sourceWs = s.workspaces.find((w) => w.id === notif.workspaceId);
       const focusedSurfaceId =
         sourceWs && s.focusedPaneId
@@ -105,38 +115,32 @@ export function App() {
         });
       }
     });
-    return () => {
-      cleanupClick();
-      cleanupAdded();
-    };
   }, []);
 
   useEffect(() => {
+    const enabled = getState().notificationSettings.agentHooks;
     for (const provider of agentProviders) {
-      (async () => {
-        try {
-          const detected = await window.app.detectAgentHooks({
-            providerName: provider.name,
-          });
-          if (!detected) return;
-          const result = await window.app.configureAgentHooks({
-            providerName: provider.name,
-          });
+      const setting = enabled[provider.name];
+      if (setting === undefined) continue;
+      setAgentHook(provider.name, setting)
+        .then((result) => {
           if (result.status === "configured") {
             console.log(`Configured ${provider.name} notification hooks`);
+          } else if (result.status === "uninstalled") {
+            console.log(`Removed stale ${provider.name} notification hooks`);
           } else if (result.status === "error") {
             console.error(
-              `Failed to configure ${provider.name} notification hooks:`,
+              `Failed to reconcile ${provider.name} notification hooks:`,
               result.message,
             );
           }
-        } catch (err) {
+        })
+        .catch((err) => {
           console.error(
-            `Failed to configure ${provider.name} notification hooks:`,
+            `Failed to reconcile ${provider.name} notification hooks:`,
             err,
           );
-        }
-      })();
+        });
     }
   }, []);
 
@@ -211,6 +215,10 @@ export function App() {
           )}
         </Box>
       </Box>
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </Box>
   );
 }
