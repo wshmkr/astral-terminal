@@ -65,7 +65,6 @@ function createTerminal(
   term.loadAddon(searchAddon);
   term.loadAddon(new WebLinksAddon());
 
-  term.open(container);
   return { term, fitAddon, searchAddon };
 }
 
@@ -158,6 +157,7 @@ export class TerminalController {
     rows: number;
     content: string;
   } | null = null;
+  private pendingOpen = false;
 
   constructor(private readonly opts: TerminalControllerOptions) {
     const { term, fitAddon, searchAddon } = createTerminal(
@@ -168,6 +168,14 @@ export class TerminalController {
     this.fitAddon = fitAddon;
     this.searchAddon = searchAddon;
     this.findDecorations = findDecorationsFromTheme(opts.config.terminalTheme);
+
+    // xterm's renderer can't measure cell metrics on a 0×0 container
+    // defer term.open until the container is laid out
+    if (opts.container.offsetWidth > 0 && opts.container.offsetHeight > 0) {
+      this.term.open(opts.container);
+    } else {
+      this.pendingOpen = true;
+    }
 
     this.cleanupFns.push(
       attachClipboardHandlers(
@@ -195,6 +203,7 @@ export class TerminalController {
   }
 
   focus(): void {
+    if (this.pendingOpen) return;
     this.term.focus();
   }
 
@@ -252,6 +261,10 @@ export class TerminalController {
   private safeFit(): void {
     const { container } = this.opts;
     if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+    if (this.pendingOpen) {
+      this.pendingOpen = false;
+      this.term.open(container);
+    }
     if (this.pendingReplay) {
       const { cols, rows, content } = this.pendingReplay;
       this.pendingReplay = null;
@@ -309,7 +322,7 @@ export class TerminalController {
     if (!this.pendingReplay) {
       window.app.resizePty(id, this.term.cols, this.term.rows);
     }
-    this.term.focus();
+    if (!this.pendingOpen) this.term.focus();
   }
 
   private onPtyData(data: string): void {
