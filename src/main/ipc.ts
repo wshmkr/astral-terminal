@@ -9,7 +9,6 @@ import {
 } from "../shared/types";
 import {
   configureAgentHooks,
-  detectAgentHooks,
   uninstallAgentHooks,
 } from "./agent-hook-installer";
 import { PtyManager } from "./pty-manager";
@@ -125,12 +124,6 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
 }
 
 export function registerAgentHookIpc(): void {
-  ipcMain.handle(
-    IPC.agentHooks.detect,
-    (_event, { providerName }: { providerName: string }) =>
-      detectAgentHooks(providerName),
-  );
-
   ipcMain.handle(
     IPC.agentHooks.configure,
     (_event, { providerName }: { providerName: string }) =>

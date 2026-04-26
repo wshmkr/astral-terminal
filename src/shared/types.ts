@@ -176,7 +176,6 @@ export const IPC = {
   },
   agentHooks: {
     configure: "agent-hooks:configure",
-    detect: "agent-hooks:detect",
     uninstall: "agent-hooks:uninstall",
   },
 } as const;

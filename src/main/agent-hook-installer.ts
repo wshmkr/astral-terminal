@@ -48,21 +48,6 @@ async function resolveWslPath(relativePath: string): Promise<string> {
   return resolved;
 }
 
-export async function detectAgentHooks(providerName: string): Promise<boolean> {
-  const provider = findAgentProvider(providerName);
-  if (!provider) return false;
-  try {
-    const dir = await resolveWslPath(path.posix.dirname(provider.settingsPath));
-    return await fs.stat(dir).then(
-      () => true,
-      () => false,
-    );
-  } catch (err) {
-    console.error("detectAgentHooks failed:", err);
-    return false;
-  }
-}
-
 function isOwnHookCommand(value: unknown): boolean {
   return typeof value === "string" && value.includes(HOOK_MARKER_PREFIX);
 }

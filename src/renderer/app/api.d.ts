@@ -20,7 +20,6 @@ export interface AppAPI {
     ptyId: string,
     callback: (exitCode: number, signal?: number) => void,
   ) => () => void;
-  detectAgentHooks: (params: { providerName: string }) => Promise<boolean>;
   configureAgentHooks: (params: {
     providerName: string;
   }) => Promise<ConfigureAgentHooksResult>;
