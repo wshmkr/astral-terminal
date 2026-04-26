@@ -1,5 +1,4 @@
 export {
-  clampFontSize,
   setAppTheme,
   setFontFamily,
   setFontSize,

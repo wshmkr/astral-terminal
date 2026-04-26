@@ -29,13 +29,9 @@ export const FONT_OPTIONS: FontOption[] = [
   },
 ];
 
-export const FONT_BY_ID: Record<FontFamilyId, FontOption> = FONT_OPTIONS.reduce(
-  (acc, opt) => {
-    acc[opt.id] = opt;
-    return acc;
-  },
-  {} as Record<FontFamilyId, FontOption>,
-);
+export const FONT_BY_ID = Object.fromEntries(
+  FONT_OPTIONS.map((o) => [o.id, o]),
+) as Record<FontFamilyId, FontOption>;
 
 export const MIN_FONT_SIZE = 10;
 export const MAX_FONT_SIZE = 24;

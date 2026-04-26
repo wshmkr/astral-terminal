@@ -24,12 +24,12 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   uiScale: DEFAULT_UI_SCALE,
 };
 
-export function clampFontSize(n: number): number {
+function clampFontSize(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_FONT_SIZE;
   return Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, Math.round(n)));
 }
 
-export function clampUiScale(n: number): number {
+function clampUiScale(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_UI_SCALE;
   return Math.max(MIN_UI_SCALE, Math.min(MAX_UI_SCALE, n));
 }
