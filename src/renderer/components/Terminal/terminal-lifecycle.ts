@@ -157,10 +157,9 @@ export class TerminalController {
   readonly term: Terminal;
   private readonly fitAddon: FitAddon;
   private readonly searchAddon: SearchAddon;
-  private readonly findDecorations: ISearchDecorationOptions;
+  private findDecorations: ISearchDecorationOptions;
   private readonly resizeObserver: ResizeObserver;
   private readonly cleanupFns: Array<() => void> = [];
-  private readonly container: HTMLElement;
 
   private ptyId: string | null = null;
   private disposed = false;
@@ -168,7 +167,6 @@ export class TerminalController {
   private preReplayBuffer: string[] | null = [];
 
   constructor(private readonly opts: TerminalControllerOptions) {
-    this.container = opts.container;
     const { term, fitAddon, searchAddon } = createTerminal(opts.container, {
       config: opts.config,
       theme: opts.theme,
@@ -212,8 +210,8 @@ export class TerminalController {
   setTheme(theme: TerminalTheme): void {
     if (this.disposed) return;
     this.term.options.theme = theme;
-    this.container.style.backgroundColor = theme.background;
-    Object.assign(this.findDecorations, findDecorationsFromTheme(theme));
+    this.opts.container.style.backgroundColor = theme.background;
+    this.findDecorations = findDecorationsFromTheme(theme);
   }
 
   setFont(fontFamily: string, fontSize: number): void {
@@ -268,7 +266,7 @@ export class TerminalController {
   }
 
   private safeFit(): void {
-    const container = this.container;
+    const { container } = this.opts;
     if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
     const proposed = this.fitAddon.proposeDimensions();
     if (!proposed) return;
