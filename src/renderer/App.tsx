@@ -11,6 +11,7 @@ import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TitleBar } from "./components/ui/TitleBar";
+import { WelcomeDialog } from "./components/Welcome/WelcomeDialog";
 import { useKeyboard } from "./hooks/useKeyboard";
 import {
   formatNotificationDisplay,
@@ -30,6 +31,7 @@ export function App() {
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
   const settingsOpen = useWorkspaceStore((s) => s.settingsOpen);
+  const welcomeOpen = useWorkspaceStore((s) => s.welcomeOpen);
   const workspacesContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{
     width: number;
@@ -218,9 +220,10 @@ export function App() {
         </Box>
       </Box>
       <SettingsDialog
-        open={settingsOpen}
+        open={settingsOpen && !welcomeOpen}
         onClose={() => setSettingsOpen(false)}
       />
+      <WelcomeDialog open={welcomeOpen} />
     </AppDndContext>
   );
 }

@@ -150,6 +150,7 @@ export interface AppState {
   notificationSettings: NotificationSettings;
   windowFocused: boolean;
   settingsOpen: boolean;
+  welcomeOpen: boolean;
 }
 
 export const IPC = {

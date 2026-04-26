@@ -29,9 +29,11 @@ export {
 
 export {
   clampSidebarWidth,
+  dismissWelcome,
   setAgentHook,
   setSettingsOpen,
   setSidebarWidth,
+  setWelcomeOpen,
   setWindowFocused,
   updateNotificationSettings,
 } from "./preferences";
