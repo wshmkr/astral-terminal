@@ -1,3 +1,5 @@
+import type { AgentName } from "./agent-hooks";
+
 export type AppMode = "packaged" | "dev";
 
 const ASTRAL_MODE_ARG_PREFIX = "--astral-mode=";
@@ -95,7 +97,7 @@ export interface TerminalTheme {
 export interface NotificationSettings {
   soundEnabled: boolean;
   osNotificationsEnabled: boolean;
-  agentHooks: Record<string, boolean>;
+  agentHooks: Partial<Record<AgentName, boolean>>;
 }
 
 export type AppThemeId = "dark" | "light";

@@ -6,9 +6,10 @@ import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import type { IconType } from "react-icons";
 import { SiClaude } from "react-icons/si";
 import { VscQuestion } from "react-icons/vsc";
-import { agentProviders } from "../../../shared/agent-hooks";
+import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
 import {
   setAgentHook,
   updateNotificationSettings,
@@ -37,12 +38,16 @@ const HOOKS_HELP_TEXT =
   "Install hooks in the agent's settings file so it emits notifications " +
   "and auto-restores sessions in this terminal.";
 
+const PROVIDER_ICONS: Record<AgentName, { icon: IconType; color: string }> = {
+  Claude: { icon: SiClaude, color: "#D97757" },
+};
+
 export function NotificationsSection() {
   const settings = useWorkspaceStore((s) => s.notificationSettings);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<Record<string, boolean>>({});
 
-  async function toggleAgentHooks(name: string, enabled: boolean) {
+  async function toggleAgentHooks(name: AgentName, enabled: boolean) {
     setPending((p) => ({ ...p, [name]: true }));
     setErrors((e) => {
       const { [name]: _, ...rest } = e;
@@ -110,27 +115,26 @@ export function NotificationsSection() {
         </Tooltip>
       </Box>
 
-      {agentProviders.map((p) => (
-        <SettingRow
-          key={p.name}
-          title={p.name}
-          icon={
-            p.name === "Claude" ? (
-              <SiClaude size={16} color="#D97757" />
-            ) : undefined
-          }
-          error={errors[p.name]}
-          control={
-            <Checkbox
-              size="small"
-              sx={CHECKBOX_SX}
-              checked={!!settings.agentHooks[p.name]}
-              disabled={!!pending[p.name]}
-              onChange={(_, checked) => toggleAgentHooks(p.name, checked)}
-            />
-          }
-        />
-      ))}
+      {agentProviders.map((p) => {
+        const { icon: Icon, color } = PROVIDER_ICONS[p.name];
+        return (
+          <SettingRow
+            key={p.name}
+            title={p.name}
+            icon={<Icon size={16} color={color} />}
+            error={errors[p.name]}
+            control={
+              <Checkbox
+                size="small"
+                sx={CHECKBOX_SX}
+                checked={!!settings.agentHooks[p.name]}
+                disabled={!!pending[p.name]}
+                onChange={(_, checked) => toggleAgentHooks(p.name, checked)}
+              />
+            }
+          />
+        );
+      })}
 
       {noHooksEnabled && (
         <Alert

@@ -66,15 +66,15 @@ function sessionHook(opts: {
   };
 }
 
-export interface AgentHookProvider {
-  name: string;
+export interface AgentHookProvider<N extends string = string> {
+  name: N;
   settingsPath: string;
   sessionIdPattern: RegExp;
   resumeCommand(sessionId: string): string;
   generateHooksConfig(): { hooks: Record<string, unknown[]> };
 }
 
-const claudeProvider: AgentHookProvider = {
+const claudeProvider: AgentHookProvider<"Claude"> = {
   name: "Claude",
   settingsPath: ".claude/settings.json",
   sessionIdPattern: UUID_RE,
@@ -116,7 +116,9 @@ const claudeProvider: AgentHookProvider = {
   },
 };
 
-export const agentProviders: AgentHookProvider[] = [claudeProvider];
+export const agentProviders = [claudeProvider] as const;
+
+export type AgentName = (typeof agentProviders)[number]["name"];
 
 export function findAgentProvider(name: string): AgentHookProvider | undefined {
   return agentProviders.find((p) => p.name === name);

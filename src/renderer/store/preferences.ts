@@ -1,3 +1,4 @@
+import type { AgentName } from "../../shared/agent-hooks";
 import type {
   ConfigureAgentHooksResult,
   NotificationSettings,
@@ -51,7 +52,7 @@ export function updateNotificationSettings(
 }
 
 export async function setAgentHook(
-  providerName: string,
+  providerName: AgentName,
   enabled: boolean,
 ): Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult> {
   const result = enabled
