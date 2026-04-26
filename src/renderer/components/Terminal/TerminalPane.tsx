@@ -103,9 +103,9 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
 
   useEffect(() => {
     const font = FONT_BY_ID[fontFamilyId];
-    preloadFont(font.stack, fontSize).then(() => {
-      controllerRef.current?.setFont(font.stack, fontSize);
-    });
+    preloadFont(font.stack, fontSize)
+      .catch((err) => console.warn("Font preload failed:", err))
+      .finally(() => controllerRef.current?.setFont(font.stack, fontSize));
   }, [fontFamilyId, fontSize]);
 
   useEffect(() => {
