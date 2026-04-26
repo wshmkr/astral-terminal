@@ -22,13 +22,21 @@ function findDecorationsFromTheme(
   };
 }
 
+const fontPreloadCache = new Map<string, Promise<unknown>>();
+
 export function preloadFont(fontStack: string, size: number): Promise<unknown> {
-  return Promise.all([
-    document.fonts.load(`${size}px ${fontStack}`),
-    document.fonts.load(`bold ${size}px ${fontStack}`),
-    document.fonts.load(`italic ${size}px ${fontStack}`),
-    document.fonts.load(`bold italic ${size}px ${fontStack}`),
-  ]);
+  const key = `${size}|${fontStack}`;
+  let cached = fontPreloadCache.get(key);
+  if (!cached) {
+    cached = Promise.all([
+      document.fonts.load(`${size}px ${fontStack}`),
+      document.fonts.load(`bold ${size}px ${fontStack}`),
+      document.fonts.load(`italic ${size}px ${fontStack}`),
+      document.fonts.load(`bold italic ${size}px ${fontStack}`),
+    ]);
+    fontPreloadCache.set(key, cached);
+  }
+  return cached;
 }
 
 interface TerminalAddons {
