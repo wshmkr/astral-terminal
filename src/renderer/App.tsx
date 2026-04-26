@@ -16,6 +16,7 @@ import {
   onNotificationAdded,
   setActiveSurface,
   setActiveWorkspace,
+  setAgentHook,
   setSettingsOpen,
   setWindowFocused,
   useWorkspaceStore,
@@ -121,15 +122,8 @@ export function App() {
     for (const provider of agentProviders) {
       const setting = enabled[provider.name];
       if (setting === undefined) continue;
-      (async () => {
-        try {
-          const result = setting
-            ? await window.app.configureAgentHooks({
-                providerName: provider.name,
-              })
-            : await window.app.uninstallAgentHooks({
-                providerName: provider.name,
-              });
+      setAgentHook(provider.name, setting)
+        .then((result) => {
           if (result.status === "configured") {
             console.log(`Configured ${provider.name} notification hooks`);
           } else if (result.status === "uninstalled") {
@@ -140,13 +134,13 @@ export function App() {
               result.message,
             );
           }
-        } catch (err) {
+        })
+        .catch((err) => {
           console.error(
             `Failed to reconcile ${provider.name} notification hooks:`,
             err,
           );
-        }
-      })();
+        });
     }
   }, []);
 

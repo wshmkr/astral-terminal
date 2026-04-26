@@ -10,7 +10,7 @@ import { SiClaude } from "react-icons/si";
 import { VscQuestion } from "react-icons/vsc";
 import { agentProviders } from "../../../shared/agent-hooks";
 import {
-  setAgentHookEnabled,
+  setAgentHook,
   updateNotificationSettings,
   useWorkspaceStore,
 } from "../../store";
@@ -49,14 +49,10 @@ export function NotificationsSection() {
       return rest;
     });
     try {
-      const result = enabled
-        ? await window.app.configureAgentHooks({ providerName: name })
-        : await window.app.uninstallAgentHooks({ providerName: name });
+      const result = await setAgentHook(name, enabled);
       if (result.status === "error") {
         setErrors((e) => ({ ...e, [name]: result.message }));
-        return;
       }
-      setAgentHookEnabled(name, enabled);
     } catch (err) {
       setErrors((e) => ({ ...e, [name]: String(err) }));
     } finally {

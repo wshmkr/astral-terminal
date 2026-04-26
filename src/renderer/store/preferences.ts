@@ -1,4 +1,8 @@
-import type { NotificationSettings } from "../../shared/types";
+import type {
+  ConfigureAgentHooksResult,
+  NotificationSettings,
+  UninstallAgentHooksResult,
+} from "../../shared/types";
 import {
   SIDEBAR_MAX_WIDTH_PX,
   SIDEBAR_MIN_WIDTH_PX,
@@ -46,12 +50,17 @@ export function updateNotificationSettings(
   commit();
 }
 
-export function setAgentHookEnabled(
+export async function setAgentHook(
   providerName: string,
   enabled: boolean,
-): void {
+): Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult> {
+  const result = enabled
+    ? await window.app.configureAgentHooks({ providerName })
+    : await window.app.uninstallAgentHooks({ providerName });
+  if (result.status === "error") return result;
   const s = getState();
-  if (s.notificationSettings.agentHooks[providerName] === enabled) return;
+  if (s.notificationSettings.agentHooks[providerName] === enabled)
+    return result;
   setState({
     ...s,
     notificationSettings: {
@@ -63,6 +72,7 @@ export function setAgentHookEnabled(
     },
   });
   commit();
+  return result;
 }
 
 export function setWindowFocused(focused: boolean): void {
