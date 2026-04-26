@@ -65,7 +65,6 @@ function createTerminal(
   term.loadAddon(searchAddon);
   term.loadAddon(new WebLinksAddon());
 
-  term.open(container);
   return { term, fitAddon, searchAddon };
 }
 
@@ -151,6 +150,12 @@ export class TerminalController {
   private disposed = false;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private preReplayBuffer: string[] | null = [];
+  private pendingReplay: {
+    cols: number;
+    rows: number;
+    content: string;
+  } | null = null;
+  private pendingOpen = false;
 
   constructor(private readonly opts: TerminalControllerOptions) {
     const { term, fitAddon, searchAddon } = createTerminal(
@@ -161,6 +166,13 @@ export class TerminalController {
     this.fitAddon = fitAddon;
     this.searchAddon = searchAddon;
     this.findDecorations = findDecorationsFromTheme(opts.config.terminalTheme);
+
+    // xterm's renderer can't measure cell metrics on a 0×0 container
+    if (opts.container.offsetWidth > 0 && opts.container.offsetHeight > 0) {
+      this.term.open(opts.container);
+    } else {
+      this.pendingOpen = true;
+    }
 
     this.cleanupFns.push(
       attachClipboardHandlers(term, opts.container, opts.onRequestFind),
@@ -183,6 +195,7 @@ export class TerminalController {
   }
 
   focus(): void {
+    if (this.pendingOpen) return;
     this.term.focus();
   }
 
@@ -240,6 +253,16 @@ export class TerminalController {
   private safeFit(): void {
     const { container } = this.opts;
     if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+    if (this.pendingOpen) {
+      this.pendingOpen = false;
+      this.term.open(container);
+    }
+    if (this.pendingReplay) {
+      const { cols, rows, content } = this.pendingReplay;
+      this.pendingReplay = null;
+      this.term.resize(cols, rows);
+      this.term.write(content);
+    }
     const proposed = this.fitAddon.proposeDimensions();
     if (!proposed) return;
     if (proposed.cols === this.term.cols && proposed.rows === this.term.rows)
@@ -248,9 +271,15 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
+    const proposed = this.pendingOpen
+      ? undefined
+      : this.fitAddon.proposeDimensions();
+    if (proposed) this.term.resize(proposed.cols, proposed.rows);
     const id = await window.app.createPty({
       cwd: this.opts.cwd,
       surfaceId: this.opts.surfaceId,
+      cols: proposed?.cols,
+      rows: proposed?.rows,
     });
     if (this.disposed) {
       window.app.killPty(id);
@@ -268,7 +297,10 @@ export class TerminalController {
 
     const replay = await window.app.replayPty(id);
     if (this.disposed) return;
-    if (replay) this.term.write(replay);
+    if (replay.content) {
+      this.pendingReplay = replay;
+      this.safeFit();
+    }
 
     const buffered = this.preReplayBuffer ?? [];
     this.preReplayBuffer = null;
@@ -280,8 +312,11 @@ export class TerminalController {
     );
 
     this.safeFit();
-    window.app.resizePty(id, this.term.cols, this.term.rows);
-    this.term.focus();
+    // pre-fit term dims would push 80×24 or stale saved dims to main
+    if (!this.pendingReplay && !this.pendingOpen) {
+      window.app.resizePty(id, this.term.cols, this.term.rows);
+    }
+    if (!this.pendingOpen) this.term.focus();
   }
 
   private onPtyData(data: string): void {

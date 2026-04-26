@@ -8,11 +8,18 @@ import type {
 export interface AppAPI {
   mode: AppMode;
   readConfig: () => Promise<AppConfig>;
-  createPty: (options: { cwd?: string; surfaceId: string }) => Promise<string>;
+  createPty: (options: {
+    cwd?: string;
+    surfaceId: string;
+    cols?: number;
+    rows?: number;
+  }) => Promise<string>;
   writePty: (ptyId: string, data: string) => void;
   resizePty: (ptyId: string, cols: number, rows: number) => void;
   killPty: (ptyId: string) => void;
-  replayPty: (ptyId: string) => Promise<string>;
+  replayPty: (
+    ptyId: string,
+  ) => Promise<{ cols: number; rows: number; content: string }>;
   pruneTerminalBuffers: (surfaceIds: string[]) => Promise<void>;
   onPtyData: (ptyId: string, callback: (data: string) => void) => () => void;
   onPtyExit: (

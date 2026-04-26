@@ -184,23 +184,30 @@ export function App() {
               </Typography>
             </Box>
           ) : (
-            workspaces.map((ws) => (
-              <Box
-                key={ws.id}
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  display: ws.id === activeWorkspaceId ? "flex" : "none",
-                }}
-              >
-                {containerSize && (
-                  <WorkspaceLayout
-                    layout={ws.layout}
-                    containerSize={containerSize}
-                  />
-                )}
-              </Box>
-            ))
+            // visibility:hidden (not display:none) keeps inactive workspaces
+            // laid out so their terminals can size themselves before first show
+            workspaces.map((ws) => {
+              const isActive = ws.id === activeWorkspaceId;
+              return (
+                <Box
+                  key={ws.id}
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    visibility: isActive ? "visible" : "hidden",
+                    zIndex: isActive ? 1 : 0,
+                  }}
+                >
+                  {containerSize && (
+                    <WorkspaceLayout
+                      layout={ws.layout}
+                      containerSize={containerSize}
+                    />
+                  )}
+                </Box>
+              );
+            })
           )}
         </Box>
       </Box>
