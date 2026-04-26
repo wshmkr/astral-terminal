@@ -161,7 +161,11 @@ export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
           <VscClose size={16} />
         </Box>
       )}
-      <WorkspaceSurfaceList layout={workspace.layout} />
+      <WorkspaceSurfaceList
+        workspaceId={workspace.id}
+        layout={workspace.layout}
+        notifications={workspace.notifications}
+      />
     </Box>
   );
 }
