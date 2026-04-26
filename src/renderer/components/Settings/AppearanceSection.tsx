@@ -1,14 +1,7 @@
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
-import MenuItem from "@mui/material/MenuItem";
-import Select, { type SelectChangeEvent } from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import type {
-  AppThemeId,
-  FontFamilyId,
-  TerminalThemeId,
-} from "../../../shared/types";
 import {
   setAppTheme,
   setFontFamily,
@@ -25,27 +18,38 @@ import {
 } from "../../theme/fonts";
 import { APP_THEME_OPTIONS } from "../../theme/palettes";
 import { TERMINAL_THEME_OPTIONS } from "../../theme/terminal-themes";
-import { DIVIDER_SX, ROOT_SX, SUBHEAD_SX } from "./shared";
-
-const FIELD_SX = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0.75,
-} as const;
-
-const LABEL_SX = {
-  color: "text.secondary",
-  fontSize: 12,
-  fontWeight: 500,
-} as const;
-
-const SELECT_SX = {
-  "& .MuiSelect-select": { py: 0.5 },
-} as const;
+import {
+  DIVIDER_SX,
+  FIELD_LABEL_SX,
+  FIELD_SX,
+  LabeledSelect,
+  ROOT_SX,
+  SUBHEAD_SX,
+} from "./shared";
 
 const TEXTFIELD_SX = {
   "& .MuiInputBase-input": { py: 0.5 },
 } as const;
+
+const APP_THEME_OPTS = APP_THEME_OPTIONS.map((o) => ({
+  value: o.id,
+  label: o.label,
+}));
+
+const UI_SCALE_OPTS = UI_SCALE_OPTIONS.map((o) => ({
+  value: o.value,
+  label: o.label,
+}));
+
+const TERMINAL_THEME_OPTS = TERMINAL_THEME_OPTIONS.map((o) => ({
+  value: o.id,
+  label: o.label,
+}));
+
+const FONT_OPTS = FONT_OPTIONS.map((o) => ({
+  value: o.id,
+  label: <span style={{ fontFamily: o.stack }}>{o.label}</span>,
+}));
 
 export function AppearanceSection() {
   const appearance = useWorkspaceStore((s) => s.appearance);
@@ -56,41 +60,21 @@ export function AppearanceSection() {
         App
       </Typography>
 
-      <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>Theme</Typography>
-        <Select
-          size="small"
-          value={appearance.appThemeId}
-          onChange={(e: SelectChangeEvent<AppThemeId>) =>
-            setAppTheme(e.target.value as AppThemeId)
-          }
-          sx={{ ...SELECT_SX, maxWidth: 160 }}
-        >
-          {APP_THEME_OPTIONS.map((opt) => (
-            <MenuItem key={opt.id} value={opt.id}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </Box>
+      <LabeledSelect
+        label="Theme"
+        value={appearance.appThemeId}
+        options={APP_THEME_OPTS}
+        onChange={setAppTheme}
+        maxWidth={160}
+      />
 
-      <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>UI scale</Typography>
-        <Select
-          size="small"
-          value={appearance.uiScale}
-          onChange={(e: SelectChangeEvent<number>) =>
-            setUiScale(Number(e.target.value))
-          }
-          sx={{ ...SELECT_SX, maxWidth: 160 }}
-        >
-          {UI_SCALE_OPTIONS.map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </Box>
+      <LabeledSelect
+        label="UI scale"
+        value={appearance.uiScale}
+        options={UI_SCALE_OPTS}
+        onChange={setUiScale}
+        maxWidth={160}
+      />
 
       <Divider sx={DIVIDER_SX} />
 
@@ -98,44 +82,24 @@ export function AppearanceSection() {
         Terminal
       </Typography>
 
-      <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>Theme</Typography>
-        <Select
-          size="small"
-          value={appearance.terminalThemeId}
-          onChange={(e: SelectChangeEvent<TerminalThemeId>) =>
-            setTerminalTheme(e.target.value as TerminalThemeId)
-          }
-          sx={{ ...SELECT_SX, maxWidth: 240 }}
-        >
-          {TERMINAL_THEME_OPTIONS.map((opt) => (
-            <MenuItem key={opt.id} value={opt.id}>
-              {opt.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </Box>
+      <LabeledSelect
+        label="Theme"
+        value={appearance.terminalThemeId}
+        options={TERMINAL_THEME_OPTS}
+        onChange={setTerminalTheme}
+        maxWidth={240}
+      />
+
+      <LabeledSelect
+        label="Font"
+        value={appearance.fontFamily}
+        options={FONT_OPTS}
+        onChange={setFontFamily}
+        maxWidth={240}
+      />
 
       <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>Font</Typography>
-        <Select
-          size="small"
-          value={appearance.fontFamily}
-          onChange={(e: SelectChangeEvent<FontFamilyId>) =>
-            setFontFamily(e.target.value as FontFamilyId)
-          }
-          sx={{ ...SELECT_SX, maxWidth: 240 }}
-        >
-          {FONT_OPTIONS.map((opt) => (
-            <MenuItem key={opt.id} value={opt.id}>
-              <span style={{ fontFamily: opt.stack }}>{opt.label}</span>
-            </MenuItem>
-          ))}
-        </Select>
-      </Box>
-
-      <Box sx={FIELD_SX}>
-        <Typography sx={LABEL_SX}>Font size</Typography>
+        <Typography sx={FIELD_LABEL_SX}>Font size</Typography>
         <TextField
           size="small"
           type="number"

@@ -1,4 +1,6 @@
 import Box from "@mui/material/Box";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { ReactNode } from "react";
@@ -69,6 +71,56 @@ export function SettingRow({
         {description && <Typography sx={DESC_SX}>{description}</Typography>}
         {error && <Typography sx={ERROR_SX}>{error}</Typography>}
       </Stack>
+    </Box>
+  );
+}
+
+export const FIELD_SX = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 0.75,
+} as const;
+
+export const FIELD_LABEL_SX = {
+  color: "text.secondary",
+  fontSize: 12,
+  fontWeight: 500,
+} as const;
+
+const SELECT_SX = {
+  "& .MuiSelect-select": { py: 0.5 },
+} as const;
+
+interface LabeledSelectProps<T extends string | number> {
+  label: string;
+  value: T;
+  options: ReadonlyArray<{ value: T; label: ReactNode }>;
+  onChange: (value: T) => void;
+  maxWidth?: number;
+}
+
+export function LabeledSelect<T extends string | number>({
+  label,
+  value,
+  options,
+  onChange,
+  maxWidth,
+}: LabeledSelectProps<T>) {
+  return (
+    <Box sx={FIELD_SX}>
+      <Typography sx={FIELD_LABEL_SX}>{label}</Typography>
+      <Select
+        size="small"
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        sx={maxWidth ? { ...SELECT_SX, maxWidth } : SELECT_SX}
+      >
+        {options.map((opt) => (
+          <MenuItem key={String(opt.value)} value={opt.value}>
+            {opt.label}
+          </MenuItem>
+        ))}
+      </Select>
     </Box>
   );
 }
