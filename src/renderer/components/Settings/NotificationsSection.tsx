@@ -5,16 +5,12 @@ import Divider from "@mui/material/Divider";
 import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
 import type { IconType } from "react-icons";
 import { SiClaude } from "react-icons/si";
 import { VscQuestion } from "react-icons/vsc";
 import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
-import {
-  setAgentHook,
-  updateNotificationSettings,
-  useWorkspaceStore,
-} from "../../store";
+import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
+import { updateNotificationSettings, useWorkspaceStore } from "../../store";
 import { DIVIDER_SX, ROOT_SX, SettingRow, SUBHEAD_SX } from "./shared";
 
 const SWITCH_SX = { ml: -1 } as const;
@@ -44,29 +40,7 @@ const PROVIDER_ICONS: Record<AgentName, { icon: IconType; color: string }> = {
 
 export function NotificationsSection() {
   const settings = useWorkspaceStore((s) => s.notificationSettings);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [pending, setPending] = useState<Record<string, boolean>>({});
-
-  async function toggleAgentHooks(name: AgentName, enabled: boolean) {
-    setPending((p) => ({ ...p, [name]: true }));
-    setErrors((e) => {
-      const { [name]: _, ...rest } = e;
-      return rest;
-    });
-    try {
-      const result = await setAgentHook(name, enabled);
-      if (result.status === "error") {
-        setErrors((e) => ({ ...e, [name]: result.message }));
-      }
-    } catch (err) {
-      setErrors((e) => ({ ...e, [name]: String(err) }));
-    } finally {
-      setPending((p) => {
-        const { [name]: _, ...rest } = p;
-        return rest;
-      });
-    }
-  }
+  const { toggle, pending, errors } = useAgentHookToggle();
 
   const noHooksEnabled = agentProviders.every(
     (p) => !settings.agentHooks[p.name],
@@ -131,7 +105,7 @@ export function NotificationsSection() {
                 sx={CHECKBOX_SX}
                 checked={!!settings.agentHooks[p.name]}
                 disabled={!!pending[p.name]}
-                onChange={(_, checked) => toggleAgentHooks(p.name, checked)}
+                onChange={(_, checked) => toggle(p.name, checked)}
               />
             }
           />

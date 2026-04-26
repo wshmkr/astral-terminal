@@ -5,12 +5,11 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
 import { SiClaude } from "react-icons/si";
-import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
+import { agentProviders } from "../../../shared/agent-hooks";
+import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {
   dismissWelcome,
-  setAgentHook,
   setAppTheme,
   setTerminalTheme,
   useWorkspaceStore,
@@ -33,7 +32,6 @@ const PAPER_SX = {
   borderRadius: 1,
   overflow: "hidden",
   userSelect: "none",
-  "& input, & textarea": { userSelect: "auto" },
 } as const;
 
 const CONTENT_SX = {
@@ -42,42 +40,12 @@ const CONTENT_SX = {
   pb: 1,
 } as const;
 
-const HEADER_SX = {
-  mb: 2,
-} as const;
-
-const SUBTITLE_SX = {
-  color: "text.secondary",
-  mt: 0.5,
-} as const;
-
+const HEADER_TITLE_SX = { mb: 0.5 } as const;
+const SUBTITLE_SX = { color: "text.secondary", mb: 2 } as const;
 const CHECKBOX_SX = { p: 0.5 } as const;
+const ACTIONS_SX = { px: 3, pb: 2, pt: 1 } as const;
 
-const ACTIONS_SX = {
-  px: 3,
-  pb: 2,
-  pt: 1,
-} as const;
-
-const APP_THEME_OPTS = APP_THEME_OPTIONS.map((o) => ({
-  value: o.id,
-  label: o.label,
-}));
-
-const TERMINAL_THEME_OPTS = TERMINAL_THEME_OPTIONS.map((o) => ({
-  value: o.id,
-  label: o.label,
-}));
-
-const PROVIDER_ICONS: Record<AgentName, { color: string }> = {
-  Claude: { color: "#D97757" },
-};
-
-interface Props {
-  open: boolean;
-}
-
-export function WelcomeDialog({ open }: Props) {
+export function WelcomeDialog() {
   const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
   const terminalThemeId = useWorkspaceStore(
     (s) => s.appearance.terminalThemeId,
@@ -85,43 +53,17 @@ export function WelcomeDialog({ open }: Props) {
   const agentHooks = useWorkspaceStore(
     (s) => s.notificationSettings.agentHooks,
   );
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [pending, setPending] = useState<Record<string, boolean>>({});
-
-  async function toggleAgentHooks(name: AgentName, enabled: boolean) {
-    setPending((p) => ({ ...p, [name]: true }));
-    setErrors((e) => {
-      const { [name]: _, ...rest } = e;
-      return rest;
-    });
-    try {
-      const result = await setAgentHook(name, enabled);
-      if (result.status === "error") {
-        setErrors((e) => ({ ...e, [name]: result.message }));
-      }
-    } catch (err) {
-      setErrors((e) => ({ ...e, [name]: String(err) }));
-    } finally {
-      setPending((p) => {
-        const { [name]: _, ...rest } = p;
-        return rest;
-      });
-    }
-  }
+  const { toggle, pending, errors } = useAgentHookToggle();
 
   return (
-    <Dialog
-      open={open}
-      onClose={() => {}}
-      slotProps={{ paper: { sx: PAPER_SX } }}
-    >
+    <Dialog open slotProps={{ paper: { sx: PAPER_SX } }}>
       <Box sx={CONTENT_SX}>
-        <Box sx={HEADER_SX}>
-          <Typography variant="h5">Welcome to Astral</Typography>
-          <Typography variant="body2" sx={SUBTITLE_SX}>
-            Let's get you set up. You can change everything later in Settings.
-          </Typography>
-        </Box>
+        <Typography variant="h5" sx={HEADER_TITLE_SX}>
+          Welcome to Astral
+        </Typography>
+        <Typography variant="body2" sx={SUBTITLE_SX}>
+          Let's get you set up. You can change everything later in Settings.
+        </Typography>
 
         <Box sx={ROOT_SX}>
           <Typography variant="subtitle1" sx={SUBHEAD_SX}>
@@ -131,7 +73,7 @@ export function WelcomeDialog({ open }: Props) {
           <LabeledSelect
             label="App theme"
             value={appThemeId}
-            options={APP_THEME_OPTS}
+            options={APP_THEME_OPTIONS}
             onChange={setAppTheme}
             maxWidth={200}
           />
@@ -139,7 +81,7 @@ export function WelcomeDialog({ open }: Props) {
           <LabeledSelect
             label="Terminal theme"
             value={terminalThemeId}
-            options={TERMINAL_THEME_OPTS}
+            options={TERMINAL_THEME_OPTIONS}
             onChange={setTerminalTheme}
             maxWidth={240}
           />
@@ -151,13 +93,12 @@ export function WelcomeDialog({ open }: Props) {
           </Typography>
 
           {agentProviders.map((p) => {
-            const { color } = PROVIDER_ICONS[p.name];
             const error = errors[p.name];
             return (
               <SettingRow
                 key={p.name}
                 title={p.name}
-                icon={<SiClaude size={16} color={color} />}
+                icon={<SiClaude size={16} color="#D97757" />}
                 description={
                   error ?? `Get desktop notifications when ${p.name} pauses.`
                 }
@@ -168,7 +109,7 @@ export function WelcomeDialog({ open }: Props) {
                     sx={CHECKBOX_SX}
                     checked={!!agentHooks[p.name]}
                     disabled={!!pending[p.name]}
-                    onChange={(_, checked) => toggleAgentHooks(p.name, checked)}
+                    onChange={(_, checked) => toggle(p.name, checked)}
                   />
                 }
               />
@@ -178,12 +119,7 @@ export function WelcomeDialog({ open }: Props) {
       </Box>
 
       <DialogActions sx={ACTIONS_SX}>
-        <Button
-          variant="contained"
-          size="medium"
-          onClick={dismissWelcome}
-          autoFocus
-        >
+        <Button variant="contained" onClick={dismissWelcome} autoFocus>
           Get started
         </Button>
       </DialogActions>

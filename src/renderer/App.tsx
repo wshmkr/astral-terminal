@@ -223,7 +223,7 @@ export function App() {
         open={settingsOpen && !welcomeOpen}
         onClose={() => setSettingsOpen(false)}
       />
-      <WelcomeDialog open={welcomeOpen} />
+      {welcomeOpen && <WelcomeDialog />}
     </AppDndContext>
   );
 }
