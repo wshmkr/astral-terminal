@@ -37,13 +37,15 @@ interface StoredBuffer {
 
 function isStoredBuffer(v: unknown): v is StoredBuffer {
   if (!v || typeof v !== "object") return false;
-  const o = v as Record<string, unknown>;
+  const { cols, rows, content } = v as Record<string, unknown>;
   return (
-    Number.isInteger(o.cols) &&
-    Number.isInteger(o.rows) &&
-    typeof o.content === "string" &&
-    (o.cols as number) > 0 &&
-    (o.rows as number) > 0
+    typeof cols === "number" &&
+    Number.isInteger(cols) &&
+    cols > 0 &&
+    typeof rows === "number" &&
+    Number.isInteger(rows) &&
+    rows > 0 &&
+    typeof content === "string"
   );
 }
 
@@ -127,11 +129,20 @@ export class PtyManager {
   }
 
   private loadBuffer(surfaceId: string): StoredBuffer | null {
+    const file = this.bufferFile(surfaceId);
+    let raw: string;
     try {
-      const raw = fs.readFileSync(this.bufferFile(surfaceId), "utf-8");
+      raw = fs.readFileSync(file, "utf-8");
+    } catch {
+      return null;
+    }
+    try {
       const parsed = JSON.parse(raw);
       if (isStoredBuffer(parsed)) return parsed;
-    } catch {}
+      console.error("Terminal buffer has unexpected shape:", file);
+    } catch (err) {
+      console.error("Failed to parse terminal buffer:", file, err);
+    }
     return null;
   }
 
@@ -300,15 +311,15 @@ export class PtyManager {
     return id;
   }
 
-  beginReplay(id: string): { cols: number; rows: number; content: string } {
+  beginReplay(id: string): StoredBuffer {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
-    const content = entry.serializeAddon.serialize(SERIALIZE_OPTS);
+    const snap = this.snapshot(entry);
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
     }
-    return { cols: entry.headless.cols, rows: entry.headless.rows, content };
+    return snap;
   }
 
   write(id: string, data: string): void {

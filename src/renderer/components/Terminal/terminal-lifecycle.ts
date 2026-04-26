@@ -279,7 +279,9 @@ export class TerminalController {
   }
 
   private async startPty(): Promise<void> {
-    const proposed = this.fitAddon.proposeDimensions();
+    const proposed = this.pendingOpen
+      ? undefined
+      : this.fitAddon.proposeDimensions();
     if (proposed) this.term.resize(proposed.cols, proposed.rows);
     const id = await window.app.createPty({
       cwd: this.opts.cwd,
@@ -318,8 +320,11 @@ export class TerminalController {
     );
 
     this.safeFit();
-    // Don't sync main to default-80×24 while pendingReplay still holds saved dims
-    if (!this.pendingReplay) {
+    // safeFit no-ops on a 0×0 container, leaving pendingOpen/pendingReplay set
+    // and term dims at xterm defaults or saved-replay dims. Skip the pty sync
+    // until a later safeFit lands real fit dims, otherwise we'd push 80×24
+    // (or stale saved dims) to main.
+    if (!this.pendingReplay && !this.pendingOpen) {
       window.app.resizePty(id, this.term.cols, this.term.rows);
     }
     if (!this.pendingOpen) this.term.focus();

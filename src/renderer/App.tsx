@@ -184,6 +184,9 @@ export function App() {
               </Typography>
             </Box>
           ) : (
+            // Inactive workspaces use visibility:hidden (not display:none) so
+            // their terminals retain a nonzero container size and can size
+            // themselves on creation, before they're ever shown
             workspaces.map((ws) => {
               const isActive = ws.id === activeWorkspaceId;
               return (
