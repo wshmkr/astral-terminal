@@ -80,17 +80,20 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const cleanupClick = window.app.onNotificationClick(
+    return window.app.onNotificationClick(
       ({ workspaceId, paneId, surfaceId }) => {
         setActiveWorkspace(workspaceId);
         setActiveSurface(paneId, surfaceId);
       },
     );
-    const cleanupAdded = onNotificationAdded((notif) => {
+  }, []);
+
+  const notifSettings = useWorkspaceStore((s) => s.notificationSettings);
+
+  useEffect(() => {
+    return onNotificationAdded((notif) => {
       const s = getState();
-      playNotificationSound({
-        enabled: s.notificationSettings.soundEnabled,
-      });
+      playNotificationSound({ enabled: notifSettings.soundEnabled });
       const sourceWs = s.workspaces.find((w) => w.id === notif.workspaceId);
       const focusedSurfaceId =
         sourceWs && s.focusedPaneId
@@ -102,7 +105,7 @@ export function App() {
         s.focusedPaneId === notif.paneId &&
         focusedSurfaceId === notif.surfaceId &&
         s.windowFocused;
-      if (s.notificationSettings.osNotificationsEnabled && !isFocusedTarget) {
+      if (notifSettings.osNotificationsEnabled && !isFocusedTarget) {
         const display = formatNotificationDisplay(notif);
         window.app.fireNotification({
           workspaceId: notif.workspaceId,
@@ -113,11 +116,7 @@ export function App() {
         });
       }
     });
-    return () => {
-      cleanupClick();
-      cleanupAdded();
-    };
-  }, []);
+  }, [notifSettings]);
 
   useEffect(() => {
     const enabled = getState().notificationSettings.agentHooks;
