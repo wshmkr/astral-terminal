@@ -158,9 +158,6 @@ export class TerminalController {
     rows: number;
     content: string;
   } | null = null;
-  // True when term.open ran on a 0×0 container; renderer is stuck and needs
-  // re-opening once the container has size.
-  private reopenOnFit = false;
 
   constructor(private readonly opts: TerminalControllerOptions) {
     const { term, fitAddon, searchAddon } = createTerminal(
@@ -171,8 +168,6 @@ export class TerminalController {
     this.fitAddon = fitAddon;
     this.searchAddon = searchAddon;
     this.findDecorations = findDecorationsFromTheme(opts.config.terminalTheme);
-    this.reopenOnFit =
-      opts.container.offsetWidth === 0 || opts.container.offsetHeight === 0;
 
     this.cleanupFns.push(
       attachClipboardHandlers(
@@ -257,10 +252,6 @@ export class TerminalController {
   private safeFit(): void {
     const { container } = this.opts;
     if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
-    if (this.reopenOnFit) {
-      this.reopenOnFit = false;
-      this.term.open(container);
-    }
     if (this.pendingReplay) {
       const { cols, rows, content } = this.pendingReplay;
       this.pendingReplay = null;
