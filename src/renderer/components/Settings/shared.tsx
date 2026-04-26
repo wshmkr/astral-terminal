@@ -7,6 +7,7 @@ export const ROOT_SX = {
   display: "flex",
   flexDirection: "column",
   gap: 1.5,
+  minHeight: "100%",
 } as const;
 
 export const SUBHEAD_SX = {

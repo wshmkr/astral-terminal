@@ -1,3 +1,4 @@
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Checkbox from "@mui/material/Checkbox";
 import Divider from "@mui/material/Divider";
@@ -66,10 +67,14 @@ export function NotificationsSection() {
     }
   }
 
+  const noHooksEnabled = agentProviders.every(
+    (p) => !settings.agentHooks[p.name],
+  );
+
   return (
     <Box sx={ROOT_SX}>
       <SettingRow
-        title="OS notifications"
+        title="Desktop notifications"
         control={
           <Switch
             size="small"
@@ -83,7 +88,7 @@ export function NotificationsSection() {
       />
 
       <SettingRow
-        title="Play sound"
+        title="Notification sound"
         control={
           <Switch
             size="small"
@@ -130,6 +135,17 @@ export function NotificationsSection() {
           }
         />
       ))}
+
+      {noHooksEnabled && (
+        <Alert
+          severity="warning"
+          variant="outlined"
+          sx={{ mt: "auto", textWrap: "balance", alignItems: "center" }}
+        >
+          No agent hooks are enabled. Agent-specific notifications (e.g. when
+          Claude finishes responding) won't be delivered.
+        </Alert>
+      )}
     </Box>
   );
 }

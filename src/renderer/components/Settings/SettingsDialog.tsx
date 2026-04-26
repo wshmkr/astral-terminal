@@ -30,6 +30,8 @@ const PAPER_SX = {
   backgroundImage: "none",
   borderRadius: 1,
   overflow: "hidden",
+  userSelect: "none",
+  "& input, & textarea": { userSelect: "auto" },
 } as const;
 
 const HEADER_SX = {
