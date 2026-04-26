@@ -184,6 +184,17 @@ async function runConfigure(
   const { settingsPath } = provider;
   try {
     const filePath = await resolveWslPath(settingsPath);
+    const dir = path.dirname(filePath);
+    const dirExists = await fs.access(dir).then(
+      () => true,
+      () => false,
+    );
+    if (!dirExists) {
+      return {
+        status: "error",
+        message: `${provider.name} is not installed (~/${path.posix.dirname(settingsPath)} not found)`,
+      };
+    }
     const parsed = (await readSettings(filePath)) ?? {
       settings: {},
       hooks: {},
@@ -220,8 +231,6 @@ async function runConfigure(
     }
     settings.hooks = merged;
 
-    const dir = path.dirname(filePath);
-    await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
 
     console.log(`Installed notification hooks in ~/${settingsPath}`);
