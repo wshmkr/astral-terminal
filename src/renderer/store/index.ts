@@ -18,6 +18,7 @@ export {
   markSurfaceNotificationsRead,
   onNotificationAdded,
   unreadCount,
+  unreadSurfaceIds,
 } from "./notifications";
 
 export {

@@ -1,32 +1,34 @@
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
-import {
-  isTerminalSurface,
-  type Notification,
-  type Workspace,
-} from "../../../shared/types";
+import { isTerminalSurface, type Workspace } from "../../../shared/types";
 import {
   setActiveSurface,
   setActiveWorkspace,
   setFocusedPane,
+  unreadSurfaceIds,
 } from "../../store";
 import { forEachLeaf } from "../Layout/pane-tree";
 
-const SURFACE_CAPTION_SX = { fontSize: "0.675rem", opacity: 0.7 } as const;
-
-const SURFACE_CAPTION_INTERACTIVE_SX = {
-  ...SURFACE_CAPTION_SX,
+const SURFACE_CAPTION_BASE_SX = {
+  fontSize: "0.675rem",
   cursor: "pointer",
+} as const;
+
+const SURFACE_CAPTION_DIM_SX = {
+  ...SURFACE_CAPTION_BASE_SX,
+  opacity: 0.7,
+  color: "text.disabled",
   "&:hover": { color: "text.primary" },
 } as const;
 
 const SURFACE_CAPTION_UNREAD_SX = {
-  ...SURFACE_CAPTION_INTERACTIVE_SX,
+  ...SURFACE_CAPTION_BASE_SX,
   opacity: 1,
   color: "primary.main",
   "&:hover": { color: "primary.light" },
 } as const;
 
+const EMPTY_PLACEHOLDER_SX = { fontSize: "0.675rem", opacity: 0.7 } as const;
 const NBSP = " ";
 
 function stripUserHostPrefix(name: string): string {
@@ -34,19 +36,13 @@ function stripUserHostPrefix(name: string): string {
 }
 
 interface Props {
-  workspaceId: string;
-  layout: Workspace["layout"];
-  notifications: Notification[];
+  workspace: Workspace;
 }
 
-export function WorkspaceSurfaceList({
-  workspaceId,
-  layout,
-  notifications,
-}: Props) {
+export function WorkspaceSurfaceList({ workspace }: Props) {
   const surfaces = useMemo(() => {
     const out: Array<{ id: string; paneId: string; name: string }> = [];
-    forEachLeaf(layout, (leaf) => {
+    forEachLeaf(workspace.layout, (leaf) => {
       for (const s of leaf.surfaces) {
         if (isTerminalSurface(s))
           out.push({
@@ -57,15 +53,12 @@ export function WorkspaceSurfaceList({
       }
     });
     return out;
-  }, [layout]);
+  }, [workspace.layout]);
 
-  const unreadSurfaceIds = useMemo(() => {
-    const set = new Set<string>();
-    notifications.forEach((n) => {
-      if (!n.read) set.add(n.surfaceId);
-    });
-    return set;
-  }, [notifications]);
+  const unreadIds = useMemo(
+    () => unreadSurfaceIds(workspace.notifications),
+    [workspace.notifications],
+  );
 
   if (surfaces.length === 0) {
     return (
@@ -73,7 +66,7 @@ export function WorkspaceSurfaceList({
         variant="caption"
         color="text.disabled"
         noWrap
-        sx={SURFACE_CAPTION_SX}
+        sx={EMPTY_PLACEHOLDER_SX}
       >
         {NBSP}
       </Typography>
@@ -82,30 +75,26 @@ export function WorkspaceSurfaceList({
 
   return (
     <>
-      {surfaces.map(({ id, paneId, name }) => {
-        const hasUnread = unreadSurfaceIds.has(id);
-        return (
-          <Typography
-            key={id}
-            variant="caption"
-            color={hasUnread ? undefined : "text.disabled"}
-            noWrap
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveWorkspace(workspaceId);
-              setActiveSurface(paneId, id);
-              setFocusedPane(paneId);
-            }}
-            sx={
-              hasUnread
-                ? SURFACE_CAPTION_UNREAD_SX
-                : SURFACE_CAPTION_INTERACTIVE_SX
-            }
-          >
-            {name}
-          </Typography>
-        );
-      })}
+      {surfaces.map(({ id, paneId, name }) => (
+        <Typography
+          key={id}
+          variant="caption"
+          noWrap
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveWorkspace(workspace.id);
+            setActiveSurface(paneId, id);
+            setFocusedPane(paneId);
+          }}
+          sx={
+            unreadIds.has(id)
+              ? SURFACE_CAPTION_UNREAD_SX
+              : SURFACE_CAPTION_DIM_SX
+          }
+        >
+          {name}
+        </Typography>
+      ))}
     </>
   );
 }

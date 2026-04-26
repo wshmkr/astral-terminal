@@ -23,6 +23,7 @@ import {
   setActiveSurface,
   setFocusedPane,
   splitPane,
+  unreadSurfaceIds,
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
@@ -167,17 +168,13 @@ function TabbedPaneImpl({ pane }: Props) {
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
-  const focusedPaneId = useWorkspaceStore((s) => s.focusedPaneId);
+  const isFocused = useWorkspaceStore((s) => s.focusedPaneId === pane.id);
   const notifications = useWorkspaceStore(selectActiveNotifications);
-  const unreadSurfaceIds = useMemo(() => {
-    const set = new Set<string>();
-    notifications?.forEach((n) => {
-      if (!n.read) set.add(n.surfaceId);
-    });
-    return set;
-  }, [notifications]);
-  const showAttentionOutline =
-    unreadSurfaceIds.size > 0 && focusedPaneId !== pane.id;
+  const unreadIds = useMemo(
+    () => unreadSurfaceIds(notifications),
+    [notifications],
+  );
+  const showAttentionOutline = !isFocused && unreadIds.size > 0;
 
   return (
     <Box
@@ -201,7 +198,7 @@ function TabbedPaneImpl({ pane }: Props) {
                 paneId={pane.id}
                 surface={surface}
                 isActive={isActive}
-                hasUnread={unreadSurfaceIds.has(surface.id)}
+                hasUnread={unreadIds.has(surface.id)}
                 showDivider={!isActive && !nextIsActive}
                 activeBg={terminalTheme.background}
                 activeFg={terminalTheme.foreground}

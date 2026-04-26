@@ -70,6 +70,16 @@ export function unreadCount(ws: Workspace): number {
   return ws.notifications.filter((n) => !n.read).length;
 }
 
+export function unreadSurfaceIds(
+  notifications: Notification[] | null | undefined,
+): Set<string> {
+  const set = new Set<string>();
+  notifications?.forEach((n) => {
+    if (!n.read) set.add(n.surfaceId);
+  });
+  return set;
+}
+
 function isUserActivelyViewing(
   workspaceId: string,
   paneId: string,
