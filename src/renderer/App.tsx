@@ -122,23 +122,29 @@ export function App() {
   useEffect(() => {
     const enabled = getState().notificationSettings.agentHooks;
     for (const provider of agentProviders) {
-      if (!enabled[provider.name]) continue;
+      const isOn = !!enabled[provider.name];
       (async () => {
         try {
-          const result = await window.app.configureAgentHooks({
-            providerName: provider.name,
-          });
+          const result = isOn
+            ? await window.app.configureAgentHooks({
+                providerName: provider.name,
+              })
+            : await window.app.uninstallAgentHooks({
+                providerName: provider.name,
+              });
           if (result.status === "configured") {
             console.log(`Configured ${provider.name} notification hooks`);
+          } else if (result.status === "uninstalled") {
+            console.log(`Removed stale ${provider.name} notification hooks`);
           } else if (result.status === "error") {
             console.error(
-              `Failed to configure ${provider.name} notification hooks:`,
+              `Failed to reconcile ${provider.name} notification hooks:`,
               result.message,
             );
           }
         } catch (err) {
           console.error(
-            `Failed to configure ${provider.name} notification hooks:`,
+            `Failed to reconcile ${provider.name} notification hooks:`,
             err,
           );
         }

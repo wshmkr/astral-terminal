@@ -2,9 +2,11 @@ import Box from "@mui/material/Box";
 import Checkbox from "@mui/material/Checkbox";
 import Divider from "@mui/material/Divider";
 import Switch from "@mui/material/Switch";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { SiClaude } from "react-icons/si";
+import { VscQuestion } from "react-icons/vsc";
 import { agentProviders } from "../../../shared/agent-hooks";
 import {
   setAgentHookEnabled,
@@ -17,7 +19,22 @@ const SWITCH_SX = { ml: -1 } as const;
 
 const CHECKBOX_SX = { p: 0.5 } as const;
 
-const HOOKS_SUBHEAD_SX = { ...SUBHEAD_SX, mb: -1 } as const;
+const HOOKS_HEAD_ROW_SX = {
+  display: "flex",
+  alignItems: "center",
+  gap: 0.75,
+  mb: -1,
+} as const;
+
+const HOOKS_HELP_SX = {
+  display: "inline-flex",
+  color: "text.disabled",
+  cursor: "help",
+} as const;
+
+const HOOKS_HELP_TEXT =
+  "Install hooks in the agent's settings file so it emits notifications " +
+  "and auto-restores sessions in this terminal.";
 
 export function NotificationsSection() {
   const settings = useWorkspaceStore((s) => s.notificationSettings);
@@ -81,9 +98,16 @@ export function NotificationsSection() {
 
       <Divider sx={DIVIDER_SX} />
 
-      <Typography variant="subtitle1" sx={HOOKS_SUBHEAD_SX}>
-        Hooks
-      </Typography>
+      <Box sx={HOOKS_HEAD_ROW_SX}>
+        <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+          Hooks
+        </Typography>
+        <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
+          <Box component="span" sx={HOOKS_HELP_SX}>
+            <VscQuestion size={16} />
+          </Box>
+        </Tooltip>
+      </Box>
 
       {agentProviders.map((p) => (
         <SettingRow
