@@ -153,6 +153,11 @@ export class TerminalController {
   private disposed = false;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
   private preReplayBuffer: string[] | null = [];
+  private pendingReplay: {
+    cols: number;
+    rows: number;
+    content: string;
+  } | null = null;
 
   constructor(private readonly opts: TerminalControllerOptions) {
     const { term, fitAddon, searchAddon } = createTerminal(
@@ -247,6 +252,12 @@ export class TerminalController {
   private safeFit(): void {
     const { container } = this.opts;
     if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+    if (this.pendingReplay) {
+      const { cols, rows, content } = this.pendingReplay;
+      this.pendingReplay = null;
+      this.term.resize(cols, rows);
+      this.term.write(content);
+    }
     const proposed = this.fitAddon.proposeDimensions();
     if (!proposed) return;
     if (proposed.cols === this.term.cols && proposed.rows === this.term.rows)
@@ -280,8 +291,8 @@ export class TerminalController {
     const replay = await window.app.replayPty(id);
     if (this.disposed) return;
     if (replay.content) {
-      this.term.resize(replay.cols, replay.rows);
-      this.term.write(replay.content);
+      this.pendingReplay = replay;
+      this.safeFit();
     }
 
     const buffered = this.preReplayBuffer ?? [];
@@ -294,7 +305,10 @@ export class TerminalController {
     );
 
     this.safeFit();
-    window.app.resizePty(id, this.term.cols, this.term.rows);
+    // Don't sync main to default-80×24 while pendingReplay still holds saved dims
+    if (!this.pendingReplay) {
+      window.app.resizePty(id, this.term.cols, this.term.rows);
+    }
     this.term.focus();
   }
 

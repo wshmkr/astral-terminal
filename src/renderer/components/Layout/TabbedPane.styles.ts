@@ -63,6 +63,7 @@ export const SURFACE_BODY_SX = {
   flex: 1,
   overflow: "hidden",
   position: "relative",
+  minHeight: 0,
 } as const;
 
 export const TAB_UNREAD_DOT_SX = {
@@ -73,14 +74,23 @@ export const TAB_UNREAD_DOT_SX = {
   flexShrink: 0,
 } as const;
 
-const SURFACE_SLOT_BASE = { width: "100%", height: "100%" } as const;
+// Inactive surfaces stay laid out (visibility, not display) so xterm can
+// measure char metrics on construction; otherwise term.open on a 0×0
+// container leaves the renderer stuck.
+const SURFACE_SLOT_BASE = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+} as const;
 
 export const SURFACE_SLOT_ACTIVE_SX = {
   ...SURFACE_SLOT_BASE,
-  display: "flex",
+  visibility: "visible",
+  zIndex: 1,
 } as const;
 
 export const SURFACE_SLOT_HIDDEN_SX = {
   ...SURFACE_SLOT_BASE,
-  display: "none",
+  visibility: "hidden",
+  zIndex: 0,
 } as const;
