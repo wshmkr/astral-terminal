@@ -16,7 +16,7 @@ export function decodeAppModeArg(argv: readonly string[]): AppMode {
 export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
-export const DEFAULT_TERMINAL_BG = "#282c34";
+export const INITIAL_WINDOW_BG = "#282c34";
 
 export interface TerminalSurface {
   type: "terminal";
