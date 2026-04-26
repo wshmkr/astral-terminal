@@ -34,9 +34,14 @@ export function updateNotificationSettings(
   settings: Partial<NotificationSettings>,
 ): void {
   const s = getState();
+  const current = s.notificationSettings;
+  const changed = (
+    Object.keys(settings) as (keyof NotificationSettings)[]
+  ).some((k) => settings[k] !== current[k]);
+  if (!changed) return;
   setState({
     ...s,
-    notificationSettings: { ...s.notificationSettings, ...settings },
+    notificationSettings: { ...current, ...settings },
   });
   commit();
 }
@@ -46,6 +51,7 @@ export function setAgentHookEnabled(
   enabled: boolean,
 ): void {
   const s = getState();
+  if (s.notificationSettings.agentHooks[providerName] === enabled) return;
   setState({
     ...s,
     notificationSettings: {
