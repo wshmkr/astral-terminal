@@ -88,12 +88,10 @@ export function App() {
     );
   }, []);
 
-  const notifSettings = useWorkspaceStore((s) => s.notificationSettings);
-
   useEffect(() => {
     return onNotificationAdded((notif) => {
       const s = getState();
-      playNotificationSound({ enabled: notifSettings.soundEnabled });
+      playNotificationSound({ enabled: s.notificationSettings.soundEnabled });
       const sourceWs = s.workspaces.find((w) => w.id === notif.workspaceId);
       const focusedSurfaceId =
         sourceWs && s.focusedPaneId
@@ -105,7 +103,7 @@ export function App() {
         s.focusedPaneId === notif.paneId &&
         focusedSurfaceId === notif.surfaceId &&
         s.windowFocused;
-      if (notifSettings.osNotificationsEnabled && !isFocusedTarget) {
+      if (s.notificationSettings.osNotificationsEnabled && !isFocusedTarget) {
         const display = formatNotificationDisplay(notif);
         window.app.fireNotification({
           workspaceId: notif.workspaceId,
@@ -116,7 +114,7 @@ export function App() {
         });
       }
     });
-  }, [notifSettings]);
+  }, []);
 
   useEffect(() => {
     const enabled = getState().notificationSettings.agentHooks;
