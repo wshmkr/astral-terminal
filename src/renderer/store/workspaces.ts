@@ -170,17 +170,10 @@ export function closePane(paneId: string): void {
 }
 
 export function setFocusedPane(id: string): void {
-  const activeWs = getActiveWorkspace();
-  const leaf = activeWs ? findLeafPane(activeWs.layout, id) : null;
-  const activeSurfaceId = leaf?.activeSurfaceId;
-  const notifsChanged =
-    activeWs && activeSurfaceId
-      ? markSurfaceNotificationsRead(activeWs.id, activeSurfaceId)
-      : false;
   const s = getState();
-  const activeChanged = s.focusedPaneId !== id;
-  if (activeChanged) setState({ ...s, focusedPaneId: id });
-  if (activeChanged || notifsChanged) notify();
+  if (s.focusedPaneId === id) return;
+  setState({ ...s, focusedPaneId: id });
+  notify();
 }
 
 export function renameSurface(
