@@ -160,24 +160,50 @@ function purgeOwnHooks(
   return result;
 }
 
+interface ParsedSettings {
+  settings: Record<string, unknown>;
+  hooks: Record<string, unknown[]>;
+}
+
+async function readSettings(filePath: string): Promise<ParsedSettings | null> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(filePath, "utf-8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw err;
+  }
+  if (!raw.trim()) return null;
+  const settings = JSON.parse(raw) as Record<string, unknown>;
+  const hooks = (settings.hooks as Record<string, unknown[]> | undefined) ?? {};
+  return { settings, hooks };
+}
+
+function withProviderLock<T>(
+  provider: AgentHookProvider,
+  run: () => Promise<T>,
+): Promise<T> {
+  const key = provider.settingsPath;
+  const prev = pathLocks.get(key) ?? Promise.resolve();
+  const next = prev.then(run, run);
+  pathLocks.set(
+    key,
+    next.catch(() => {}),
+  );
+  return next;
+}
+
 async function runConfigure(
   provider: AgentHookProvider,
 ): Promise<ConfigureAgentHooksResult> {
   const { settingsPath } = provider;
   try {
     const filePath = await resolveWslPath(settingsPath);
-
-    let settings: Record<string, unknown> = {};
-    let raw: string | null = null;
-    try {
-      raw = await fs.readFile(filePath, "utf-8");
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-    }
-    if (raw?.trim()) settings = JSON.parse(raw);
-
-    const existing =
-      (settings.hooks as Record<string, unknown[]> | undefined) ?? {};
+    const parsed = (await readSettings(filePath)) ?? {
+      settings: {},
+      hooks: {},
+    };
+    const { settings, hooks: existing } = parsed;
     const hasCurrent = hookTreeHas(existing, isCurrentHookCommand);
     const hasStale = hookTreeHas(
       existing,
@@ -230,17 +256,7 @@ export async function configureAgentHooks(
       status: "error",
       message: `Unknown agent provider: ${providerName}`,
     };
-  const key = provider.settingsPath;
-  const prev = pathLocks.get(key) ?? Promise.resolve();
-  const next = prev.then(
-    () => runConfigure(provider),
-    () => runConfigure(provider),
-  );
-  pathLocks.set(
-    key,
-    next.catch(() => {}),
-  );
-  return next;
+  return withProviderLock(provider, () => runConfigure(provider));
 }
 
 async function runUninstall(
@@ -249,21 +265,9 @@ async function runUninstall(
   const { settingsPath } = provider;
   try {
     const filePath = await resolveWslPath(settingsPath);
-
-    let raw: string | null = null;
-    try {
-      raw = await fs.readFile(filePath, "utf-8");
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        return { status: "not-installed" };
-      }
-      throw err;
-    }
-    if (!raw?.trim()) return { status: "not-installed" };
-
-    const settings = JSON.parse(raw) as Record<string, unknown>;
-    const existing =
-      (settings.hooks as Record<string, unknown[]> | undefined) ?? {};
+    const parsed = await readSettings(filePath);
+    if (!parsed) return { status: "not-installed" };
+    const { settings, hooks: existing } = parsed;
     if (!hookTreeHas(existing, isOwnHookCommand)) {
       return { status: "not-installed" };
     }
@@ -293,15 +297,5 @@ export async function uninstallAgentHooks(
       status: "error",
       message: `Unknown agent provider: ${providerName}`,
     };
-  const key = provider.settingsPath;
-  const prev = pathLocks.get(key) ?? Promise.resolve();
-  const next = prev.then(
-    () => runUninstall(provider),
-    () => runUninstall(provider),
-  );
-  pathLocks.set(
-    key,
-    next.catch(() => {}),
-  );
-  return next;
+  return withProviderLock(provider, () => runUninstall(provider));
 }
