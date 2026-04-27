@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/wshmkr/astral-terminal/compare/v0.2.0...v0.2.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* upload release assets to existing GitHub release ([#21](https://github.com/wshmkr/astral-terminal/issues/21)) ([e787a54](https://github.com/wshmkr/astral-terminal/commit/e787a542f82fcaf269e443e1010daac7691a6dda))
+
 ## [0.2.0](https://github.com/wshmkr/astral-terminal/compare/v0.1.0...v0.2.0) (2026-04-26)
 
 
