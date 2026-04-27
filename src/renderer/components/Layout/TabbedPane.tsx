@@ -168,21 +168,28 @@ function TabbedPaneImpl({ pane }: Props) {
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
-  const isFocused = useWorkspaceStore((s) => s.focusedPaneId === pane.id);
   const notifications = useWorkspaceStore(selectActiveNotifications);
   const unreadIds = useMemo(
     () => unreadSurfaceIds(notifications),
     [notifications],
   );
-  const showAttentionOutline = !isFocused && unreadIds.size > 0;
+  const showAttentionOutline = pane.surfaces.some((s) => unreadIds.has(s.id));
 
   return (
     <Box
       onMouseDownCapture={() => setFocusedPane(pane.id)}
       sx={[
         ROOT_SX,
+        { position: "relative" },
         showAttentionOutline && {
-          boxShadow: (theme) => `inset 0 0 0 1px ${theme.palette.primary.main}`,
+          "&::after": {
+            content: '""',
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            border: (theme) => `1px solid ${theme.palette.primary.main}`,
+            zIndex: 10,
+          },
         },
       ]}
     >
