@@ -69,7 +69,8 @@
     "publish": {
       "provider": "github",
       "owner": "wshmkr",
-      "repo": "astral-terminal"
+      "repo": "astral-terminal",
+      "releaseType": "release"
     }
   },
   "simple-git-hooks": {
