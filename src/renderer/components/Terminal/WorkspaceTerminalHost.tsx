@@ -77,16 +77,27 @@ export function WorkspaceTerminalHost({ workspace }: Props) {
   );
   const slotsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // After each render, drop slot DOM nodes for surfaces no longer present
-  useEffect(() => {
+  const slottedItems = useMemo(() => {
     const slots = slotsRef.current;
-    const live = new Set(items.map(({ surface }) => surface.id));
+    const live = new Set<string>();
+    const result = items.map((item) => {
+      live.add(item.surface.id);
+      let slot = slots.get(item.surface.id);
+      if (!slot) {
+        slot = document.createElement("div");
+        slot.style.width = "100%";
+        slot.style.height = "100%";
+        slots.set(item.surface.id, slot);
+      }
+      return { ...item, slot };
+    });
     for (const [id, el] of slots) {
       if (!live.has(id)) {
         el.remove();
         slots.delete(id);
       }
     }
+    return result;
   }, [items]);
 
   // Tear all slots down when the host unmounts (workspace closed)
@@ -100,26 +111,16 @@ export function WorkspaceTerminalHost({ workspace }: Props) {
 
   return (
     <>
-      {items.map(({ surface, paneId, isVisible }) => {
-        let slot = slotsRef.current.get(surface.id);
-        if (!slot) {
-          slot = document.createElement("div");
-          slot.style.width = "100%";
-          slot.style.height = "100%";
-          slot.style.display = isVisible ? "flex" : "none";
-          slotsRef.current.set(surface.id, slot);
-        }
-        return (
-          <TerminalPortal
-            key={surface.id}
-            workspaceId={workspace.id}
-            surface={surface}
-            paneId={paneId}
-            isVisible={isVisible}
-            slot={slot}
-          />
-        );
-      })}
+      {slottedItems.map(({ surface, paneId, isVisible, slot }) => (
+        <TerminalPortal
+          key={surface.id}
+          workspaceId={workspace.id}
+          surface={surface}
+          paneId={paneId}
+          isVisible={isVisible}
+          slot={slot}
+        />
+      ))}
     </>
   );
 }

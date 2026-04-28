@@ -22,14 +22,15 @@ import { findLeafPane } from "../Layout/pane-tree";
 
 export type DragItemData =
   | { type: "workspace" }
-  | { type: "tab"; paneId: string }
-  | { type: "pane"; paneId: string };
+  | { type: "tab"; paneId: string };
+
+export type DropTargetData = DragItemData | { type: "pane"; paneId: string };
 
 function onDragEnd(event: DragEndEvent): void {
   const { active, over } = event;
   if (!over) return;
   const activeData = active.data.current as DragItemData | undefined;
-  const overData = over.data.current as DragItemData | undefined;
+  const overData = over.data.current as DropTargetData | undefined;
   if (!activeData) return;
 
   if (activeData.type === "workspace") {
@@ -73,16 +74,7 @@ function onDragEnd(event: DragEndEvent): void {
 // workspace's. Drop those from the candidate list, otherwise dnd-kit may
 // pick a hidden pane and `moveSurfaceToPane` silently no-ops.
 function isVisibleNode(node: HTMLElement | null): boolean {
-  if (!node) return false;
-  if (typeof node.checkVisibility === "function") {
-    return node.checkVisibility({ visibilityProperty: true });
-  }
-  let cur: HTMLElement | null = node;
-  while (cur) {
-    if (window.getComputedStyle(cur).visibility === "hidden") return false;
-    cur = cur.parentElement;
-  }
-  return true;
+  return !!node && node.checkVisibility({ visibilityProperty: true });
 }
 
 function filterVisible<T extends { data?: { droppableContainer?: unknown } }>(

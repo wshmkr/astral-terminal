@@ -33,7 +33,7 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
-import type { DragItemData } from "../dnd/AppDndContext";
+import type { DragItemData, DropTargetData } from "../dnd/AppDndContext";
 import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
 import { useSurfaceBodyRegister } from "../Terminal/SurfaceBodyRegistry";
 import { CloseButton } from "../ui/CloseButton";
@@ -112,18 +112,19 @@ function TabItem({
         cursor: "pointer",
         borderRadius: "8px 8px 0 0",
         position: "relative",
-        "&::after": showDivider
-          ? {
-              content: '""',
-              position: "absolute",
-              right: 0,
-              top: "25%",
-              height: "50%",
-              width: "1px",
-              backgroundColor: "custom.subtleDivider",
-              transition: "opacity 0.15s",
-            }
-          : {},
+        "&::after":
+          showDivider && !isDragging
+            ? {
+                content: '""',
+                position: "absolute",
+                right: 0,
+                top: "25%",
+                height: "50%",
+                width: "1px",
+                backgroundColor: "custom.subtleDivider",
+                transition: "opacity 0.15s",
+              }
+            : {},
         bgcolor: isActive ? activeBg : "transparent",
         color: isActive ? activeFg : "text.secondary",
         userSelect: "none",
@@ -217,7 +218,7 @@ function TabbedPaneImpl({ pane }: Props) {
     data: { type: "pane", paneId: pane.id },
   });
   const activeData = active?.data.current as DragItemData | undefined;
-  const overData = over?.data.current as DragItemData | undefined;
+  const overData = over?.data.current as DropTargetData | undefined;
   const overPaneId =
     overData?.type === "tab" || overData?.type === "pane"
       ? overData.paneId

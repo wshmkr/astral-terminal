@@ -346,10 +346,9 @@ export function moveSurfaceToPane(
     });
   }
 
-  setState({
-    ...getState(),
-    workspaces: mapWorkspaceById(ws.id, (w) => ({ ...w, layout: nextLayout })),
-    focusedPaneId: targetPaneId,
-  });
+  setWorkspaceLayout(ws.id, nextLayout);
+  const s = getState();
+  if (s.focusedPaneId !== targetPaneId)
+    setState({ ...s, focusedPaneId: targetPaneId });
   commit();
 }
