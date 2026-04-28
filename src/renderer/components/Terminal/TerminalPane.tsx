@@ -4,7 +4,6 @@ import type { TerminalSurface } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
 import {
   addNotification,
-  findWorkspaceIdForPane,
   getState,
   getWorkspace,
   renameSurface,
@@ -18,6 +17,7 @@ import { preloadFont, TerminalController } from "./terminal-lifecycle";
 import "@xterm/xterm/css/xterm.css";
 
 interface Props {
+  workspaceId: string;
   paneId: string;
   surface: TerminalSurface;
   isVisible: boolean;
@@ -31,11 +31,20 @@ const WRAPPER_SX = {
   containerType: "inline-size",
 } as const;
 
-export function TerminalPane({ paneId, surface, isVisible }: Props) {
+export function TerminalPane({
+  workspaceId,
+  paneId,
+  surface,
+  isVisible,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<TerminalController | null>(null);
   const surfaceRef = useRef(surface);
   surfaceRef.current = surface;
+  // paneId can change when the surface is dragged to another pane; store
+  // callbacks must address the current pane, not the one captured at mount
+  const paneIdRef = useRef(paneId);
+  paneIdRef.current = paneId;
   const [findOpen, setFindOpen] = useState(false);
   // Lifted so Ctrl+F can refocus when the bar is already open
   const findInputRef = useRef<HTMLInputElement>(null);
@@ -62,8 +71,6 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
       preloadFont(initialFont.stack, initial.fontSize),
     ]).then(([config]) => {
       if (disposed) return;
-      const wsId = findWorkspaceIdForPane(paneId);
-      if (!wsId) return;
 
       controllerRef.current = new TerminalController({
         container,
@@ -75,11 +82,21 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
         cwd,
         getLiveSurface: () => surfaceRef.current,
         onCwdChange: (next) =>
-          updateTerminalSurface(wsId, paneId, surfaceId, { cwd: next }),
-        onTitleChange: (title) => renameSurface(wsId, paneId, surfaceId, title),
+          updateTerminalSurface(workspaceId, paneIdRef.current, surfaceId, {
+            cwd: next,
+          }),
+        onTitleChange: (title) =>
+          renameSurface(workspaceId, paneIdRef.current, surfaceId, title),
         onNotification: (title, body) => {
-          const resolved = title ?? getWorkspace(wsId)?.name ?? "Notification";
-          addNotification(wsId, paneId, surfaceId, resolved, body);
+          const resolved =
+            title ?? getWorkspace(workspaceId)?.name ?? "Notification";
+          addNotification(
+            workspaceId,
+            paneIdRef.current,
+            surfaceId,
+            resolved,
+            body,
+          );
         },
         onRequestFind: () => {
           setFindOpen(true);
@@ -95,7 +112,7 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
       controllerRef.current = null;
       setFindOpen(false);
     };
-  }, [surface.id, paneId]);
+  }, [surface.id, workspaceId]);
 
   useEffect(() => {
     controllerRef.current?.setTheme(TERMINAL_THEMES[terminalThemeId]);
@@ -108,10 +125,11 @@ export function TerminalPane({ paneId, surface, isVisible }: Props) {
       .finally(() => controllerRef.current?.setFont(font.stack, fontSize));
   }, [fontFamilyId, fontSize]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: paneId is a re-fit trigger — the slot moves to a different surface body when paneId changes, so xterm needs to re-measure
   useEffect(() => {
     if (!isVisible) return;
     requestAnimationFrame(() => controllerRef.current?.fit());
-  }, [isVisible]);
+  }, [isVisible, paneId]);
 
   useEffect(() => {
     if (!isVisible || findOpen) return;
