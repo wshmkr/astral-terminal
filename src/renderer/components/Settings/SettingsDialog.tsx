@@ -8,6 +8,7 @@ import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
+import { APP_VERSION } from "../../../shared/meta";
 import { CUSTOM_SCROLLBAR_SX } from "../../theme/scrollbar";
 import { AppearanceSection } from "./AppearanceSection";
 import { NotificationsSection } from "./NotificationsSection";
@@ -82,6 +83,20 @@ const NAV_SX = {
   flexShrink: 0,
   borderRight: "1px solid",
   borderColor: "custom.subtleDivider",
+  display: "flex",
+  flexDirection: "column",
+} as const;
+
+const NAV_LIST_SX = {
+  flex: 1,
+  minHeight: 0,
+} as const;
+
+const VERSION_SX = {
+  px: 2.5,
+  py: 1,
+  fontSize: "10px",
+  color: "text.disabled",
 } as const;
 
 const NAV_ITEM_SX = {
@@ -125,21 +140,24 @@ export function SettingsDialog({ open, onClose }: Props) {
         </CloseButton>
       </Box>
       <Box sx={BODY_SX}>
-        <List sx={NAV_SX} disablePadding>
-          {SECTIONS.map((s) => (
-            <ListItemButton
-              key={s.id}
-              sx={NAV_ITEM_SX}
-              selected={section === s.id}
-              onClick={() => setSection(s.id)}
-            >
-              <ListItemText
-                primary={s.label}
-                slotProps={{ primary: { variant: "body2" } }}
-              />
-            </ListItemButton>
-          ))}
-        </List>
+        <Box sx={NAV_SX}>
+          <List sx={NAV_LIST_SX} disablePadding>
+            {SECTIONS.map((s) => (
+              <ListItemButton
+                key={s.id}
+                sx={NAV_ITEM_SX}
+                selected={section === s.id}
+                onClick={() => setSection(s.id)}
+              >
+                <ListItemText
+                  primary={s.label}
+                  slotProps={{ primary: { variant: "body2" } }}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+          <Typography sx={VERSION_SX}>v{APP_VERSION}</Typography>
+        </Box>
         <Box sx={CONTENT_SX}>
           {section === "appearance" && <AppearanceSection />}
           {section === "notifications" && <NotificationsSection />}
