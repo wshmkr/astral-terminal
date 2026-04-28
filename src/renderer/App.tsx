@@ -3,7 +3,6 @@ import { useColorScheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState } from "react";
 import { agentProviders } from "../shared/agent-hooks";
-import { findLeafPane } from "./components/Layout/pane-tree";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
@@ -13,6 +12,7 @@ import { useKeyboard } from "./hooks/useKeyboard";
 import {
   formatNotificationDisplay,
   getState,
+  isUserActivelyViewing,
   onNotificationAdded,
   setActiveSurface,
   setActiveWorkspace,
@@ -93,17 +93,11 @@ export function App() {
     return onNotificationAdded((notif) => {
       const s = getState();
       playNotificationSound({ enabled: s.notificationSettings.soundEnabled });
-      const sourceWs = s.workspaces.find((w) => w.id === notif.workspaceId);
-      const focusedSurfaceId =
-        sourceWs && s.focusedPaneId
-          ? (findLeafPane(sourceWs.layout, s.focusedPaneId)?.activeSurfaceId ??
-            null)
-          : null;
-      const isFocusedTarget =
-        s.activeWorkspaceId === notif.workspaceId &&
-        s.focusedPaneId === notif.paneId &&
-        focusedSurfaceId === notif.surfaceId &&
-        s.windowFocused;
+      const isFocusedTarget = isUserActivelyViewing(
+        notif.workspaceId,
+        notif.paneId,
+        notif.surfaceId,
+      );
       if (s.notificationSettings.osNotificationsEnabled && !isFocusedTarget) {
         const display = formatNotificationDisplay(notif);
         window.app.fireNotification({

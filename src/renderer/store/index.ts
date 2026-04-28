@@ -14,6 +14,7 @@ export {
   clearNotifications,
   dismissNotification,
   formatNotificationDisplay,
+  isUserActivelyViewing,
   markNotificationRead,
   markSurfaceNotificationsRead,
   onNotificationAdded,

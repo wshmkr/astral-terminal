@@ -80,12 +80,13 @@ export function unreadSurfaceIds(
   return set;
 }
 
-function isUserActivelyViewing(
+export function isUserActivelyViewing(
   workspaceId: string,
   paneId: string,
   surfaceId: string,
 ): boolean {
   const s = getState();
+  if (!s.windowFocused) return false;
   if (s.activeWorkspaceId !== workspaceId) return false;
   if (s.focusedPaneId !== paneId) return false;
   const ws = s.workspaces.find((w) => w.id === workspaceId);
