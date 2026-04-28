@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { PaneNode, Surface, Workspace } from "../../../shared/types";
 import { isTerminalSurface } from "../../../shared/types";
+import { forEachLeaf } from "../Layout/pane-tree";
 import { useSurfaceBody } from "./SurfaceBodyRegistry";
 import { TerminalPane } from "./TerminalPane";
 
@@ -12,14 +13,17 @@ interface SurfaceLocation {
 }
 
 function collectSurfaces(node: PaneNode): SurfaceLocation[] {
-  if (node.kind === "leaf") {
-    return node.surfaces.map((surface) => ({
-      surface,
-      paneId: node.id,
-      isVisible: node.activeSurfaceId === surface.id,
-    }));
-  }
-  return node.children.flatMap(collectSurfaces);
+  const result: SurfaceLocation[] = [];
+  forEachLeaf(node, (leaf) => {
+    for (const surface of leaf.surfaces) {
+      result.push({
+        surface,
+        paneId: leaf.id,
+        isVisible: leaf.activeSurfaceId === surface.id,
+      });
+    }
+  });
+  return result;
 }
 
 interface PortalProps {
@@ -73,21 +77,17 @@ export function WorkspaceTerminalHost({ workspace }: Props) {
   );
   const slotsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const liveIds = useMemo(
-    () => new Set(items.map(({ surface }) => surface.id)),
-    [items],
-  );
-
   // After each render, drop slot DOM nodes for surfaces no longer present
   useEffect(() => {
     const slots = slotsRef.current;
+    const live = new Set(items.map(({ surface }) => surface.id));
     for (const [id, el] of slots) {
-      if (!liveIds.has(id)) {
+      if (!live.has(id)) {
         el.remove();
         slots.delete(id);
       }
     }
-  }, [liveIds]);
+  }, [items]);
 
   // Tear all slots down when the host unmounts (workspace closed)
   useEffect(() => {
