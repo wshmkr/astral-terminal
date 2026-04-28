@@ -4,7 +4,6 @@ import { isTerminalSurface, type Workspace } from "../../../shared/types";
 import {
   setActiveSurface,
   setActiveWorkspace,
-  setFocusedPane,
   unreadSurfaceIds,
 } from "../../store";
 import { forEachLeaf } from "../Layout/pane-tree";
@@ -84,7 +83,6 @@ export function WorkspaceSurfaceList({ workspace }: Props) {
             e.stopPropagation();
             setActiveWorkspace(workspace.id);
             setActiveSurface(paneId, id);
-            setFocusedPane(paneId);
           }}
           sx={
             unreadIds.has(id)

@@ -31,6 +31,7 @@ import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
+  ATTENTION_OUTLINE_SX,
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
@@ -178,20 +179,7 @@ function TabbedPaneImpl({ pane }: Props) {
   return (
     <Box
       onMouseDownCapture={() => setFocusedPane(pane.id)}
-      sx={[
-        ROOT_SX,
-        { position: "relative" },
-        showAttentionOutline && {
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            border: (theme) => `1px solid ${theme.palette.primary.main}`,
-            zIndex: 10,
-          },
-        },
-      ]}
+      sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
     >
       <Box sx={TAB_BAR_SX}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
