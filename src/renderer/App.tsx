@@ -8,6 +8,8 @@ import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
+import { SurfaceBodyRegistryProvider } from "./components/Terminal/SurfaceBodyRegistry";
+import { WorkspaceTerminalHost } from "./components/Terminal/WorkspaceTerminalHost";
 import { TitleBar } from "./components/ui/TitleBar";
 import { useKeyboard } from "./hooks/useKeyboard";
 import {
@@ -199,12 +201,15 @@ export function App() {
                       zIndex: isActive ? 1 : 0,
                     }}
                   >
-                    {containerSize && (
-                      <WorkspaceLayout
-                        layout={ws.layout}
-                        containerSize={containerSize}
-                      />
-                    )}
+                    <SurfaceBodyRegistryProvider>
+                      {containerSize && (
+                        <WorkspaceLayout
+                          layout={ws.layout}
+                          containerSize={containerSize}
+                        />
+                      )}
+                      <WorkspaceTerminalHost workspace={ws} />
+                    </SurfaceBodyRegistryProvider>
                   </Box>
                 );
               })

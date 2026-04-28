@@ -62,13 +62,6 @@ function updateLeaf(
   return true;
 }
 
-export function findWorkspaceIdForPane(paneId: string): string | null {
-  return (
-    getState().workspaces.find((ws) => findLeafPane(ws.layout, paneId))?.id ??
-    null
-  );
-}
-
 function removeWorkspace(wsId: string) {
   const s = getState();
   const closedIndex = s.workspaces.findIndex((w) => w.id === wsId);

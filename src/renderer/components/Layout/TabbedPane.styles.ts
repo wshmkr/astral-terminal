@@ -101,15 +101,3 @@ export const TAB_UNREAD_DOT_SX = {
   bgcolor: "primary.main",
   flexShrink: 0,
 } as const;
-
-const SURFACE_SLOT_BASE = { width: "100%", height: "100%" } as const;
-
-export const SURFACE_SLOT_ACTIVE_SX = {
-  ...SURFACE_SLOT_BASE,
-  display: "flex",
-} as const;
-
-export const SURFACE_SLOT_HIDDEN_SX = {
-  ...SURFACE_SLOT_BASE,
-  display: "none",
-} as const;
