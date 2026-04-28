@@ -277,3 +277,39 @@ export function resizeSplit(splitNodeId: string, sizes: number[]): void {
   setWorkspaceLayout(ws.id, newLayout);
   commit();
 }
+
+export function reorderWorkspaces(fromIndex: number, toIndex: number): void {
+  if (fromIndex === toIndex) return;
+  const s = getState();
+  if (fromIndex < 0 || fromIndex >= s.workspaces.length) return;
+  if (toIndex < 0 || toIndex >= s.workspaces.length) return;
+  const next = s.workspaces.slice();
+  const [moved] = next.splice(fromIndex, 1);
+  if (!moved) return;
+  next.splice(toIndex, 0, moved);
+  setState({ ...s, workspaces: next });
+  commit();
+}
+
+export function reorderSurfacesInPane(
+  paneId: string,
+  fromIndex: number,
+  toIndex: number,
+): void {
+  if (fromIndex === toIndex) return;
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const changed = updateLeaf(ws.id, paneId, (leaf) => {
+    if (fromIndex < 0 || fromIndex >= leaf.surfaces.length) return leaf;
+    if (toIndex < 0 || toIndex >= leaf.surfaces.length) return leaf;
+    const surfaces = leaf.surfaces.slice();
+    const [moved] = surfaces.splice(fromIndex, 1);
+    if (!moved) return leaf;
+    surfaces.splice(toIndex, 0, moved);
+    return { ...leaf, surfaces };
+  });
+  if (!changed) return;
+  const s = getState();
+  if (s.focusedPaneId !== paneId) setState({ ...s, focusedPaneId: paneId });
+  commit();
+}
