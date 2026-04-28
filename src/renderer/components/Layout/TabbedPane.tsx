@@ -4,7 +4,6 @@ import {
   SortableContext,
   useSortable,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -34,17 +33,21 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
+import type { DragItemData } from "../dnd/AppDndContext";
+import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
 import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
+  DROP_TARGET_OUTLINE_SX,
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
   SURFACE_SLOT_ACTIVE_SX,
   SURFACE_SLOT_HIDDEN_SX,
   TAB_ACTIONS_SX,
+  TAB_BAR_DROP_TARGET_SX,
   TAB_BAR_SX,
   TAB_CLOSE_SX,
   TAB_SCROLLER_SX,
@@ -86,15 +89,12 @@ function TabItem({
     id: surface.id,
     data: { type: "tab", paneId },
   });
-  const dragStyle = useMemo(
-    () => ({
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-      zIndex: isDragging ? 1 : undefined,
-    }),
-    [transform, transition, isDragging],
-  );
+  const dragStyle = useSortableDragStyle({
+    transform,
+    transition,
+    isDragging,
+    axis: "x",
+  });
   return (
     <Box
       ref={setNodeRef}
@@ -210,17 +210,35 @@ function TabbedPaneImpl({ pane }: Props) {
     () => pane.surfaces.map((s) => s.id),
     [pane.surfaces],
   );
-  const { setNodeRef: setTabBarDroppableRef } = useDroppable({
+  const {
+    setNodeRef: setTabBarDroppableRef,
+    active,
+    over,
+  } = useDroppable({
     id: `tab-bar:${pane.id}`,
     data: { type: "tab-bar", paneId: pane.id },
   });
+  const activeData = active?.data.current as DragItemData | undefined;
+  const overData = over?.data.current as DragItemData | undefined;
+  const overPaneId =
+    overData?.type === "tab" || overData?.type === "tab-bar"
+      ? overData.paneId
+      : undefined;
+  const isForeignTabOver =
+    activeData?.type === "tab" &&
+    activeData.paneId !== pane.id &&
+    overPaneId === pane.id;
 
   return (
     <Box
       onMouseDownCapture={() => setFocusedPane(pane.id)}
-      sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
+      sx={[
+        ROOT_SX,
+        showAttentionOutline && ATTENTION_OUTLINE_SX,
+        isForeignTabOver && DROP_TARGET_OUTLINE_SX,
+      ]}
     >
-      <Box sx={TAB_BAR_SX}>
+      <Box sx={[TAB_BAR_SX, isForeignTabOver && TAB_BAR_DROP_TARGET_SX]}>
         <Box
           ref={setTabBarDroppableRef}
           onWheel={onTabScrollerWheel}

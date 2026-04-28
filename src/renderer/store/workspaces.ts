@@ -309,7 +309,8 @@ export function reorderSurfacesInPane(
     return { ...leaf, surfaces };
   });
   if (!changed) return;
-  setState({ ...getState(), focusedPaneId: paneId });
+  const s = getState();
+  if (s.focusedPaneId !== paneId) setState({ ...s, focusedPaneId: paneId });
   commit();
 }
 

@@ -1,8 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { VscClose, VscEdit } from "react-icons/vsc";
 import type { Workspace } from "../../../shared/types";
 import {
@@ -11,6 +10,7 @@ import {
   setActiveWorkspace,
   unreadCount,
 } from "../../store";
+import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
 import { WorkspaceRenameInput } from "./WorkspaceRenameInput";
 import { WorkspaceSurfaceList } from "./WorkspaceSurfaceList";
 
@@ -114,16 +114,7 @@ export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
     data: { type: "workspace" },
     disabled: editing,
   });
-
-  const dragStyle = useMemo(
-    () => ({
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-      zIndex: isDragging ? 1 : undefined,
-    }),
-    [transform, transition, isDragging],
-  );
+  const dragStyle = useSortableDragStyle({ transform, transition, isDragging });
 
   return (
     <Box

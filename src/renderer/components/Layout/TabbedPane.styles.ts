@@ -24,6 +24,22 @@ export const ATTENTION_OUTLINE_SX = {
   },
 } as const;
 
+export const DROP_TARGET_OUTLINE_SX = {
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    border: "2px dashed",
+    borderColor: "primary.main",
+    zIndex: 1,
+  },
+} as const;
+
+export const TAB_BAR_DROP_TARGET_SX = {
+  bgcolor: "action.selected",
+} as const;
+
 export const TAB_BAR_SX = {
   display: "flex",
   alignItems: "flex-end",
