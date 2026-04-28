@@ -93,10 +93,9 @@ const NAV_LIST_SX = {
 } as const;
 
 const VERSION_SX = {
-  px: 2.5,
+  px: 2,
   py: 1,
   fontSize: "10px",
-  color: "text.disabled",
 } as const;
 
 const NAV_ITEM_SX = {
@@ -156,7 +155,9 @@ export function SettingsDialog({ open, onClose }: Props) {
               </ListItemButton>
             ))}
           </List>
-          <Typography sx={VERSION_SX}>v{APP_VERSION}</Typography>
+          <Typography variant="caption" color="text.disabled" sx={VERSION_SX}>
+            v{APP_VERSION}
+          </Typography>
         </Box>
         <Box sx={CONTENT_SX}>
           {section === "appearance" && <AppearanceSection />}
