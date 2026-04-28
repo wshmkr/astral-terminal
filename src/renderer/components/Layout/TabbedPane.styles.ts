@@ -9,6 +9,19 @@ export const ROOT_SX = {
   flexDirection: "column",
   overflow: "hidden",
   border: 0,
+  position: "relative",
+} as const;
+
+export const ATTENTION_OUTLINE_SX = {
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    border: "1px solid",
+    borderColor: "primary.main",
+    zIndex: 1,
+  },
 } as const;
 
 export const TAB_BAR_SX = {

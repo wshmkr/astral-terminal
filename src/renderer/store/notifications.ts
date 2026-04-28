@@ -3,7 +3,7 @@ import {
   type Notification,
   type Workspace,
 } from "../../shared/types";
-import { forEachLeaf } from "../components/Layout/pane-tree";
+import { findLeafPane, forEachLeaf } from "../components/Layout/pane-tree";
 import { getState, getWorkspace, notify, setState } from "./core";
 import { generateId } from "./factories";
 
@@ -70,6 +70,31 @@ export function unreadCount(ws: Workspace): number {
   return ws.notifications.filter((n) => !n.read).length;
 }
 
+export function unreadSurfaceIds(
+  notifications: Notification[] | null | undefined,
+): Set<string> {
+  const set = new Set<string>();
+  notifications?.forEach((n) => {
+    if (!n.read) set.add(n.surfaceId);
+  });
+  return set;
+}
+
+export function isUserActivelyViewing(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+): boolean {
+  const s = getState();
+  if (!s.windowFocused) return false;
+  if (s.activeWorkspaceId !== workspaceId) return false;
+  if (s.focusedPaneId !== paneId) return false;
+  const ws = s.workspaces.find((w) => w.id === workspaceId);
+  if (!ws) return false;
+  const leaf = findLeafPane(ws.layout, paneId);
+  return leaf?.activeSurfaceId === surfaceId;
+}
+
 export function addNotification(
   workspaceId: string,
   paneId: string,
@@ -77,6 +102,7 @@ export function addNotification(
   title: string,
   body?: string,
 ): Notification | null {
+  if (isUserActivelyViewing(workspaceId, paneId, surfaceId)) return null;
   const now = Date.now();
   let notif: Notification | null = null;
   const changed = writeNotifications(workspaceId, (notifs) => {

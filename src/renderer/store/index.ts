@@ -14,10 +14,12 @@ export {
   clearNotifications,
   dismissNotification,
   formatNotificationDisplay,
+  isUserActivelyViewing,
   markNotificationRead,
   markSurfaceNotificationsRead,
   onNotificationAdded,
   unreadCount,
+  unreadSurfaceIds,
 } from "./notifications";
 
 export {

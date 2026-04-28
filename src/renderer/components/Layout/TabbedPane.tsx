@@ -23,6 +23,7 @@ import {
   setActiveSurface,
   setFocusedPane,
   splitPane,
+  unreadSurfaceIds,
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
@@ -30,6 +31,7 @@ import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
+  ATTENTION_OUTLINE_SX,
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
@@ -168,16 +170,17 @@ function TabbedPaneImpl({ pane }: Props) {
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
   const notifications = useWorkspaceStore(selectActiveNotifications);
-  const unreadSurfaceIds = useMemo(() => {
-    const set = new Set<string>();
-    notifications?.forEach((n) => {
-      if (!n.read) set.add(n.surfaceId);
-    });
-    return set;
-  }, [notifications]);
+  const unreadIds = useMemo(
+    () => unreadSurfaceIds(notifications),
+    [notifications],
+  );
+  const showAttentionOutline = pane.surfaces.some((s) => unreadIds.has(s.id));
 
   return (
-    <Box onMouseDownCapture={() => setFocusedPane(pane.id)} sx={ROOT_SX}>
+    <Box
+      onMouseDownCapture={() => setFocusedPane(pane.id)}
+      sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
+    >
       <Box sx={TAB_BAR_SX}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
           {pane.surfaces.map((surface, idx) => {
@@ -190,7 +193,7 @@ function TabbedPaneImpl({ pane }: Props) {
                 paneId={pane.id}
                 surface={surface}
                 isActive={isActive}
-                hasUnread={unreadSurfaceIds.has(surface.id)}
+                hasUnread={unreadIds.has(surface.id)}
                 showDivider={!isActive && !nextIsActive}
                 activeBg={terminalTheme.background}
                 activeFg={terminalTheme.foreground}
