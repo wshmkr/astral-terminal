@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/wshmkr/astral-terminal/compare/v0.2.1...v0.3.0) (2026-04-28)
+
+
+### Features
+
+* highlight panes and sidebar previews with unread activity ([#19](https://github.com/wshmkr/astral-terminal/issues/19)) ([c209906](https://github.com/wshmkr/astral-terminal/commit/c209906746e7d0251c6dc76afe168b02ebbe8a0d))
+* show app version in settings dialog ([#24](https://github.com/wshmkr/astral-terminal/issues/24)) ([71c14ac](https://github.com/wshmkr/astral-terminal/commit/71c14acea884ded09640364d7ae8d64d20d1a55d))
+
 ## [0.2.1](https://github.com/wshmkr/astral-terminal/compare/v0.2.0...v0.2.1) (2026-04-27)
 
 
