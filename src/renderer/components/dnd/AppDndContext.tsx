@@ -1,8 +1,11 @@
 import {
+  type CollisionDetection,
   DndContext,
   type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -20,7 +23,7 @@ import { findLeafPane } from "../Layout/pane-tree";
 export type DragItemData =
   | { type: "workspace" }
   | { type: "tab"; paneId: string }
-  | { type: "tab-bar"; paneId: string };
+  | { type: "pane"; paneId: string };
 
 function onDragEnd(event: DragEndEvent): void {
   const { active, over } = event;
@@ -43,7 +46,7 @@ function onDragEnd(event: DragEndEvent): void {
 
   const sourcePaneId = activeData.paneId;
   const targetPaneId =
-    overData?.type === "tab" || overData?.type === "tab-bar"
+    overData?.type === "tab" || overData?.type === "pane"
       ? overData.paneId
       : undefined;
   if (!targetPaneId) return;
@@ -65,6 +68,45 @@ function onDragEnd(event: DragEndEvent): void {
   moveSurfaceToPane(sourcePaneId, String(active.id), targetPaneId);
 }
 
+// Inactive workspaces stay mounted with visibility:hidden to preserve xterm
+// state, so their pane droppables sit at the same coordinates as the active
+// workspace's. Drop those from the candidate list, otherwise dnd-kit may
+// pick a hidden pane and `moveSurfaceToPane` silently no-ops.
+function isVisibleNode(node: HTMLElement | null): boolean {
+  if (!node) return false;
+  if (typeof node.checkVisibility === "function") {
+    return node.checkVisibility({ visibilityProperty: true });
+  }
+  let cur: HTMLElement | null = node;
+  while (cur) {
+    if (window.getComputedStyle(cur).visibility === "hidden") return false;
+    cur = cur.parentElement;
+  }
+  return true;
+}
+
+function filterVisible<T extends { data?: { droppableContainer?: unknown } }>(
+  collisions: T[],
+): T[] {
+  return collisions.filter((c) => {
+    const dc = c.data?.droppableContainer as
+      | { node: { current: HTMLElement | null } }
+      | undefined;
+    if (!dc) return true;
+    return isVisibleNode(dc.node.current);
+  });
+}
+
+// pointerWithin matches what the user sees under the cursor (so the empty
+// stretch of a tab strip resolves to its pane droppable, not whichever
+// sibling tab happens to overlap the active rect most). rectIntersection
+// is kept as a fallback for keyboard drags where pointerCoordinates is null.
+const collisionDetection: CollisionDetection = (args) => {
+  const pointer = filterVisible(pointerWithin(args));
+  if (pointer.length > 0) return pointer;
+  return filterVisible(rectIntersection(args));
+};
+
 interface Props {
   children: ReactNode;
 }
@@ -77,7 +119,11 @@ export function AppDndContext({ children }: Props) {
     }),
   );
   return (
-    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetection}
+      onDragEnd={onDragEnd}
+    >
       {children}
     </DndContext>
   );

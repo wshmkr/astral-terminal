@@ -209,17 +209,17 @@ function TabbedPaneImpl({ pane }: Props) {
     [pane.surfaces],
   );
   const {
-    setNodeRef: setTabBarDroppableRef,
+    setNodeRef: setPaneDroppableRef,
     active,
     over,
   } = useDroppable({
-    id: `tab-bar:${pane.id}`,
-    data: { type: "tab-bar", paneId: pane.id },
+    id: `pane:${pane.id}`,
+    data: { type: "pane", paneId: pane.id },
   });
   const activeData = active?.data.current as DragItemData | undefined;
   const overData = over?.data.current as DragItemData | undefined;
   const overPaneId =
-    overData?.type === "tab" || overData?.type === "tab-bar"
+    overData?.type === "tab" || overData?.type === "pane"
       ? overData.paneId
       : undefined;
   const isForeignTabOver =
@@ -237,6 +237,7 @@ function TabbedPaneImpl({ pane }: Props) {
 
   return (
     <Box
+      ref={setPaneDroppableRef}
       onMouseDownCapture={() => setFocusedPane(pane.id)}
       sx={[
         ROOT_SX,
@@ -245,11 +246,7 @@ function TabbedPaneImpl({ pane }: Props) {
       ]}
     >
       <Box sx={[TAB_BAR_SX, isForeignTabOver && TAB_BAR_DROP_TARGET_SX]}>
-        <Box
-          ref={setTabBarDroppableRef}
-          onWheel={onTabScrollerWheel}
-          sx={TAB_SCROLLER_SX}
-        >
+        <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
           <SortableContext
             items={surfaceIds}
             strategy={horizontalListSortingStrategy}
