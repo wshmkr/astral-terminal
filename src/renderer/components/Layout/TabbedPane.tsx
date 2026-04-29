@@ -1,3 +1,4 @@
+import { useDroppable } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -7,7 +8,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import {
   VscAdd,
   VscChromeClose,
@@ -32,18 +33,19 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
+import type { DragItemData, DropTargetData } from "../dnd/AppDndContext";
 import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
-import { TerminalPane } from "../Terminal/TerminalPane";
+import { useSurfaceBodyRegister } from "../Terminal/SurfaceBodyRegistry";
 import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
+  DROP_TARGET_OUTLINE_SX,
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
-  SURFACE_SLOT_ACTIVE_SX,
-  SURFACE_SLOT_HIDDEN_SX,
   TAB_ACTIONS_SX,
+  TAB_BAR_DROP_TARGET_SX,
   TAB_BAR_SX,
   TAB_CLOSE_SX,
   TAB_SCROLLER_SX,
@@ -207,13 +209,44 @@ function TabbedPaneImpl({ pane }: Props) {
     () => pane.surfaces.map((s) => s.id),
     [pane.surfaces],
   );
+  const {
+    setNodeRef: setPaneDroppableRef,
+    active,
+    over,
+  } = useDroppable({
+    id: `pane:${pane.id}`,
+    data: { type: "pane", paneId: pane.id },
+  });
+  const activeData = active?.data.current as DragItemData | undefined;
+  const overData = over?.data.current as DropTargetData | undefined;
+  const overPaneId =
+    overData?.type === "tab" || overData?.type === "pane"
+      ? overData.paneId
+      : undefined;
+  const isForeignTabOver =
+    activeData?.type === "tab" &&
+    activeData.paneId !== pane.id &&
+    overPaneId === pane.id;
+
+  const registerSurfaceBody = useSurfaceBodyRegister();
+  const surfaceBodyRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      registerSurfaceBody(pane.id, el);
+    },
+    [registerSurfaceBody, pane.id],
+  );
 
   return (
     <Box
+      ref={setPaneDroppableRef}
       onMouseDownCapture={() => setFocusedPane(pane.id)}
-      sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
+      sx={[
+        ROOT_SX,
+        showAttentionOutline && ATTENTION_OUTLINE_SX,
+        isForeignTabOver && DROP_TARGET_OUTLINE_SX,
+      ]}
     >
-      <Box sx={TAB_BAR_SX}>
+      <Box sx={[TAB_BAR_SX, isForeignTabOver && TAB_BAR_DROP_TARGET_SX]}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
           <SortableContext
             items={surfaceIds}
@@ -251,25 +284,7 @@ function TabbedPaneImpl({ pane }: Props) {
         <TabBarActions paneId={pane.id} />
       </Box>
 
-      <Box sx={SURFACE_BODY_SX}>
-        {pane.surfaces.map((surface) => {
-          const isActive = surface.id === pane.activeSurfaceId;
-          return (
-            <Box
-              key={surface.id}
-              sx={isActive ? SURFACE_SLOT_ACTIVE_SX : SURFACE_SLOT_HIDDEN_SX}
-            >
-              {surface.type === "terminal" && (
-                <TerminalPane
-                  paneId={pane.id}
-                  surface={surface}
-                  isVisible={isActive}
-                />
-              )}
-            </Box>
-          );
-        })}
-      </Box>
+      <Box ref={surfaceBodyRef} sx={SURFACE_BODY_SX} />
     </Box>
   );
 }

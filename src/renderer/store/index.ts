@@ -42,7 +42,7 @@ export {
   closeSurface,
   closeWorkspace,
   createWorkspace,
-  findWorkspaceIdForPane,
+  moveSurfaceToPane,
   renameSurface,
   renameWorkspace,
   reorderSurfacesInPane,

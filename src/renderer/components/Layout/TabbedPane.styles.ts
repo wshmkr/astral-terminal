@@ -24,6 +24,22 @@ export const ATTENTION_OUTLINE_SX = {
   },
 } as const;
 
+export const DROP_TARGET_OUTLINE_SX = {
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    pointerEvents: "none",
+    border: "2px dashed",
+    borderColor: "primary.main",
+    zIndex: 1,
+  },
+} as const;
+
+export const TAB_BAR_DROP_TARGET_SX = {
+  bgcolor: "action.selected",
+} as const;
+
 export const TAB_BAR_SX = {
   display: "flex",
   alignItems: "flex-end",
@@ -84,16 +100,4 @@ export const TAB_UNREAD_DOT_SX = {
   borderRadius: "50%",
   bgcolor: "primary.main",
   flexShrink: 0,
-} as const;
-
-const SURFACE_SLOT_BASE = { width: "100%", height: "100%" } as const;
-
-export const SURFACE_SLOT_ACTIVE_SX = {
-  ...SURFACE_SLOT_BASE,
-  display: "flex",
-} as const;
-
-export const SURFACE_SLOT_HIDDEN_SX = {
-  ...SURFACE_SLOT_BASE,
-  display: "none",
 } as const;
