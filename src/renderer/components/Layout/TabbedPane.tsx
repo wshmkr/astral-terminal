@@ -33,7 +33,7 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
-import type { DragItemData } from "../dnd/AppDndContext";
+import { type DragItemData, isTabDrag } from "../dnd/AppDndContext";
 import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
 import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
@@ -63,7 +63,7 @@ interface TabItemProps {
   isActive: boolean;
   hasUnread: boolean;
   showDivider: boolean;
-  anyDragging: boolean;
+  tabDragging: boolean;
   activeBg: string;
   activeFg: string;
 }
@@ -74,7 +74,7 @@ const TabItem = memo(function TabItem({
   isActive,
   hasUnread,
   showDivider,
-  anyDragging,
+  tabDragging,
   activeBg,
   activeFg,
 }: TabItemProps) {
@@ -131,7 +131,7 @@ const TabItem = memo(function TabItem({
         color: isActive ? activeFg : "text.secondary",
         userSelect: "none",
         "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
-        "&:hover .tab-close": anyDragging ? {} : { opacity: 1 },
+        "&:hover .tab-close": tabDragging ? {} : { opacity: 1 },
         "&:hover::after": { opacity: 0 },
         "&:has(+ .tab-item:hover)::after": { opacity: 0 },
       }}
@@ -147,7 +147,7 @@ const TabItem = memo(function TabItem({
           e.stopPropagation();
           closeSurface(paneId, surface.id);
         }}
-        sx={[TAB_CLOSE_SX, { opacity: isActive && !anyDragging ? 1 : 0 }]}
+        sx={[TAB_CLOSE_SX, { opacity: isActive && !tabDragging ? 1 : 0 }]}
       >
         <VscClose size={16} />
       </Box>
@@ -211,7 +211,7 @@ function TabbedPaneImpl({ pane }: Props) {
     () => pane.surfaces.map((s) => s.id),
     [pane.surfaces],
   );
-  const anyDragging = useDndContext().active != null;
+  const tabDragging = isTabDrag(useDndContext().active?.data.current);
 
   return (
     <Box
@@ -236,7 +236,7 @@ function TabbedPaneImpl({ pane }: Props) {
                   isActive={isActive}
                   hasUnread={unreadIds.has(surface.id)}
                   showDivider={!isActive && !nextIsActive}
-                  anyDragging={anyDragging}
+                  tabDragging={tabDragging}
                   activeBg={terminalTheme.background}
                   activeFg={terminalTheme.foreground}
                 />
