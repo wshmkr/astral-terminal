@@ -3,6 +3,7 @@ import {
   type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -45,7 +46,11 @@ export function AppDndContext({ children }: Props) {
     }),
   );
   return (
-    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      onDragEnd={onDragEnd}
+    >
       {children}
     </DndContext>
   );

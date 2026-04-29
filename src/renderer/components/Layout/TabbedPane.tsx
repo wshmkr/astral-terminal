@@ -1,3 +1,4 @@
+import { useDndContext } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -92,6 +93,7 @@ function TabItem({
     isDragging,
     axis: "x",
   });
+  const anyDragging = useDndContext().active != null;
   return (
     <Box
       ref={setNodeRef}
@@ -128,7 +130,7 @@ function TabItem({
         color: isActive ? activeFg : "text.secondary",
         userSelect: "none",
         "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
-        "&:hover .tab-close": { opacity: 1 },
+        "&:hover .tab-close": anyDragging ? {} : { opacity: 1 },
         "&:hover::after": { opacity: 0 },
         "&:has(+ .tab-item:hover)::after": { opacity: 0 },
       }}
@@ -144,7 +146,7 @@ function TabItem({
           e.stopPropagation();
           closeSurface(paneId, surface.id);
         }}
-        sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
+        sx={[TAB_CLOSE_SX, { opacity: isActive && !anyDragging ? 1 : 0 }]}
       >
         <VscClose size={16} />
       </Box>
