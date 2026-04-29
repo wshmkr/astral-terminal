@@ -63,16 +63,18 @@ interface TabItemProps {
   isActive: boolean;
   hasUnread: boolean;
   showDivider: boolean;
+  anyDragging: boolean;
   activeBg: string;
   activeFg: string;
 }
 
-function TabItem({
+const TabItem = memo(function TabItem({
   paneId,
   surface,
   isActive,
   hasUnread,
   showDivider,
+  anyDragging,
   activeBg,
   activeFg,
 }: TabItemProps) {
@@ -93,7 +95,6 @@ function TabItem({
     isDragging,
     axis: "x",
   });
-  const anyDragging = useDndContext().active != null;
   return (
     <Box
       ref={setNodeRef}
@@ -152,7 +153,7 @@ function TabItem({
       </Box>
     </Box>
   );
-}
+});
 
 function TabBarActions({ paneId }: { paneId: string }) {
   return (
@@ -210,6 +211,7 @@ function TabbedPaneImpl({ pane }: Props) {
     () => pane.surfaces.map((s) => s.id),
     [pane.surfaces],
   );
+  const anyDragging = useDndContext().active != null;
 
   return (
     <Box
@@ -234,6 +236,7 @@ function TabbedPaneImpl({ pane }: Props) {
                   isActive={isActive}
                   hasUnread={unreadIds.has(surface.id)}
                   showDivider={!isActive && !nextIsActive}
+                  anyDragging={anyDragging}
                   activeBg={terminalTheme.background}
                   activeFg={terminalTheme.foreground}
                 />
