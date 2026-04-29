@@ -16,12 +16,9 @@ export function useSortableDragStyle({
   axis,
 }: SortableDragState): CSSProperties {
   return useMemo(() => {
-    const locked =
-      transform && axis === "x"
-        ? { ...transform, y: 0 }
-        : transform && axis === "y"
-          ? { ...transform, x: 0 }
-          : transform;
+    let locked = transform;
+    if (locked && axis === "x") locked = { ...locked, y: 0 };
+    else if (locked && axis === "y") locked = { ...locked, x: 0 };
     return {
       transform: CSS.Transform.toString(locked),
       transition,

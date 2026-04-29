@@ -8,13 +8,7 @@ import {
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import type { ReactNode } from "react";
-import {
-  getActiveWorkspace,
-  getState,
-  reorderSurfacesInPane,
-  reorderWorkspaces,
-} from "../../store";
-import { findLeafPane } from "../Layout/pane-tree";
+import { reorderSurfacesInPane, reorderWorkspaces } from "../../store";
 
 export type DragItemData =
   | { type: "workspace" }
@@ -26,27 +20,17 @@ function onDragEnd(event: DragEndEvent): void {
   const activeData = active.data.current as DragItemData | undefined;
   const overData = over.data.current as DragItemData | undefined;
   if (!activeData) return;
+  const activeId = String(active.id);
+  const overId = String(over.id);
 
   if (activeData.type === "workspace") {
-    const ws = getState().workspaces;
-    const from = ws.findIndex((w) => w.id === active.id);
-    const to = ws.findIndex((w) => w.id === over.id);
-    if (from < 0 || to < 0) return;
-    reorderWorkspaces(from, to);
+    reorderWorkspaces(activeId, overId);
     return;
   }
 
   if (activeData.type !== "tab" || overData?.type !== "tab") return;
   if (activeData.paneId !== overData.paneId) return;
-
-  const ws = getActiveWorkspace();
-  if (!ws) return;
-  const leaf = findLeafPane(ws.layout, activeData.paneId);
-  if (!leaf) return;
-  const from = leaf.surfaces.findIndex((s) => s.id === active.id);
-  const to = leaf.surfaces.findIndex((s) => s.id === over.id);
-  if (from < 0 || to < 0) return;
-  reorderSurfacesInPane(activeData.paneId, from, to);
+  reorderSurfacesInPane(activeData.paneId, activeId, overId);
 }
 
 interface Props {

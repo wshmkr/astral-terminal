@@ -10,6 +10,7 @@ import {
   setActiveWorkspace,
   unreadCount,
 } from "../../store";
+import type { DragItemData } from "../dnd/AppDndContext";
 import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
 import { WorkspaceRenameInput } from "./WorkspaceRenameInput";
 import { WorkspaceSurfaceList } from "./WorkspaceSurfaceList";
@@ -111,7 +112,7 @@ export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
     isDragging,
   } = useSortable({
     id: workspace.id,
-    data: { type: "workspace" },
+    data: { type: "workspace" } satisfies DragItemData,
     disabled: editing,
   });
   const dragStyle = useSortableDragStyle({ transform, transition, isDragging });

@@ -1,3 +1,4 @@
+import { arrayMove } from "../../shared/array";
 import {
   isTerminalSurface,
   type LeafPane,
@@ -278,35 +279,30 @@ export function resizeSplit(splitNodeId: string, sizes: number[]): void {
   commit();
 }
 
-export function reorderWorkspaces(fromIndex: number, toIndex: number): void {
-  if (fromIndex === toIndex) return;
+export function reorderWorkspaces(activeId: string, overId: string): void {
+  if (activeId === overId) return;
   const s = getState();
-  if (fromIndex < 0 || fromIndex >= s.workspaces.length) return;
-  if (toIndex < 0 || toIndex >= s.workspaces.length) return;
-  const next = s.workspaces.slice();
-  const [moved] = next.splice(fromIndex, 1);
-  if (!moved) return;
-  next.splice(toIndex, 0, moved);
+  const from = s.workspaces.findIndex((w) => w.id === activeId);
+  const to = s.workspaces.findIndex((w) => w.id === overId);
+  const next = arrayMove(s.workspaces, from, to);
+  if (!next) return;
   setState({ ...s, workspaces: next });
   commit();
 }
 
 export function reorderSurfacesInPane(
   paneId: string,
-  fromIndex: number,
-  toIndex: number,
+  activeId: string,
+  overId: string,
 ): void {
-  if (fromIndex === toIndex) return;
+  if (activeId === overId) return;
   const ws = getActiveWorkspace();
   if (!ws) return;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
-    if (fromIndex < 0 || fromIndex >= leaf.surfaces.length) return leaf;
-    if (toIndex < 0 || toIndex >= leaf.surfaces.length) return leaf;
-    const surfaces = leaf.surfaces.slice();
-    const [moved] = surfaces.splice(fromIndex, 1);
-    if (!moved) return leaf;
-    surfaces.splice(toIndex, 0, moved);
-    return { ...leaf, surfaces };
+    const from = leaf.surfaces.findIndex((s) => s.id === activeId);
+    const to = leaf.surfaces.findIndex((s) => s.id === overId);
+    const surfaces = arrayMove(leaf.surfaces, from, to);
+    return surfaces ? { ...leaf, surfaces } : leaf;
   });
   if (!changed) return;
   const s = getState();

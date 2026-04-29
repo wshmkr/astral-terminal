@@ -32,6 +32,7 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
+import type { DragItemData } from "../dnd/AppDndContext";
 import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
 import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
@@ -83,7 +84,7 @@ function TabItem({
     isDragging,
   } = useSortable({
     id: surface.id,
-    data: { type: "tab", paneId },
+    data: { type: "tab", paneId } satisfies DragItemData,
   });
   const dragStyle = useSortableDragStyle({
     transform,
