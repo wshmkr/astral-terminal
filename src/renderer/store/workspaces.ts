@@ -1,4 +1,4 @@
-import { arrayMove } from "../../shared/array";
+import { arrayMove } from "@dnd-kit/sortable";
 import {
   isTerminalSurface,
   type LeafPane,
@@ -284,9 +284,8 @@ export function reorderWorkspaces(activeId: string, overId: string): void {
   const s = getState();
   const from = s.workspaces.findIndex((w) => w.id === activeId);
   const to = s.workspaces.findIndex((w) => w.id === overId);
-  const next = arrayMove(s.workspaces, from, to);
-  if (!next) return;
-  setState({ ...s, workspaces: next });
+  if (from < 0 || to < 0) return;
+  setState({ ...s, workspaces: arrayMove(s.workspaces, from, to) });
   commit();
 }
 
@@ -301,8 +300,8 @@ export function reorderSurfacesInPane(
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const from = leaf.surfaces.findIndex((s) => s.id === activeId);
     const to = leaf.surfaces.findIndex((s) => s.id === overId);
-    const surfaces = arrayMove(leaf.surfaces, from, to);
-    return surfaces ? { ...leaf, surfaces } : leaf;
+    if (from < 0 || to < 0) return leaf;
+    return { ...leaf, surfaces: arrayMove(leaf.surfaces, from, to) };
   });
   if (!changed) return;
   const s = getState();
