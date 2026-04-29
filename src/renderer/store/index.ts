@@ -6,7 +6,12 @@ export {
   setUiScale,
   stepUiScale,
 } from "./appearance";
-export { getState, getWorkspace, useWorkspaceStore } from "./core";
+export {
+  getActiveWorkspace,
+  getState,
+  getWorkspace,
+  useWorkspaceStore,
+} from "./core";
 export { bootStore } from "./init";
 
 export {
@@ -40,6 +45,8 @@ export {
   findWorkspaceIdForPane,
   renameSurface,
   renameWorkspace,
+  reorderSurfacesInPane,
+  reorderWorkspaces,
   resizeSplit,
   setActiveSurface,
   setActiveWorkspace,

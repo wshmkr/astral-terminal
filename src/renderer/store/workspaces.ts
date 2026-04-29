@@ -1,3 +1,4 @@
+import { arrayMove } from "@dnd-kit/sortable";
 import {
   isTerminalSurface,
   type LeafPane,
@@ -275,5 +276,35 @@ export function resizeSplit(splitNodeId: string, sizes: number[]): void {
   });
   if (newLayout === ws.layout) return;
   setWorkspaceLayout(ws.id, newLayout);
+  commit();
+}
+
+export function reorderWorkspaces(activeId: string, overId: string): void {
+  if (activeId === overId) return;
+  const s = getState();
+  const from = s.workspaces.findIndex((w) => w.id === activeId);
+  const to = s.workspaces.findIndex((w) => w.id === overId);
+  if (from < 0 || to < 0) return;
+  setState({ ...s, workspaces: arrayMove(s.workspaces, from, to) });
+  commit();
+}
+
+export function reorderSurfacesInPane(
+  paneId: string,
+  activeId: string,
+  overId: string,
+): void {
+  if (activeId === overId) return;
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const changed = updateLeaf(ws.id, paneId, (leaf) => {
+    const from = leaf.surfaces.findIndex((s) => s.id === activeId);
+    const to = leaf.surfaces.findIndex((s) => s.id === overId);
+    if (from < 0 || to < 0) return leaf;
+    return { ...leaf, surfaces: arrayMove(leaf.surfaces, from, to) };
+  });
+  if (!changed) return;
+  const s = getState();
+  if (s.focusedPaneId !== paneId) setState({ ...s, focusedPaneId: paneId });
   commit();
 }
