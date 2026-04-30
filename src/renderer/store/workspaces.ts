@@ -1,3 +1,4 @@
+import { arrayMove } from "@dnd-kit/sortable";
 import {
   isTerminalSurface,
   type LeafPane,
@@ -275,5 +276,14 @@ export function resizeSplit(splitNodeId: string, sizes: number[]): void {
   });
   if (newLayout === ws.layout) return;
   setWorkspaceLayout(ws.id, newLayout);
+  commit();
+}
+
+export function reorderWorkspaces(activeId: string, overId: string): void {
+  const s = getState();
+  const from = s.workspaces.findIndex((w) => w.id === activeId);
+  const to = s.workspaces.findIndex((w) => w.id === overId);
+  if (from < 0 || to < 0) return;
+  setState({ ...s, workspaces: arrayMove(s.workspaces, from, to) });
   commit();
 }

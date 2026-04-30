@@ -1,6 +1,8 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { VscClose, VscEdit } from "react-icons/vsc";
 import type { Workspace } from "../../../shared/types";
 import {
@@ -98,14 +100,35 @@ interface Props {
   showDivider: boolean;
 }
 
-export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
+export const WorkspaceTab = memo(function WorkspaceTab({
+  workspace,
+  isActive,
+  showDivider,
+}: Props) {
   const [editing, setEditing] = useState(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: workspace.id, disabled: editing });
 
   return (
     <Box
+      ref={setNodeRef}
       className="workspace-tab"
       onClick={() => setActiveWorkspace(workspace.id)}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1 : undefined,
+      }}
       sx={rootSx(isActive, showDivider)}
+      {...attributes}
+      {...listeners}
     >
       <Box className="ws-title-row" sx={TITLE_ROW_SX}>
         {unreadCount(workspace) > 0 && <Box sx={UNREAD_DOT_SX} />}
@@ -164,4 +187,4 @@ export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
       <WorkspaceSurfaceList workspace={workspace} />
     </Box>
   );
-}
+});
