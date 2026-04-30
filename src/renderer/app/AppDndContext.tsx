@@ -1,9 +1,11 @@
 import {
+  type CollisionDetection,
   closestCenter,
   DndContext,
   type DragEndEvent,
   type Modifier,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -23,6 +25,12 @@ const restrictToActiveAxis: Modifier = (args) => {
 };
 
 const modifiers = [restrictToActiveAxis, restrictToFirstScrollableAncestor];
+
+const collisionDetection: CollisionDetection = (args) => {
+  const type = args.active?.data.current?.type;
+  if (type === "tab") return pointerWithin(args);
+  return closestCenter(args);
+};
 
 function handleDragEnd(event: DragEndEvent): void {
   const { active, over } = event;
@@ -49,7 +57,7 @@ export function AppDndContext({ children }: Props) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
       modifiers={modifiers}
       onDragEnd={handleDragEnd}
     >
