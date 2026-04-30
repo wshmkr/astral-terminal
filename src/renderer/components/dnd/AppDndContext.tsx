@@ -34,7 +34,6 @@ export function AppDndContext({ children }: Props) {
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={modifiers}
-      autoScroll={false}
       onDragEnd={handleDragEnd}
     >
       {children}

@@ -280,7 +280,6 @@ export function resizeSplit(splitNodeId: string, sizes: number[]): void {
 }
 
 export function reorderWorkspaces(activeId: string, overId: string): void {
-  if (activeId === overId) return;
   const s = getState();
   const from = s.workspaces.findIndex((w) => w.id === activeId);
   const to = s.workspaces.findIndex((w) => w.id === overId);
