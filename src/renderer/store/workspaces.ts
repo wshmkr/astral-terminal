@@ -287,3 +287,19 @@ export function reorderWorkspaces(activeId: string, overId: string): void {
   setState({ ...s, workspaces: arrayMove(s.workspaces, from, to) });
   commit();
 }
+
+export function reorderSurfaces(
+  paneId: string,
+  activeId: string,
+  overId: string,
+): void {
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const changed = updateLeaf(ws.id, paneId, (leaf) => {
+    const from = leaf.surfaces.findIndex((s) => s.id === activeId);
+    const to = leaf.surfaces.findIndex((s) => s.id === overId);
+    if (from < 0 || to < 0 || from === to) return leaf;
+    return { ...leaf, surfaces: arrayMove(leaf.surfaces, from, to) };
+  });
+  if (changed) commit();
+}

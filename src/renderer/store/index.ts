@@ -40,6 +40,7 @@ export {
   findWorkspaceIdForPane,
   renameSurface,
   renameWorkspace,
+  reorderSurfaces,
   reorderWorkspaces,
   resizeSplit,
   setActiveSurface,

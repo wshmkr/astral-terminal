@@ -1,3 +1,9 @@
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -68,10 +74,30 @@ function TabItem({
   activeBg,
   activeFg,
 }: TabItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: surface.id,
+    data: { type: "tab", paneId },
+  });
   return (
     <Box
+      ref={setNodeRef}
       className="tab-item"
       onClick={() => setActiveSurface(paneId, surface.id)}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 1 : undefined,
+      }}
+      {...attributes}
+      {...listeners}
       sx={{
         display: "flex",
         alignItems: "center",
@@ -183,23 +209,28 @@ function TabbedPaneImpl({ pane }: Props) {
     >
       <Box sx={TAB_BAR_SX}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
-          {pane.surfaces.map((surface, idx) => {
-            const isActive = surface.id === pane.activeSurfaceId;
-            const nextIsActive =
-              pane.surfaces[idx + 1]?.id === pane.activeSurfaceId;
-            return (
-              <TabItem
-                key={surface.id}
-                paneId={pane.id}
-                surface={surface}
-                isActive={isActive}
-                hasUnread={unreadIds.has(surface.id)}
-                showDivider={!isActive && !nextIsActive}
-                activeBg={terminalTheme.background}
-                activeFg={terminalTheme.foreground}
-              />
-            );
-          })}
+          <SortableContext
+            items={pane.surfaces}
+            strategy={horizontalListSortingStrategy}
+          >
+            {pane.surfaces.map((surface, idx) => {
+              const isActive = surface.id === pane.activeSurfaceId;
+              const nextIsActive =
+                pane.surfaces[idx + 1]?.id === pane.activeSurfaceId;
+              return (
+                <TabItem
+                  key={surface.id}
+                  paneId={pane.id}
+                  surface={surface}
+                  isActive={isActive}
+                  hasUnread={unreadIds.has(surface.id)}
+                  showDivider={!isActive && !nextIsActive}
+                  activeBg={terminalTheme.background}
+                  activeFg={terminalTheme.foreground}
+                />
+              );
+            })}
+          </SortableContext>
           <Tooltip title="New Tab">
             <IconButton
               size="small"

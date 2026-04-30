@@ -2,23 +2,40 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
+  type Modifier,
   PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import {
   restrictToFirstScrollableAncestor,
+  restrictToHorizontalAxis,
   restrictToVerticalAxis,
 } from "@dnd-kit/modifiers";
 import type { ReactNode } from "react";
-import { reorderWorkspaces } from "../store";
+import { reorderSurfaces, reorderWorkspaces } from "../store";
 
-const modifiers = [restrictToVerticalAxis, restrictToFirstScrollableAncestor];
+const restrictToActiveAxis: Modifier = (args) => {
+  const type = args.active?.data.current?.type;
+  if (type === "workspace") return restrictToVerticalAxis(args);
+  if (type === "tab") return restrictToHorizontalAxis(args);
+  return args.transform;
+};
+
+const modifiers = [restrictToActiveAxis, restrictToFirstScrollableAncestor];
 
 function handleDragEnd(event: DragEndEvent): void {
   const { active, over } = event;
   if (!over || active.id === over.id) return;
-  reorderWorkspaces(String(active.id), String(over.id));
+  const type = active.data.current?.type;
+  if (type === "workspace") {
+    reorderWorkspaces(String(active.id), String(over.id));
+  } else if (type === "tab") {
+    const paneId = active.data.current?.paneId;
+    if (typeof paneId !== "string") return;
+    if (over.data.current?.paneId !== paneId) return;
+    reorderSurfaces(paneId, String(active.id), String(over.id));
+  }
 }
 
 interface Props {
