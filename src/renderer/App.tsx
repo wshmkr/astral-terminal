@@ -3,6 +3,7 @@ import { useColorScheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState } from "react";
 import { agentProviders } from "../shared/agent-hooks";
+import { AppDndContext } from "./components/dnd/AppDndContext";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
@@ -139,80 +140,82 @@ export function App() {
   }, []);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        width: "100vw",
-      }}
-    >
-      <TitleBar />
-      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <Sidebar />
-        <Box
-          ref={workspacesContainerRef}
-          sx={{
-            flex: 1,
-            display: "flex",
-            overflow: "hidden",
-            position: "relative",
-          }}
-        >
-          {workspaces.length === 0 ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 0.5,
-                width: "100%",
-                userSelect: "none",
-              }}
-            >
-              <Typography variant="h5" color="text.disabled">
-                No workspace open.
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "text.disabled", opacity: 0.8 }}
+    <AppDndContext>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+          width: "100vw",
+        }}
+      >
+        <TitleBar />
+        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          <Sidebar />
+          <Box
+            ref={workspacesContainerRef}
+            sx={{
+              flex: 1,
+              display: "flex",
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            {workspaces.length === 0 ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 0.5,
+                  width: "100%",
+                  userSelect: "none",
+                }}
               >
-                press Ctrl+Shift+T to create one
-              </Typography>
-            </Box>
-          ) : (
-            // visibility:hidden (not display:none) keeps inactive workspaces
-            // laid out so their terminals can size themselves before first show
-            workspaces.map((ws) => {
-              const isActive = ws.id === activeWorkspaceId;
-              return (
-                <Box
-                  key={ws.id}
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    visibility: isActive ? "visible" : "hidden",
-                    zIndex: isActive ? 1 : 0,
-                  }}
+                <Typography variant="h5" color="text.disabled">
+                  No workspace open.
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "text.disabled", opacity: 0.8 }}
                 >
-                  {containerSize && (
-                    <WorkspaceLayout
-                      layout={ws.layout}
-                      containerSize={containerSize}
-                    />
-                  )}
-                </Box>
-              );
-            })
-          )}
+                  press Ctrl+Shift+T to create one
+                </Typography>
+              </Box>
+            ) : (
+              // visibility:hidden (not display:none) keeps inactive workspaces
+              // laid out so their terminals can size themselves before first show
+              workspaces.map((ws) => {
+                const isActive = ws.id === activeWorkspaceId;
+                return (
+                  <Box
+                    key={ws.id}
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      visibility: isActive ? "visible" : "hidden",
+                      zIndex: isActive ? 1 : 0,
+                    }}
+                  >
+                    {containerSize && (
+                      <WorkspaceLayout
+                        layout={ws.layout}
+                        containerSize={containerSize}
+                      />
+                    )}
+                  </Box>
+                );
+              })
+            )}
+          </Box>
         </Box>
       </Box>
       <SettingsDialog
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
       />
-    </Box>
+    </AppDndContext>
   );
 }

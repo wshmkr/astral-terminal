@@ -1,6 +1,7 @@
+import { useSortable } from "@dnd-kit/sortable";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { VscClose, VscEdit } from "react-icons/vsc";
 import type { Workspace } from "../../../shared/types";
 import {
@@ -9,6 +10,8 @@ import {
   setActiveWorkspace,
   unreadCount,
 } from "../../store";
+import type { DragItemData } from "../dnd/AppDndContext";
+import { useSortableDragStyle } from "../dnd/useSortableDragStyle";
 import { WorkspaceRenameInput } from "./WorkspaceRenameInput";
 import { WorkspaceSurfaceList } from "./WorkspaceSurfaceList";
 
@@ -98,14 +101,39 @@ interface Props {
   showDivider: boolean;
 }
 
-export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
+export const WorkspaceTab = memo(function WorkspaceTab({
+  workspace,
+  isActive,
+  showDivider,
+}: Props) {
   const [editing, setEditing] = useState(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: workspace.id,
+    data: { type: "workspace" } satisfies DragItemData,
+    disabled: editing,
+  });
+  const dragStyle = useSortableDragStyle({
+    transform,
+    transition,
+    isDragging,
+  });
 
   return (
     <Box
+      ref={setNodeRef}
       className="workspace-tab"
       onClick={() => setActiveWorkspace(workspace.id)}
+      style={dragStyle}
       sx={rootSx(isActive, showDivider)}
+      {...attributes}
+      {...listeners}
     >
       <Box className="ws-title-row" sx={TITLE_ROW_SX}>
         {unreadCount(workspace) > 0 && <Box sx={UNREAD_DOT_SX} />}
@@ -164,4 +192,4 @@ export function WorkspaceTab({ workspace, isActive, showDivider }: Props) {
       <WorkspaceSurfaceList workspace={workspace} />
     </Box>
   );
-}
+});

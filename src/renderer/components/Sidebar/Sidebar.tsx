@@ -1,3 +1,7 @@
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -166,20 +170,25 @@ function SidebarImpl() {
         </Box>
         <Box sx={LIST_CONTAINER_SX}>
           <Box ref={scrollRef} className="workspace-scroll" sx={SCROLL_SX}>
-            {workspaces.map((ws, index) => {
-              const isActive = ws.id === activeWorkspaceId;
-              const nextIsActive =
-                workspaces[index + 1]?.id === activeWorkspaceId;
-              const isLast = index === workspaces.length - 1;
-              return (
-                <WorkspaceTab
-                  key={ws.id}
-                  workspace={ws}
-                  isActive={isActive}
-                  showDivider={!isActive && !nextIsActive && !isLast}
-                />
-              );
-            })}
+            <SortableContext
+              items={workspaces}
+              strategy={verticalListSortingStrategy}
+            >
+              {workspaces.map((ws, index) => {
+                const isActive = ws.id === activeWorkspaceId;
+                const nextIsActive =
+                  workspaces[index + 1]?.id === activeWorkspaceId;
+                const isLast = index === workspaces.length - 1;
+                return (
+                  <WorkspaceTab
+                    key={ws.id}
+                    workspace={ws}
+                    isActive={isActive}
+                    showDivider={!isActive && !nextIsActive && !isLast}
+                  />
+                );
+              })}
+            </SortableContext>
           </Box>
           <OverlayScrollbar scrollRef={scrollRef} />
         </Box>

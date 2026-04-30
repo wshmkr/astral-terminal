@@ -59,7 +59,7 @@ interface TabItemProps {
   activeFg: string;
 }
 
-function TabItem({
+const TabItem = memo(function TabItem({
   paneId,
   surface,
   isActive,
@@ -121,7 +121,7 @@ function TabItem({
       </Box>
     </Box>
   );
-}
+});
 
 function TabBarActions({ paneId }: { paneId: string }) {
   return (
