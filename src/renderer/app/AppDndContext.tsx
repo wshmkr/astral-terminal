@@ -11,7 +11,7 @@ import {
   restrictToVerticalAxis,
 } from "@dnd-kit/modifiers";
 import type { ReactNode } from "react";
-import { reorderWorkspaces } from "../../store";
+import { reorderWorkspaces } from "../store";
 
 const modifiers = [restrictToVerticalAxis, restrictToFirstScrollableAncestor];
 

@@ -3,7 +3,7 @@ import { useColorScheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState } from "react";
 import { agentProviders } from "../shared/agent-hooks";
-import { AppDndContext } from "./components/dnd/AppDndContext";
+import { AppDndContext } from "./app/AppDndContext";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
