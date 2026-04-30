@@ -1,8 +1,7 @@
 import {
-  type CollisionDetection,
+  closestCenter,
   DndContext,
   type DragEndEvent,
-  type DroppableContainer,
   PointerSensor,
   useSensor,
   useSensors,
@@ -11,37 +10,8 @@ import {
   restrictToFirstScrollableAncestor,
   restrictToVerticalAxis,
 } from "@dnd-kit/modifiers";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import { reorderWorkspaces } from "../../store";
-
-export type DragItemData = { type: "workspace" };
-
-type Collision = ReturnType<CollisionDetection>[number] & {
-  data: { droppableContainer: DroppableContainer; value: number };
-};
-
-const workspaceYCollision: CollisionDetection = (args) => {
-  const pointer = args.pointerCoordinates;
-  if (!pointer) return [];
-  let nearest: Collision | null = null;
-  for (const container of args.droppableContainers) {
-    const rect = args.droppableRects.get(container.id);
-    if (!rect) continue;
-    if (pointer.y >= rect.top && pointer.y <= rect.bottom) {
-      return [
-        { id: container.id, data: { droppableContainer: container, value: 0 } },
-      ];
-    }
-    const distance = Math.abs((rect.top + rect.bottom) / 2 - pointer.y);
-    if (!nearest || distance < nearest.data.value) {
-      nearest = {
-        id: container.id,
-        data: { droppableContainer: container, value: distance },
-      };
-    }
-  }
-  return nearest ? [nearest] : [];
-};
 
 const modifiers = [restrictToVerticalAxis, restrictToFirstScrollableAncestor];
 
@@ -56,22 +26,16 @@ interface Props {
 }
 
 export function AppDndContext({ children }: Props) {
-  const [dragging, setDragging] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={workspaceYCollision}
+      collisionDetection={closestCenter}
       modifiers={modifiers}
-      autoScroll={!dragging}
-      onDragStart={() => setDragging(true)}
-      onDragEnd={(e) => {
-        setDragging(false);
-        handleDragEnd(e);
-      }}
-      onDragCancel={() => setDragging(false)}
+      autoScroll={false}
+      onDragEnd={handleDragEnd}
     >
       {children}
     </DndContext>
