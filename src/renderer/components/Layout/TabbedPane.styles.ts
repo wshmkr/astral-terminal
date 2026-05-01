@@ -53,6 +53,19 @@ export const TAB_ACTIONS_SX = {
   flexShrink: 0,
 } as const;
 
+export const TAB_END_DROPZONE_SX = {
+  display: "flex",
+  flex: "1 0 auto",
+  alignItems: "center",
+  alignSelf: "stretch",
+  justifyContent: "space-between",
+} as const;
+
+export const TAB_OVERLAY_SX = {
+  boxShadow: 4,
+  cursor: "grabbing",
+} as const;
+
 export const SPLIT_BUTTON_SX = { color: "text.disabled" } as const;
 
 export const ADD_TAB_BUTTON_SX = {

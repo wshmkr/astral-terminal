@@ -8,12 +8,10 @@ import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
 import { memo, type ReactNode, useMemo } from "react";
 import {
   VscAdd,
   VscChromeClose,
-  VscClose,
   VscSplitHorizontal,
   VscSplitVertical,
 } from "react-icons/vsc";
@@ -46,11 +44,10 @@ import {
   SURFACE_SLOT_HIDDEN_SX,
   TAB_ACTIONS_SX,
   TAB_BAR_SX,
-  TAB_CLOSE_SX,
+  TAB_END_DROPZONE_SX,
   TAB_SCROLLER_SX,
-  TAB_TITLE_SX,
-  TAB_UNREAD_DOT_SX,
 } from "./TabbedPane.styles";
+import { TabContent, tabItemSx } from "./TabVisual";
 
 interface Props {
   pane: LeafPane;
@@ -64,91 +61,6 @@ interface TabItemProps {
   showDivider: boolean;
   activeBg: string;
   activeFg: string;
-}
-
-interface TabVisualProps {
-  surface: Surface;
-  isActive: boolean;
-  hasUnread: boolean;
-  showDivider: boolean;
-  activeBg: string;
-  activeFg: string;
-}
-
-interface TabItemSxProps {
-  isActive: boolean;
-  showDivider: boolean;
-  activeBg: string;
-  activeFg: string;
-}
-
-export function tabItemSx({
-  isActive,
-  showDivider,
-  activeBg,
-  activeFg,
-}: TabItemSxProps) {
-  return {
-    display: "flex",
-    alignItems: "center",
-    minWidth: 80,
-    maxWidth: 200,
-    gap: 0.75,
-    px: 1.25,
-    py: 0.75,
-    cursor: "pointer",
-    borderRadius: "8px 8px 0 0",
-    position: "relative",
-    "&::after": showDivider
-      ? {
-          content: '""',
-          position: "absolute",
-          right: 0,
-          top: "25%",
-          height: "50%",
-          width: "1px",
-          backgroundColor: "custom.subtleDivider",
-          transition: "opacity 0.15s",
-        }
-      : {},
-    bgcolor: isActive ? activeBg : "transparent",
-    color: isActive ? activeFg : "text.secondary",
-    userSelect: "none",
-    "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
-    "&:hover .tab-close": { opacity: 1 },
-    "&:hover::after": { opacity: 0 },
-    "&:has(+ .tab-item:hover)::after": { opacity: 0 },
-  } as const;
-}
-
-interface TabContentProps extends TabVisualProps {
-  onClose?: (e: React.MouseEvent) => void;
-}
-
-export function TabContent({
-  surface,
-  isActive,
-  hasUnread,
-  onClose,
-}: TabContentProps) {
-  return (
-    <>
-      {hasUnread && <Box sx={TAB_UNREAD_DOT_SX} />}
-      <Typography variant="body2" noWrap sx={TAB_TITLE_SX}>
-        {surface.name}
-      </Typography>
-      {onClose && (
-        <Box
-          component="span"
-          className="tab-close"
-          onClick={onClose}
-          sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
-        >
-          <VscClose size={16} />
-        </Box>
-      )}
-    </>
-  );
 }
 
 function TabItem({
@@ -189,9 +101,6 @@ function TabItem({
         surface={surface}
         isActive={isActive}
         hasUnread={hasUnread}
-        showDivider={showDivider}
-        activeBg={activeBg}
-        activeFg={activeFg}
         onClose={(e) => {
           e.stopPropagation();
           closeSurface(paneId, surface.id);
@@ -201,28 +110,18 @@ function TabItem({
   );
 }
 
-const TAB_END_DROPZONE_SX = {
-  display: "flex",
-  flex: "1 0 auto",
-  alignItems: "center",
-  alignSelf: "stretch",
-  justifyContent: "space-between",
-} as const;
-
-function tabEndId(paneId: string): string {
-  return `tab-end:${paneId}`;
-}
-
 function TabEndDropZone({
   paneId,
+  lastSurfaceId,
   children,
 }: {
   paneId: string;
+  lastSurfaceId: string;
   children: ReactNode;
 }) {
   const { setNodeRef, active } = useDroppable({
-    id: tabEndId(paneId),
-    data: { type: "tab-end", paneId },
+    id: `tab-end:${paneId}`,
+    data: { type: "tab-end", paneId, lastSurfaceId },
   });
   return (
     <Box
@@ -293,6 +192,7 @@ function TabbedPaneImpl({ pane }: Props) {
     () => pane.surfaces.map((s) => s.id),
     [pane.surfaces],
   );
+  const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
   return (
     <Box
@@ -333,9 +233,11 @@ function TabbedPaneImpl({ pane }: Props) {
             </IconButton>
           </Tooltip>
         </Box>
-        <TabEndDropZone paneId={pane.id}>
-          <TabBarActions paneId={pane.id} />
-        </TabEndDropZone>
+        {lastSurfaceId && (
+          <TabEndDropZone paneId={pane.id} lastSurfaceId={lastSurfaceId}>
+            <TabBarActions paneId={pane.id} />
+          </TabEndDropZone>
+        )}
       </Box>
 
       <Box sx={SURFACE_BODY_SX}>

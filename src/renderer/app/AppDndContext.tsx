@@ -18,21 +18,22 @@ import {
 } from "@dnd-kit/modifiers";
 import { type ReactNode, useState } from "react";
 import { TabDragOverlay } from "../components/Layout/TabDragOverlay";
-import { moveSurfaceToEnd, reorderSurfaces, reorderWorkspaces } from "../store";
+import { reorderSurfaces, reorderWorkspaces } from "../store";
+import { getDragData } from "./dnd-types";
 
 const restrictToActiveAxis: Modifier = (args) => {
-  const type = args.active?.data.current?.type;
-  if (type === "workspace") return restrictToVerticalAxis(args);
-  if (type === "tab") return restrictToHorizontalAxis(args);
+  const data = getDragData(args.active);
+  if (data?.type === "workspace") return restrictToVerticalAxis(args);
+  if (data?.type === "tab") return restrictToHorizontalAxis(args);
   return args.transform;
 };
 
 const modifiers = [restrictToActiveAxis, restrictToFirstScrollableAncestor];
 
 const collisionDetection: CollisionDetection = (args) => {
-  const type = args.active?.data.current?.type;
-  if (type !== "tab") return closestCenter(args);
-  const paneId = args.active?.data.current?.paneId;
+  const data = getDragData(args.active);
+  if (data?.type !== "tab") return closestCenter(args);
+  const { paneId } = data;
   return pointerWithin({
     ...args,
     droppableContainers: args.droppableContainers.filter(
@@ -57,8 +58,8 @@ export function AppDndContext({ children }: Props) {
   );
 
   function handleDragStart(event: DragStartEvent): void {
-    const data = event.active.data.current;
-    if (data?.type === "tab" && typeof data.paneId === "string") {
+    const data = getDragData(event.active);
+    if (data?.type === "tab") {
       setActiveTab({ paneId: data.paneId, surfaceId: String(event.active.id) });
     }
   }
@@ -67,19 +68,18 @@ export function AppDndContext({ children }: Props) {
     setActiveTab(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const type = active.data.current?.type;
-    if (type === "workspace") {
+    const activeData = getDragData(active);
+    if (activeData?.type === "workspace") {
       reorderWorkspaces(String(active.id), String(over.id));
-    } else if (type === "tab") {
-      const paneId = active.data.current?.paneId;
-      if (typeof paneId !== "string") return;
-      if (over.data.current?.paneId !== paneId) return;
-      if (over.data.current?.type === "tab-end") {
-        moveSurfaceToEnd(paneId, String(active.id));
-        return;
-      }
-      reorderSurfaces(paneId, String(active.id), String(over.id));
+      return;
     }
+    if (activeData?.type !== "tab") return;
+    const overData = getDragData(over);
+    if (!overData || overData.type === "workspace") return;
+    if (overData.paneId !== activeData.paneId) return;
+    const overSurfaceId =
+      overData.type === "tab-end" ? overData.lastSurfaceId : String(over.id);
+    reorderSurfaces(activeData.paneId, String(active.id), overSurfaceId);
   }
 
   return (

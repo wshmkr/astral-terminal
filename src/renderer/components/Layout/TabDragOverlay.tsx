@@ -2,9 +2,8 @@ import Box from "@mui/material/Box";
 import { useWorkspaceStore } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { findLeafPane } from "./pane-tree";
-import { TabContent, tabItemSx } from "./TabbedPane";
-
-const TAB_OVERLAY_SX = { boxShadow: 4, cursor: "grabbing" } as const;
+import { TAB_OVERLAY_SX } from "./TabbedPane.styles";
+import { TabContent, tabItemSx } from "./TabVisual";
 
 interface Props {
   paneId: string;
@@ -34,14 +33,7 @@ export function TabDragOverlay({ paneId, surfaceId }: Props) {
         TAB_OVERLAY_SX,
       ]}
     >
-      <TabContent
-        surface={surface}
-        isActive={isActive}
-        hasUnread={false}
-        showDivider={false}
-        activeBg={theme.background}
-        activeFg={theme.foreground}
-      />
+      <TabContent surface={surface} isActive={isActive} hasUnread={false} />
     </Box>
   );
 }
