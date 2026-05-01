@@ -8,7 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { memo, type ReactNode, useMemo } from "react";
+import { memo, type ReactNode, useCallback, useMemo } from "react";
 import {
   VscAdd,
   VscChromeClose,
@@ -33,7 +33,7 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
-import { TerminalPane } from "../Terminal/TerminalPane";
+import { useSurfaceBodyRegister } from "../Terminal/SurfaceBodyRegistry";
 import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
@@ -41,8 +41,6 @@ import {
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
-  SURFACE_SLOT_ACTIVE_SX,
-  SURFACE_SLOT_HIDDEN_SX,
   TAB_ACTIONS_SX,
   TAB_BAR_SX,
   TAB_END_DROPZONE_SX,
@@ -196,6 +194,14 @@ function TabbedPaneImpl({ pane }: Props) {
   );
   const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
+  const registerSurfaceBody = useSurfaceBodyRegister();
+  const surfaceBodyRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      registerSurfaceBody(pane.id, el);
+    },
+    [registerSurfaceBody, pane.id],
+  );
+
   return (
     <Box
       onMouseDownCapture={() => setFocusedPane(pane.id)}
@@ -242,25 +248,7 @@ function TabbedPaneImpl({ pane }: Props) {
         )}
       </Box>
 
-      <Box sx={SURFACE_BODY_SX}>
-        {pane.surfaces.map((surface) => {
-          const isActive = surface.id === pane.activeSurfaceId;
-          return (
-            <Box
-              key={surface.id}
-              sx={isActive ? SURFACE_SLOT_ACTIVE_SX : SURFACE_SLOT_HIDDEN_SX}
-            >
-              {surface.type === "terminal" && (
-                <TerminalPane
-                  paneId={pane.id}
-                  surface={surface}
-                  isVisible={isActive}
-                />
-              )}
-            </Box>
-          );
-        })}
-      </Box>
+      <Box ref={surfaceBodyRef} sx={SURFACE_BODY_SX} />
     </Box>
   );
 }
