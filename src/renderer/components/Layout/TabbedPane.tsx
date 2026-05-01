@@ -341,11 +341,11 @@ function TabbedPaneImpl({ pane }: Props) {
       sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
     >
       <Box sx={TAB_BAR_SX}>
-        <SortableContext
-          items={sortableItems}
-          strategy={horizontalListSortingStrategy}
-        >
-          <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
+        <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
+          <SortableContext
+            items={sortableItems}
+            strategy={horizontalListSortingStrategy}
+          >
             {pane.surfaces.map((surface, idx) => {
               const isActive = surface.id === pane.activeSurfaceId;
               const nextIsActive =
@@ -363,20 +363,20 @@ function TabbedPaneImpl({ pane }: Props) {
                 />
               );
             })}
-          </Box>
-          <TabEndDropZone paneId={pane.id}>
-            <Tooltip title="New Tab">
-              <IconButton
-                size="small"
-                onClick={() => addSurface(pane.id)}
-                sx={ADD_TAB_BUTTON_SX}
-              >
-                <VscAdd size={14} />
-              </IconButton>
-            </Tooltip>
-            <TabBarActions paneId={pane.id} />
-          </TabEndDropZone>
-        </SortableContext>
+          </SortableContext>
+          <Tooltip title="New Tab">
+            <IconButton
+              size="small"
+              onClick={() => addSurface(pane.id)}
+              sx={ADD_TAB_BUTTON_SX}
+            >
+              <VscAdd size={14} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <TabEndDropZone paneId={pane.id}>
+          <TabBarActions paneId={pane.id} />
+        </TabEndDropZone>
       </Box>
 
       <Box sx={SURFACE_BODY_SX}>
