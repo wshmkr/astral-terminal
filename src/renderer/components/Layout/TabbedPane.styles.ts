@@ -34,7 +34,7 @@ export const TAB_BAR_SX = {
 
 export const TAB_SCROLLER_SX = {
   display: "flex",
-  flex: "1 1 0px",
+  flex: "0 1 auto",
   minWidth: 0,
   pl: 1,
   overflowX: "auto",

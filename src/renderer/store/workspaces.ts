@@ -303,3 +303,17 @@ export function reorderSurfaces(
   });
   if (changed) commit();
 }
+
+export function moveSurfaceToEnd(paneId: string, surfaceId: string): void {
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const changed = updateLeaf(ws.id, paneId, (leaf) => {
+    const from = leaf.surfaces.findIndex((s) => s.id === surfaceId);
+    if (from < 0 || from === leaf.surfaces.length - 1) return leaf;
+    return {
+      ...leaf,
+      surfaces: arrayMove(leaf.surfaces, from, leaf.surfaces.length - 1),
+    };
+  });
+  if (changed) commit();
+}

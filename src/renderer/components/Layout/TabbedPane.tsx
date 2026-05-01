@@ -1,3 +1,4 @@
+import { useDroppable } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -8,7 +9,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { memo, useMemo } from "react";
+import { memo, type ReactNode, useMemo } from "react";
 import {
   VscAdd,
   VscChromeClose,
@@ -35,6 +36,7 @@ import {
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
+import { findLeafPane } from "./pane-tree";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
@@ -65,6 +67,82 @@ interface TabItemProps {
   activeFg: string;
 }
 
+interface TabVisualProps {
+  surface: Surface;
+  isActive: boolean;
+  hasUnread: boolean;
+  showDivider: boolean;
+  activeBg: string;
+  activeFg: string;
+}
+
+function tabItemSx({
+  isActive,
+  showDivider,
+  activeBg,
+  activeFg,
+}: Omit<TabVisualProps, "surface" | "hasUnread">) {
+  return {
+    display: "flex",
+    alignItems: "center",
+    minWidth: 80,
+    maxWidth: 200,
+    gap: 0.75,
+    px: 1.25,
+    py: 0.75,
+    cursor: "pointer",
+    borderRadius: "8px 8px 0 0",
+    position: "relative",
+    "&::after": showDivider
+      ? {
+          content: '""',
+          position: "absolute",
+          right: 0,
+          top: "25%",
+          height: "50%",
+          width: "1px",
+          backgroundColor: "custom.subtleDivider",
+          transition: "opacity 0.15s",
+        }
+      : {},
+    bgcolor: isActive ? activeBg : "transparent",
+    color: isActive ? activeFg : "text.secondary",
+    userSelect: "none",
+    "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
+    "&:hover .tab-close": { opacity: 1 },
+    "&:hover::after": { opacity: 0 },
+    "&:has(+ .tab-item:hover)::after": { opacity: 0 },
+  } as const;
+}
+
+interface TabContentProps extends TabVisualProps {
+  onClose?: (e: React.MouseEvent) => void;
+}
+
+function TabContent({
+  surface,
+  isActive,
+  hasUnread,
+  onClose,
+}: TabContentProps) {
+  return (
+    <>
+      {hasUnread && <Box sx={TAB_UNREAD_DOT_SX} />}
+      <Typography variant="body2" noWrap sx={TAB_TITLE_SX}>
+        {surface.name}
+      </Typography>
+      <Box
+        component="span"
+        className="tab-close"
+        onClick={onClose}
+        sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
+      >
+        <VscClose size={16} />
+      </Box>
+    </>
+  );
+}
+
 function TabItem({
   paneId,
   surface,
@@ -93,57 +171,113 @@ function TabItem({
       style={{
         transform: CSS.Translate.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 1 : undefined,
+        opacity: isDragging ? 0 : 1,
       }}
       {...attributes}
       {...listeners}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        minWidth: 80,
-        maxWidth: 200,
-        gap: 0.75,
-        px: 1.25,
-        py: 0.75,
-        cursor: "pointer",
-        borderRadius: "8px 8px 0 0",
-        position: "relative",
-        "&::after": showDivider
-          ? {
-              content: '""',
-              position: "absolute",
-              right: 0,
-              top: "25%",
-              height: "50%",
-              width: "1px",
-              backgroundColor: "custom.subtleDivider",
-              transition: "opacity 0.15s",
-            }
-          : {},
-        bgcolor: isActive ? activeBg : "transparent",
-        color: isActive ? activeFg : "text.secondary",
-        userSelect: "none",
-        "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
-        "&:hover .tab-close": { opacity: 1 },
-        "&:hover::after": { opacity: 0 },
-        "&:has(+ .tab-item:hover)::after": { opacity: 0 },
-      }}
+      sx={tabItemSx({ isActive, showDivider, activeBg, activeFg })}
     >
-      {hasUnread && <Box sx={TAB_UNREAD_DOT_SX} />}
-      <Typography variant="body2" noWrap sx={TAB_TITLE_SX}>
-        {surface.name}
-      </Typography>
-      <Box
-        component="span"
-        className="tab-close"
-        onClick={(e) => {
+      <TabContent
+        surface={surface}
+        isActive={isActive}
+        hasUnread={hasUnread}
+        showDivider={showDivider}
+        activeBg={activeBg}
+        activeFg={activeFg}
+        onClose={(e) => {
           e.stopPropagation();
           closeSurface(paneId, surface.id);
         }}
-        sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
-      >
-        <VscClose size={16} />
+      />
+    </Box>
+  );
+}
+
+const TAB_OVERLAY_SX = { boxShadow: 4, cursor: "grabbing" } as const;
+
+export function TabDragOverlay({
+  paneId,
+  surfaceId,
+}: {
+  paneId: string;
+  surfaceId: string;
+}) {
+  const surface = useWorkspaceStore((s) => {
+    const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+    if (!ws) return null;
+    const leaf = findLeafPane(ws.layout, paneId);
+    return leaf?.surfaces.find((sf) => sf.id === surfaceId) ?? null;
+  });
+  const isActive = useWorkspaceStore((s) => {
+    const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+    if (!ws) return false;
+    const leaf = findLeafPane(ws.layout, paneId);
+    return leaf?.activeSurfaceId === surfaceId;
+  });
+  const theme = useWorkspaceStore(
+    (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
+  );
+  if (!surface) return null;
+  return (
+    <Box
+      sx={[
+        tabItemSx({
+          isActive,
+          showDivider: false,
+          activeBg: theme.background,
+          activeFg: theme.foreground,
+        }),
+        TAB_OVERLAY_SX,
+      ]}
+    >
+      <TabContent
+        surface={surface}
+        isActive={isActive}
+        hasUnread={false}
+        showDivider={false}
+        activeBg={theme.background}
+        activeFg={theme.foreground}
+      />
+    </Box>
+  );
+}
+
+const TAB_END_DROPZONE_SX = {
+  display: "flex",
+  flex: "1 0 auto",
+  alignItems: "center",
+  alignSelf: "stretch",
+  justifyContent: "space-between",
+} as const;
+
+const TAB_END_INNER_SX = {
+  display: "flex",
+  alignItems: "center",
+  alignSelf: "stretch",
+  flex: "1 0 auto",
+  justifyContent: "space-between",
+} as const;
+
+function tabEndId(paneId: string): string {
+  return `tab-end:${paneId}`;
+}
+
+function TabEndDropZone({
+  paneId,
+  children,
+}: {
+  paneId: string;
+  children: ReactNode;
+}) {
+  const { setNodeRef, active } = useDroppable({
+    id: tabEndId(paneId),
+    data: { type: "tab-end", paneId },
+  });
+  const dragging = active !== null;
+  return (
+    <Box ref={setNodeRef} sx={TAB_END_DROPZONE_SX}>
+      <Box sx={[TAB_END_INNER_SX, dragging && { pointerEvents: "none" }]}>
+        {children}
       </Box>
     </Box>
   );
@@ -201,6 +335,10 @@ function TabbedPaneImpl({ pane }: Props) {
     [notifications],
   );
   const showAttentionOutline = pane.surfaces.some((s) => unreadIds.has(s.id));
+  const sortableItems = useMemo(
+    () => pane.surfaces.map((s) => s.id),
+    [pane.surfaces],
+  );
 
   return (
     <Box
@@ -208,11 +346,11 @@ function TabbedPaneImpl({ pane }: Props) {
       sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
     >
       <Box sx={TAB_BAR_SX}>
-        <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
-          <SortableContext
-            items={pane.surfaces}
-            strategy={horizontalListSortingStrategy}
-          >
+        <SortableContext
+          items={sortableItems}
+          strategy={horizontalListSortingStrategy}
+        >
+          <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
             {pane.surfaces.map((surface, idx) => {
               const isActive = surface.id === pane.activeSurfaceId;
               const nextIsActive =
@@ -230,19 +368,20 @@ function TabbedPaneImpl({ pane }: Props) {
                 />
               );
             })}
-          </SortableContext>
-          <Tooltip title="New Tab">
-            <IconButton
-              size="small"
-              onClick={() => addSurface(pane.id)}
-              sx={ADD_TAB_BUTTON_SX}
-            >
-              <VscAdd size={14} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        <TabBarActions paneId={pane.id} />
+          </Box>
+          <TabEndDropZone paneId={pane.id}>
+            <Tooltip title="New Tab">
+              <IconButton
+                size="small"
+                onClick={() => addSurface(pane.id)}
+                sx={ADD_TAB_BUTTON_SX}
+              >
+                <VscAdd size={14} />
+              </IconButton>
+            </Tooltip>
+            <TabBarActions paneId={pane.id} />
+          </TabEndDropZone>
+        </SortableContext>
       </Box>
 
       <Box sx={SURFACE_BODY_SX}>

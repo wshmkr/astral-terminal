@@ -38,6 +38,7 @@ export {
   closeWorkspace,
   createWorkspace,
   findWorkspaceIdForPane,
+  moveSurfaceToEnd,
   renameSurface,
   renameWorkspace,
   reorderSurfaces,
