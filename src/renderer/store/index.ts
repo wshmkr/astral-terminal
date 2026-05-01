@@ -6,7 +6,12 @@ export {
   setUiScale,
   stepUiScale,
 } from "./appearance";
-export { getState, getWorkspace, useWorkspaceStore } from "./core";
+export {
+  getState,
+  getWorkspace,
+  selectActiveWorkspace,
+  useWorkspaceStore,
+} from "./core";
 export { bootStore } from "./init";
 
 export {

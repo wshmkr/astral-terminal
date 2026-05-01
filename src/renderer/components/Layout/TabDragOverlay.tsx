@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { useWorkspaceStore } from "../../store";
+import { selectActiveWorkspace, useWorkspaceStore } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { findLeafPane } from "./pane-tree";
 import { TAB_OVERLAY_SX } from "./TabbedPane.styles";
@@ -12,7 +12,7 @@ interface Props {
 
 export function TabDragOverlay({ paneId, surfaceId }: Props) {
   const leaf = useWorkspaceStore((s) => {
-    const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+    const ws = selectActiveWorkspace(s);
     return ws ? findLeafPane(ws.layout, paneId) : null;
   });
   const theme = useWorkspaceStore(

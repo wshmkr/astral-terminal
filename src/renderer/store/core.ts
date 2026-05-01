@@ -30,6 +30,10 @@ export function getActiveWorkspace(): Workspace | undefined {
   return getWorkspace(getState().activeWorkspaceId);
 }
 
+export function selectActiveWorkspace(s: AppState): Workspace | undefined {
+  return s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+}
+
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function scheduleSave(): void {

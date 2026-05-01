@@ -25,6 +25,7 @@ import {
   addSurface,
   closePane,
   closeSurface,
+  selectActiveWorkspace,
   setActiveSurface,
   setFocusedPane,
   splitPane,
@@ -110,6 +111,11 @@ function TabItem({
   );
 }
 
+const TAB_END_DROPZONE_DRAGGING_SX = [
+  TAB_END_DROPZONE_SX,
+  { "& *": { pointerEvents: "none" } },
+] as const;
+
 function TabEndDropZone({
   paneId,
   lastSurfaceId,
@@ -126,10 +132,7 @@ function TabEndDropZone({
   return (
     <Box
       ref={setNodeRef}
-      sx={[
-        TAB_END_DROPZONE_SX,
-        active !== null && { "& *": { pointerEvents: "none" } },
-      ]}
+      sx={active !== null ? TAB_END_DROPZONE_DRAGGING_SX : TAB_END_DROPZONE_SX}
     >
       {children}
     </Box>
@@ -174,8 +177,7 @@ function onTabScrollerWheel(e: React.WheelEvent<HTMLDivElement>) {
 }
 
 function selectActiveNotifications(s: AppState): Notification[] | null {
-  const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
-  return ws?.notifications ?? null;
+  return selectActiveWorkspace(s)?.notifications ?? null;
 }
 
 function TabbedPaneImpl({ pane }: Props) {
