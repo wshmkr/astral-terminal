@@ -6,7 +6,7 @@ import {
 import { APP_PACKAGE_NAME } from "./meta";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "2";
+export const HOOK_MARKER_VERSION = "3";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
@@ -16,6 +16,7 @@ const UUID_RE =
 
 // Matches the first `session_id`; assumes Claude emits it at the top level
 const CLAUDE_SESSION_ID_EXTRACTOR = `sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1`;
+const CLAUDE_CWD_EXTRACTOR = `sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1`;
 
 export function agentHookStrings(agent: string) {
   return {
@@ -56,6 +57,7 @@ function sessionHook(opts: {
   agentName: string;
   event: AgentSessionEvent;
   extractSessionId: string;
+  extractCwd: string;
 }) {
   return {
     type: "command",
@@ -89,6 +91,7 @@ const claudeProvider: AgentHookProvider<"Claude"> = {
         agentName: this.name,
         event,
         extractSessionId: CLAUDE_SESSION_ID_EXTRACTOR,
+        extractCwd: CLAUDE_CWD_EXTRACTOR,
       });
     return {
       hooks: {
@@ -108,7 +111,7 @@ const claudeProvider: AgentHookProvider<"Claude"> = {
             hooks: [notifyHook(s.askUserQuestion)],
           },
         ],
-        Stop: [{ hooks: [notifyHook(s.stop)] }],
+        Stop: [{ hooks: [notifyHook(s.stop), session("update")] }],
         SessionStart: [{ hooks: [session("start")] }],
         SessionEnd: [{ hooks: [session("end")] }],
       },

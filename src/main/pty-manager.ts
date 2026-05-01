@@ -168,10 +168,16 @@ export class PtyManager {
       const parsed = JSON.parse(raw) as {
         agentName?: unknown;
         sessionId?: unknown;
+        cwd?: unknown;
       };
       if (typeof parsed?.agentName !== "string") return undefined;
       if (typeof parsed.sessionId !== "string") return undefined;
-      return { agentName: parsed.agentName, sessionId: parsed.sessionId };
+      const cwd = typeof parsed.cwd === "string" ? parsed.cwd : undefined;
+      return {
+        agentName: parsed.agentName,
+        sessionId: parsed.sessionId,
+        cwd,
+      };
     } catch {
       return undefined;
     } finally {
@@ -228,14 +234,15 @@ export class PtyManager {
 
     const isWindows = process.platform === "win32";
     const shell = isWindows ? "wsl.exe" : "/bin/sh";
-    const wslCwd = cwd || DEFAULT_CWD;
+    const effectiveCwd = restoredAgentSession?.cwd ?? cwd;
+    const wslCwd = effectiveCwd || DEFAULT_CWD;
     const args = buildShellArgs({
       isWindows,
       wslCwd,
       startupCommand: resumeCommandFor(restoredAgentSession),
     });
 
-    const spawnCwd = isWindows ? os.homedir() : resolveCwd(cwd, false);
+    const spawnCwd = isWindows ? os.homedir() : resolveCwd(effectiveCwd, false);
 
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
@@ -290,14 +297,18 @@ export class PtyManager {
       const provider = findAgentProvider(parsed.agentName);
       if (!provider) return false;
       if (!provider.sessionIdPattern.test(parsed.sessionId)) return false;
-      const { agentName, event, sessionId } = parsed;
+      const { agentName, event, sessionId, cwd: parsedCwd } = parsed;
       if (event === "start") {
-        entry.agentSession = { agentName, sessionId };
+        entry.agentSession = { agentName, sessionId, cwd: parsedCwd };
       } else if (
         entry.agentSession?.agentName === agentName &&
         entry.agentSession.sessionId === sessionId
       ) {
-        entry.agentSession = undefined;
+        if (event === "update") {
+          if (parsedCwd) entry.agentSession.cwd = parsedCwd;
+        } else {
+          entry.agentSession = undefined;
+        }
       }
       return true;
     });
