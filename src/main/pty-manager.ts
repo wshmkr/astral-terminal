@@ -300,14 +300,19 @@ export class PtyManager {
       const { agentName, event, sessionId, cwd: parsedCwd } = parsed;
       if (event === "start") {
         entry.agentSession = { agentName, sessionId, cwd: parsedCwd };
+        this.writeMeta(entry.surfaceId, entry.agentSession);
       } else if (
         entry.agentSession?.agentName === agentName &&
         entry.agentSession.sessionId === sessionId
       ) {
         if (event === "update") {
-          if (parsedCwd) entry.agentSession.cwd = parsedCwd;
+          if (parsedCwd && parsedCwd !== entry.agentSession.cwd) {
+            entry.agentSession.cwd = parsedCwd;
+            this.writeMeta(entry.surfaceId, entry.agentSession);
+          }
         } else {
           entry.agentSession = undefined;
+          this.deleteMeta(entry.surfaceId);
         }
       }
       return true;
@@ -382,11 +387,6 @@ export class PtyManager {
         this.writeBuffer(entry.surfaceId, this.snapshot(entry));
       } catch (err) {
         console.error("Failed to serialize terminal buffer:", err);
-      }
-      if (entry.agentSession) {
-        this.writeMeta(entry.surfaceId, entry.agentSession);
-      } else {
-        this.deleteMeta(entry.surfaceId);
       }
       this.teardown(id, { deleteBuffer: false });
     }
