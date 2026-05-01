@@ -17,7 +17,7 @@ import {
   restrictToVerticalAxis,
 } from "@dnd-kit/modifiers";
 import { type ReactNode, useState } from "react";
-import { TabDragOverlay } from "../components/Layout/TabbedPane";
+import { TabDragOverlay } from "../components/Layout/TabDragOverlay";
 import { moveSurfaceToEnd, reorderSurfaces, reorderWorkspaces } from "../store";
 
 const restrictToActiveAxis: Modifier = (args) => {

@@ -36,7 +36,6 @@ import {
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { TerminalPane } from "../Terminal/TerminalPane";
 import { CloseButton } from "../ui/CloseButton";
-import { findLeafPane } from "./pane-tree";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
@@ -76,12 +75,19 @@ interface TabVisualProps {
   activeFg: string;
 }
 
-function tabItemSx({
+interface TabItemSxProps {
+  isActive: boolean;
+  showDivider: boolean;
+  activeBg: string;
+  activeFg: string;
+}
+
+export function tabItemSx({
   isActive,
   showDivider,
   activeBg,
   activeFg,
-}: Omit<TabVisualProps, "surface" | "hasUnread">) {
+}: TabItemSxProps) {
   return {
     display: "flex",
     alignItems: "center",
@@ -119,7 +125,7 @@ interface TabContentProps extends TabVisualProps {
   onClose?: (e: React.MouseEvent) => void;
 }
 
-function TabContent({
+export function TabContent({
   surface,
   isActive,
   hasUnread,
@@ -131,14 +137,16 @@ function TabContent({
       <Typography variant="body2" noWrap sx={TAB_TITLE_SX}>
         {surface.name}
       </Typography>
-      <Box
-        component="span"
-        className="tab-close"
-        onClick={onClose}
-        sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
-      >
-        <VscClose size={16} />
-      </Box>
+      {onClose && (
+        <Box
+          component="span"
+          className="tab-close"
+          onClick={onClose}
+          sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
+        >
+          <VscClose size={16} />
+        </Box>
+      )}
     </>
   );
 }
@@ -188,55 +196,6 @@ function TabItem({
           e.stopPropagation();
           closeSurface(paneId, surface.id);
         }}
-      />
-    </Box>
-  );
-}
-
-const TAB_OVERLAY_SX = { boxShadow: 4, cursor: "grabbing" } as const;
-
-export function TabDragOverlay({
-  paneId,
-  surfaceId,
-}: {
-  paneId: string;
-  surfaceId: string;
-}) {
-  const surface = useWorkspaceStore((s) => {
-    const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
-    if (!ws) return null;
-    const leaf = findLeafPane(ws.layout, paneId);
-    return leaf?.surfaces.find((sf) => sf.id === surfaceId) ?? null;
-  });
-  const isActive = useWorkspaceStore((s) => {
-    const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
-    if (!ws) return false;
-    const leaf = findLeafPane(ws.layout, paneId);
-    return leaf?.activeSurfaceId === surfaceId;
-  });
-  const theme = useWorkspaceStore(
-    (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
-  );
-  if (!surface) return null;
-  return (
-    <Box
-      sx={[
-        tabItemSx({
-          isActive,
-          showDivider: false,
-          activeBg: theme.background,
-          activeFg: theme.foreground,
-        }),
-        TAB_OVERLAY_SX,
-      ]}
-    >
-      <TabContent
-        surface={surface}
-        isActive={isActive}
-        hasUnread={false}
-        showDivider={false}
-        activeBg={theme.background}
-        activeFg={theme.foreground}
       />
     </Box>
   );
