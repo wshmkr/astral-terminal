@@ -12,7 +12,7 @@ import {
 import iconUrl from "../../../../build/icon.svg?url";
 import iconDevUrl from "../../../../build/icon-dev.svg?url";
 import { APP_NAME_SHORT, DEV_SUFFIX } from "../../../shared/meta";
-import { useWorkspaceStore } from "../../store";
+import { selectActiveWorkspace, useWorkspaceStore } from "../../store";
 
 const TITLE_BAR_HEIGHT = 40;
 const IS_DEV = window.app.mode === "dev";
@@ -63,7 +63,7 @@ const WORKSPACE_NAME_SX = { fontWeight: 600 } as const;
 
 function TitleBarImpl() {
   const workspaceName = useWorkspaceStore(
-    (s) => s.workspaces.find((ws) => ws.id === s.activeWorkspaceId)?.name,
+    (s) => selectActiveWorkspace(s)?.name,
   );
   const dimmed = useWorkspaceStore((s) => !s.windowFocused);
   const [isMaximized, setIsMaximized] = useState(false);

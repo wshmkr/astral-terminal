@@ -113,7 +113,11 @@ export const WorkspaceTab = memo(function WorkspaceTab({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: workspace.id, disabled: editing });
+  } = useSortable({
+    id: workspace.id,
+    data: { type: "workspace" },
+    disabled: editing,
+  });
 
   return (
     <Box

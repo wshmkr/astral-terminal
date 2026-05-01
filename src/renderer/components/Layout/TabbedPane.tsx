@@ -1,12 +1,17 @@
+import { useDroppable } from "@dnd-kit/core";
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
-import { memo, useMemo } from "react";
+import { memo, type ReactNode, useMemo } from "react";
 import {
   VscAdd,
   VscChromeClose,
-  VscClose,
   VscSplitHorizontal,
   VscSplitVertical,
 } from "react-icons/vsc";
@@ -20,6 +25,7 @@ import {
   addSurface,
   closePane,
   closeSurface,
+  selectActiveWorkspace,
   setActiveSurface,
   setFocusedPane,
   splitPane,
@@ -39,11 +45,10 @@ import {
   SURFACE_SLOT_HIDDEN_SX,
   TAB_ACTIONS_SX,
   TAB_BAR_SX,
-  TAB_CLOSE_SX,
+  TAB_END_DROPZONE_SX,
   TAB_SCROLLER_SX,
-  TAB_TITLE_SX,
-  TAB_UNREAD_DOT_SX,
 } from "./TabbedPane.styles";
+import { TabContent, tabItemSx } from "./TabVisual";
 
 interface Props {
   pane: LeafPane;
@@ -68,57 +73,68 @@ function TabItem({
   activeBg,
   activeFg,
 }: TabItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: surface.id,
+    data: { type: "tab", paneId },
+  });
   return (
     <Box
+      ref={setNodeRef}
       className="tab-item"
       onClick={() => setActiveSurface(paneId, surface.id)}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        minWidth: 80,
-        maxWidth: 200,
-        gap: 0.75,
-        px: 1.25,
-        py: 0.75,
-        cursor: "pointer",
-        borderRadius: "8px 8px 0 0",
-        position: "relative",
-        "&::after": showDivider
-          ? {
-              content: '""',
-              position: "absolute",
-              right: 0,
-              top: "25%",
-              height: "50%",
-              width: "1px",
-              backgroundColor: "custom.subtleDivider",
-              transition: "opacity 0.15s",
-            }
-          : {},
-        bgcolor: isActive ? activeBg : "transparent",
-        color: isActive ? activeFg : "text.secondary",
-        userSelect: "none",
-        "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
-        "&:hover .tab-close": { opacity: 1 },
-        "&:hover::after": { opacity: 0 },
-        "&:has(+ .tab-item:hover)::after": { opacity: 0 },
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0 : 1,
       }}
+      {...attributes}
+      {...listeners}
+      sx={tabItemSx({ isActive, showDivider, activeBg, activeFg })}
     >
-      {hasUnread && <Box sx={TAB_UNREAD_DOT_SX} />}
-      <Typography variant="body2" noWrap sx={TAB_TITLE_SX}>
-        {surface.name}
-      </Typography>
-      <Box
-        component="span"
-        className="tab-close"
-        onClick={(e) => {
+      <TabContent
+        surface={surface}
+        isActive={isActive}
+        hasUnread={hasUnread}
+        onClose={(e) => {
           e.stopPropagation();
           closeSurface(paneId, surface.id);
         }}
-        sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
-      >
-        <VscClose size={16} />
-      </Box>
+      />
+    </Box>
+  );
+}
+
+const TAB_END_DROPZONE_DRAGGING_SX = [
+  TAB_END_DROPZONE_SX,
+  { "& *": { pointerEvents: "none" } },
+] as const;
+
+function TabEndDropZone({
+  paneId,
+  lastSurfaceId,
+  children,
+}: {
+  paneId: string;
+  lastSurfaceId: string;
+  children: ReactNode;
+}) {
+  const { setNodeRef, active } = useDroppable({
+    id: `tab-end:${paneId}`,
+    data: { type: "tab-end", paneId, lastSurfaceId },
+  });
+  return (
+    <Box
+      ref={setNodeRef}
+      sx={active !== null ? TAB_END_DROPZONE_DRAGGING_SX : TAB_END_DROPZONE_SX}
+    >
+      {children}
     </Box>
   );
 }
@@ -161,8 +177,7 @@ function onTabScrollerWheel(e: React.WheelEvent<HTMLDivElement>) {
 }
 
 function selectActiveNotifications(s: AppState): Notification[] | null {
-  const ws = s.workspaces.find((w) => w.id === s.activeWorkspaceId);
-  return ws?.notifications ?? null;
+  return selectActiveWorkspace(s)?.notifications ?? null;
 }
 
 function TabbedPaneImpl({ pane }: Props) {
@@ -175,6 +190,11 @@ function TabbedPaneImpl({ pane }: Props) {
     [notifications],
   );
   const showAttentionOutline = pane.surfaces.some((s) => unreadIds.has(s.id));
+  const sortableItems = useMemo(
+    () => pane.surfaces.map((s) => s.id),
+    [pane.surfaces],
+  );
+  const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
   return (
     <Box
@@ -183,23 +203,28 @@ function TabbedPaneImpl({ pane }: Props) {
     >
       <Box sx={TAB_BAR_SX}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
-          {pane.surfaces.map((surface, idx) => {
-            const isActive = surface.id === pane.activeSurfaceId;
-            const nextIsActive =
-              pane.surfaces[idx + 1]?.id === pane.activeSurfaceId;
-            return (
-              <TabItem
-                key={surface.id}
-                paneId={pane.id}
-                surface={surface}
-                isActive={isActive}
-                hasUnread={unreadIds.has(surface.id)}
-                showDivider={!isActive && !nextIsActive}
-                activeBg={terminalTheme.background}
-                activeFg={terminalTheme.foreground}
-              />
-            );
-          })}
+          <SortableContext
+            items={sortableItems}
+            strategy={horizontalListSortingStrategy}
+          >
+            {pane.surfaces.map((surface, idx) => {
+              const isActive = surface.id === pane.activeSurfaceId;
+              const nextIsActive =
+                pane.surfaces[idx + 1]?.id === pane.activeSurfaceId;
+              return (
+                <TabItem
+                  key={surface.id}
+                  paneId={pane.id}
+                  surface={surface}
+                  isActive={isActive}
+                  hasUnread={unreadIds.has(surface.id)}
+                  showDivider={!isActive && !nextIsActive}
+                  activeBg={terminalTheme.background}
+                  activeFg={terminalTheme.foreground}
+                />
+              );
+            })}
+          </SortableContext>
           <Tooltip title="New Tab">
             <IconButton
               size="small"
@@ -210,8 +235,11 @@ function TabbedPaneImpl({ pane }: Props) {
             </IconButton>
           </Tooltip>
         </Box>
-
-        <TabBarActions paneId={pane.id} />
+        {lastSurfaceId && (
+          <TabEndDropZone paneId={pane.id} lastSurfaceId={lastSurfaceId}>
+            <TabBarActions paneId={pane.id} />
+          </TabEndDropZone>
+        )}
       </Box>
 
       <Box sx={SURFACE_BODY_SX}>

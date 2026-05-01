@@ -34,7 +34,7 @@ export const TAB_BAR_SX = {
 
 export const TAB_SCROLLER_SX = {
   display: "flex",
-  flex: "1 1 0px",
+  flex: "0 1 auto",
   minWidth: 0,
   pl: 1,
   overflowX: "auto",
@@ -51,6 +51,19 @@ export const TAB_ACTIONS_SX = {
   gap: 0.25,
   px: 0.5,
   flexShrink: 0,
+} as const;
+
+export const TAB_END_DROPZONE_SX = {
+  display: "flex",
+  flex: "1 0 auto",
+  alignItems: "center",
+  alignSelf: "stretch",
+  justifyContent: "space-between",
+} as const;
+
+export const TAB_OVERLAY_SX = {
+  boxShadow: 4,
+  cursor: "grabbing",
 } as const;
 
 export const SPLIT_BUTTON_SX = { color: "text.disabled" } as const;
