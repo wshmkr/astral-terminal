@@ -98,6 +98,8 @@ interface PtyEntry {
   serializeAddon: SerializeAddon;
   pendingForward: ((data: string) => void) | undefined;
   agentSession: AgentSession | undefined;
+  // First beginReplay should skip redundant serialize()
+  initialReplay: { cols: number; rows: number; content: string } | null;
 }
 
 export class PtyManager {
@@ -130,11 +132,11 @@ export class PtyManager {
     return path.join(this.bufferDir, `${surfaceId}.meta.json`);
   }
 
-  private loadBuffer(surfaceId: string): StoredBuffer | null {
+  private async loadBuffer(surfaceId: string): Promise<StoredBuffer | null> {
     const file = this.bufferFile(surfaceId);
     let raw: string;
     try {
-      raw = fs.readFileSync(file, "utf-8");
+      raw = await fs.promises.readFile(file, "utf-8");
     } catch {
       return null;
     }
@@ -162,11 +164,11 @@ export class PtyManager {
     } catch {}
   }
 
-  private loadAndConsumeAgentSession(
+  private async loadAndConsumeAgentSession(
     surfaceId: string,
-  ): AgentSession | undefined {
+  ): Promise<AgentSession | undefined> {
     try {
-      const raw = fs.readFileSync(this.metaFile(surfaceId), "utf-8");
+      const raw = await fs.promises.readFile(this.metaFile(surfaceId), "utf-8");
       const parsed = JSON.parse(raw) as {
         agentName?: unknown;
         sessionId?: unknown;
@@ -209,17 +211,18 @@ export class PtyManager {
     };
   }
 
-  create(opts: CreatePtyOptions): string {
+  async create(opts: CreatePtyOptions): Promise<string> {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
     const carried = this.evictBySurfaceId(surfaceId);
-    const restoredAgentSession = this.loadAndConsumeAgentSession(surfaceId);
+    const [restoredAgentSession, loadedBuffer] = await Promise.all([
+      this.loadAndConsumeAgentSession(surfaceId),
+      carried ? Promise.resolve(null) : this.loadBuffer(surfaceId),
+    ]);
 
     // Skip scrollback restore when auto-resuming
-    const restored = restoredAgentSession
-      ? null
-      : (carried ?? this.loadBuffer(surfaceId));
+    const restored = restoredAgentSession ? null : (carried ?? loadedBuffer);
 
     let targetCols: number;
     let targetRows: number;
@@ -290,6 +293,9 @@ export class PtyManager {
       serializeAddon,
       pendingForward: callbacks?.onData,
       agentSession: undefined,
+      initialReplay: restored
+        ? { cols: targetCols, rows: targetRows, content: restored.content }
+        : null,
     };
     this.entries.set(id, entry);
 
@@ -333,7 +339,8 @@ export class PtyManager {
   beginReplay(id: string): { cols: number; rows: number; content: string } {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
-    const snap = this.snapshot(entry);
+    const snap = entry.initialReplay ?? this.snapshot(entry);
+    entry.initialReplay = null;
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;

@@ -310,6 +310,8 @@ export class TerminalController {
     }
     this.ptyId = id;
 
+    const replayPromise = window.app.replayPty(id);
+
     this.cleanupFns.push(
       window.app.onPtyData(id, (data) => this.onPtyData(data)),
       window.app.onPtyExit(id, () => {
@@ -322,7 +324,7 @@ export class TerminalController {
       }),
     );
 
-    const replay = await window.app.replayPty(id);
+    const replay = await replayPromise;
     if (this.disposed) return;
     if (replay.content) {
       this.pendingReplay = replay;
