@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   isTerminalSurface,
@@ -35,7 +35,12 @@ interface PortalProps {
   surface: Surface;
   paneId: string;
   isVisible: boolean;
-  slot: HTMLDivElement;
+}
+
+function createSlot(): HTMLDivElement {
+  const el = document.createElement("div");
+  el.style.cssText = "width:100%;height:100%";
+  return el;
 }
 
 function TerminalPortal({
@@ -43,8 +48,8 @@ function TerminalPortal({
   surface,
   paneId,
   isVisible,
-  slot,
 }: PortalProps) {
+  const [slot] = useState(createSlot);
   const surfaceBody = useSurfaceBody(paneId);
 
   useLayoutEffect(() => {
@@ -57,6 +62,8 @@ function TerminalPortal({
   useLayoutEffect(() => {
     slot.style.display = isVisible ? "flex" : "none";
   }, [isVisible, slot]);
+
+  useEffect(() => () => slot.remove(), [slot]);
 
   if (!isTerminalSurface(surface)) return null;
   return createPortal(
@@ -79,49 +86,16 @@ export function WorkspaceTerminalHost({ workspace }: Props) {
     () => collectSurfaces(workspace.layout),
     [workspace.layout],
   );
-  const slotsRef = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  const slottedItems = useMemo(() => {
-    const slots = slotsRef.current;
-    const live = new Set<string>();
-    const result = items.map((item) => {
-      live.add(item.surface.id);
-      let slot = slots.get(item.surface.id);
-      if (!slot) {
-        slot = document.createElement("div");
-        slot.style.width = "100%";
-        slot.style.height = "100%";
-        slots.set(item.surface.id, slot);
-      }
-      return { ...item, slot };
-    });
-    for (const [id, el] of slots) {
-      if (!live.has(id)) {
-        el.remove();
-        slots.delete(id);
-      }
-    }
-    return result;
-  }, [items]);
-
-  useEffect(() => {
-    const slots = slotsRef.current;
-    return () => {
-      for (const el of slots.values()) el.remove();
-      slots.clear();
-    };
-  }, []);
 
   return (
     <>
-      {slottedItems.map(({ surface, paneId, isVisible, slot }) => (
+      {items.map(({ surface, paneId, isVisible }) => (
         <TerminalPortal
           key={surface.id}
           workspaceId={workspace.id}
           surface={surface}
           paneId={paneId}
           isVisible={isVisible}
-          slot={slot}
         />
       ))}
     </>

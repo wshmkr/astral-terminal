@@ -125,7 +125,7 @@ export function TerminalPane({
       .finally(() => controllerRef.current?.setFont(font.stack, fontSize));
   }, [fontFamilyId, fontSize]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: paneId is a re-fit trigger — the slot moves to a different surface body when paneId changes, so xterm needs to re-measure
+  // biome-ignore lint/correctness/useExhaustiveDependencies: paneId change reparents the slot; xterm needs to re-measure
   useEffect(() => {
     if (!isVisible) return;
     requestAnimationFrame(() => controllerRef.current?.fit());
