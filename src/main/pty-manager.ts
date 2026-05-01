@@ -327,7 +327,11 @@ export class PtyManager {
       return true;
     });
 
-    proc.onData((data) => headless.write(data));
+    proc.onData((data) => {
+      // Once new pty bytes arrive, the cached initialReplay is stale
+      entry.initialReplay = null;
+      headless.write(data);
+    });
     proc.onExit(({ exitCode, signal }) => {
       this.teardown(id, { deleteBuffer: true });
       callbacks?.onExit?.(exitCode, signal);
