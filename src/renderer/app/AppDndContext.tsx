@@ -31,8 +31,14 @@ const modifiers = [restrictToActiveAxis, restrictToFirstScrollableAncestor];
 
 const collisionDetection: CollisionDetection = (args) => {
   const type = args.active?.data.current?.type;
-  if (type === "tab") return pointerWithin(args);
-  return closestCenter(args);
+  if (type !== "tab") return closestCenter(args);
+  const paneId = args.active?.data.current?.paneId;
+  return pointerWithin({
+    ...args,
+    droppableContainers: args.droppableContainers.filter(
+      (c) => c.data.current?.paneId === paneId,
+    ),
+  });
 };
 
 interface ActiveTabDrag {

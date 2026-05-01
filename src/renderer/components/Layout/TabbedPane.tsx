@@ -250,14 +250,6 @@ const TAB_END_DROPZONE_SX = {
   justifyContent: "space-between",
 } as const;
 
-const TAB_END_INNER_SX = {
-  display: "flex",
-  alignItems: "center",
-  alignSelf: "stretch",
-  flex: "1 0 auto",
-  justifyContent: "space-between",
-} as const;
-
 function tabEndId(paneId: string): string {
   return `tab-end:${paneId}`;
 }
@@ -273,12 +265,15 @@ function TabEndDropZone({
     id: tabEndId(paneId),
     data: { type: "tab-end", paneId },
   });
-  const dragging = active !== null;
   return (
-    <Box ref={setNodeRef} sx={TAB_END_DROPZONE_SX}>
-      <Box sx={[TAB_END_INNER_SX, dragging && { pointerEvents: "none" }]}>
-        {children}
-      </Box>
+    <Box
+      ref={setNodeRef}
+      sx={[
+        TAB_END_DROPZONE_SX,
+        active !== null && { "& *": { pointerEvents: "none" } },
+      ]}
+    >
+      {children}
     </Box>
   );
 }
