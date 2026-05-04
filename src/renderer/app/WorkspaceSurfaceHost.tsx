@@ -1,17 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  isTerminalSurface,
-  type PaneNode,
-  type TerminalSurface,
-  type Workspace,
-} from "../../../shared/types";
-import { forEachLeaf } from "../Layout/pane-tree";
+import type { PaneNode, Surface, Workspace } from "../../shared/types";
+import { forEachLeaf } from "../components/Layout/pane-tree";
+import { TerminalPane } from "../components/Terminal/TerminalPane";
 import { useSurfaceBody } from "./SurfaceBodyRegistry";
-import { TerminalPane } from "./TerminalPane";
 
 interface SurfaceLocation {
-  surface: TerminalSurface;
+  surface: Surface;
   paneId: string;
   isVisible: boolean;
 }
@@ -20,7 +15,6 @@ function collectSurfaces(node: PaneNode): SurfaceLocation[] {
   const result: SurfaceLocation[] = [];
   forEachLeaf(node, (leaf) => {
     for (const surface of leaf.surfaces) {
-      if (!isTerminalSurface(surface)) continue;
       result.push({
         surface,
         paneId: leaf.id,
@@ -31,11 +25,30 @@ function collectSurfaces(node: PaneNode): SurfaceLocation[] {
   return result;
 }
 
-interface PortalProps {
+interface SurfaceViewProps {
   workspaceId: string;
-  surface: TerminalSurface;
   paneId: string;
+  surface: Surface;
   isVisible: boolean;
+}
+
+function SurfaceView({
+  workspaceId,
+  paneId,
+  surface,
+  isVisible,
+}: SurfaceViewProps) {
+  switch (surface.type) {
+    case "terminal":
+      return (
+        <TerminalPane
+          workspaceId={workspaceId}
+          paneId={paneId}
+          surface={surface}
+          isVisible={isVisible}
+        />
+      );
+  }
 }
 
 function applySlotStyles(slot: HTMLDivElement, isVisible: boolean) {
@@ -48,12 +61,12 @@ function createSlot(): HTMLDivElement {
   return el;
 }
 
-function TerminalPortal({
+function SurfacePortal({
   workspaceId,
   surface,
   paneId,
   isVisible,
-}: PortalProps) {
+}: SurfaceViewProps) {
   const [slot] = useState(createSlot);
   const surfaceBody = useSurfaceBody(paneId);
 
@@ -71,7 +84,7 @@ function TerminalPortal({
   useEffect(() => () => slot.remove(), [slot]);
 
   return createPortal(
-    <TerminalPane
+    <SurfaceView
       workspaceId={workspaceId}
       paneId={paneId}
       surface={surface}
@@ -85,7 +98,7 @@ interface Props {
   workspace: Workspace;
 }
 
-export function WorkspaceTerminalHost({ workspace }: Props) {
+export function WorkspaceSurfaceHost({ workspace }: Props) {
   const items = useMemo(
     () => collectSurfaces(workspace.layout),
     [workspace.layout],
@@ -94,7 +107,7 @@ export function WorkspaceTerminalHost({ workspace }: Props) {
   return (
     <>
       {items.map(({ surface, paneId, isVisible }) => (
-        <TerminalPortal
+        <SurfacePortal
           key={surface.id}
           workspaceId={workspace.id}
           surface={surface}

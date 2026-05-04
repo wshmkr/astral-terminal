@@ -21,6 +21,7 @@ import type {
   Notification,
   Surface,
 } from "../../../shared/types";
+import { useSurfaceBodyRegister } from "../../app/SurfaceBodyRegistry";
 import {
   addSurface,
   closePane,
@@ -33,7 +34,6 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
-import { useSurfaceBodyRegister } from "../Terminal/SurfaceBodyRegistry";
 import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
