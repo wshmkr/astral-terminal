@@ -58,7 +58,7 @@ export const TAB_END_DROPZONE_SX = {
   flex: "1 0 auto",
   alignItems: "center",
   alignSelf: "stretch",
-  justifyContent: "space-between",
+  justifyContent: "flex-end",
 } as const;
 
 export const TAB_OVERLAY_SX = {
