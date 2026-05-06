@@ -12,15 +12,27 @@ export const ROOT_SX = {
   position: "relative",
 } as const;
 
+const PANE_OVERLAY_BASE = {
+  content: '""',
+  position: "absolute",
+  inset: 0,
+  pointerEvents: "none",
+  zIndex: 1,
+} as const;
+
 export const ATTENTION_OUTLINE_SX = {
   "&::after": {
-    content: '""',
-    position: "absolute",
-    inset: 0,
-    pointerEvents: "none",
+    ...PANE_OVERLAY_BASE,
     border: "1px solid",
     borderColor: "primary.main",
-    zIndex: 1,
+  },
+} as const;
+
+export const DROP_TARGET_OVERLAY_SX = {
+  "&::after": {
+    ...PANE_OVERLAY_BASE,
+    bgcolor: "primary.main",
+    opacity: 0.1,
   },
 } as const;
 

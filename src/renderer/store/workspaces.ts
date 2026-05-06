@@ -63,6 +63,34 @@ function updateLeaf(
   return true;
 }
 
+function removeSurfaceFromLeaf(leaf: LeafPane, surfaceId: string): LeafPane {
+  if (leaf.surfaces.length <= 1) return leaf;
+  const removedIndex = leaf.surfaces.findIndex((s) => s.id === surfaceId);
+  if (removedIndex < 0) return leaf;
+  const remaining = leaf.surfaces.filter((s) => s.id !== surfaceId);
+  const nextActive = remaining[removedIndex - 1] ?? remaining[0];
+  if (!nextActive) return leaf;
+  return {
+    ...leaf,
+    surfaces: remaining,
+    activeSurfaceId:
+      leaf.activeSurfaceId === surfaceId ? nextActive.id : leaf.activeSurfaceId,
+  };
+}
+
+function removeSurfaceFromLayout(
+  layout: PaneNode,
+  paneId: string,
+  surfaceId: string,
+): PaneNode | null {
+  const leaf = findLeafPane(layout, paneId);
+  if (!leaf?.surfaces.some((s) => s.id === surfaceId)) return layout;
+  if (leaf.surfaces.length === 1) return pruneNode(layout, paneId);
+  return updateLeafInLayout(layout, paneId, (l) =>
+    removeSurfaceFromLeaf(l, surfaceId),
+  );
+}
+
 function removeWorkspace(wsId: string) {
   const s = getState();
   const closedIndex = s.workspaces.findIndex((w) => w.id === wsId);
@@ -221,29 +249,19 @@ export function addSurface(paneId: string): void {
 export function closeSurface(paneId: string, surfaceId: string): void {
   const ws = getActiveWorkspace();
   if (!ws) return;
-  const leaf = findLeafPane(ws.layout, paneId);
-  if (!leaf) return;
-
-  if (leaf.surfaces.length === 1) {
-    closeLeafInActiveWorkspace(ws, paneId);
+  const newLayout = removeSurfaceFromLayout(ws.layout, paneId, surfaceId);
+  if (newLayout === ws.layout) return;
+  if (newLayout === null) {
+    removeWorkspace(ws.id);
     commit();
     return;
   }
-
-  const changed = updateLeaf(ws.id, paneId, (l) => {
-    const closedIndex = l.surfaces.findIndex((s) => s.id === surfaceId);
-    if (closedIndex < 0) return l;
-    const remaining = l.surfaces.filter((s) => s.id !== surfaceId);
-    const nextActive = remaining[closedIndex - 1] ?? remaining[0];
-    if (!nextActive) return l;
-    return {
-      ...l,
-      surfaces: remaining,
-      activeSurfaceId:
-        l.activeSurfaceId === surfaceId ? nextActive.id : l.activeSurfaceId,
-    };
-  });
-  if (changed) commit();
+  setWorkspaceLayout(ws.id, newLayout);
+  const s = getState();
+  if (s.focusedPaneId === paneId) {
+    setState({ ...s, focusedPaneId: findFirstLeaf(newLayout) });
+  }
+  commit();
 }
 
 export function setActiveSurface(paneId: string, surfaceId: string): void {
@@ -295,4 +313,33 @@ export function reorderSurfaces(
     return { ...leaf, surfaces: arrayMove(leaf.surfaces, from, to) };
   });
   if (changed) commit();
+}
+
+export function moveSurfaceToPane(
+  sourcePaneId: string,
+  surfaceId: string,
+  targetPaneId: string,
+): void {
+  if (sourcePaneId === targetPaneId) return;
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
+  const surface = sourceLeaf?.surfaces.find((s) => s.id === surfaceId);
+  if (!surface) return;
+
+  const afterAdd = updateLeafInLayout(ws.layout, targetPaneId, (leaf) => ({
+    ...leaf,
+    surfaces: [...leaf.surfaces, surface],
+    activeSurfaceId: surface.id,
+  }));
+  if (afterAdd === ws.layout) return;
+
+  const nextLayout = removeSurfaceFromLayout(afterAdd, sourcePaneId, surfaceId);
+  if (!nextLayout) return;
+
+  setWorkspaceLayout(ws.id, nextLayout);
+  const s = getState();
+  if (s.focusedPaneId !== targetPaneId)
+    setState({ ...s, focusedPaneId: targetPaneId });
+  commit();
 }

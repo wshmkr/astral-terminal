@@ -1,4 +1,4 @@
-import { useDroppable } from "@dnd-kit/core";
+import { type DragOverEvent, useDndMonitor, useDroppable } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -8,7 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { memo, type ReactNode, useCallback, useMemo } from "react";
+import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
 import {
   VscAdd,
   VscChromeClose,
@@ -21,6 +21,7 @@ import type {
   Notification,
   Surface,
 } from "../../../shared/types";
+import { getDragData, getDragPaneId } from "../../app/dnd-types";
 import { useSurfaceBodyRegister } from "../../app/SurfaceBodyRegistry";
 import {
   addSurface,
@@ -38,6 +39,7 @@ import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
+  DROP_TARGET_OVERLAY_SX,
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
@@ -194,6 +196,25 @@ function TabbedPaneImpl({ pane }: Props) {
   );
   const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
+  const [isForeignTabOver, setIsForeignTabOver] = useState(false);
+  const dndListeners = useMemo(
+    () => ({
+      onDragOver(event: DragOverEvent) {
+        const activeData = getDragData(event.active);
+        const overPaneId = getDragPaneId(getDragData(event.over));
+        setIsForeignTabOver(
+          activeData?.type === "tab" &&
+            activeData.paneId !== pane.id &&
+            overPaneId === pane.id,
+        );
+      },
+      onDragEnd: () => setIsForeignTabOver(false),
+      onDragCancel: () => setIsForeignTabOver(false),
+    }),
+    [pane.id],
+  );
+  useDndMonitor(dndListeners);
+
   const registerSurfaceBody = useSurfaceBodyRegister();
   const surfaceBodyRef = useCallback(
     (el: HTMLDivElement | null) => {
@@ -205,7 +226,11 @@ function TabbedPaneImpl({ pane }: Props) {
   return (
     <Box
       onMouseDownCapture={() => setFocusedPane(pane.id)}
-      sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
+      sx={[
+        ROOT_SX,
+        showAttentionOutline && ATTENTION_OUTLINE_SX,
+        isForeignTabOver && DROP_TARGET_OVERLAY_SX,
+      ]}
     >
       <Box sx={TAB_BAR_SX}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
