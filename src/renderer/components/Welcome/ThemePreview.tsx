@@ -1,21 +1,27 @@
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { memo } from "react";
 import { VscBell } from "react-icons/vsc";
 import { APP_NAME_SHORT } from "../../../shared/meta";
 import type { TerminalTheme } from "../../../shared/types";
+import { FONT_BY_ID } from "../../theme/fonts";
 import type { AppPalette } from "../../theme/palettes";
 
 const TITLEBAR_HEIGHT = 24;
 const SIDEBAR_WIDTH = 80;
 const TAB_BAR_HEIGHT = 30;
+const MONO_FONT = FONT_BY_ID["jetbrains-mono"].stack;
 
 interface Props {
   appPalette: AppPalette;
   terminalTheme: TerminalTheme;
 }
 
-export function ThemePreview({ appPalette, terminalTheme }: Props) {
+export const ThemePreview = memo(function ThemePreview({
+  appPalette,
+  terminalTheme,
+}: Props) {
   return (
     <Stack
       sx={{
@@ -66,7 +72,7 @@ export function ThemePreview({ appPalette, terminalTheme }: Props) {
       </Stack>
     </Stack>
   );
-}
+});
 
 function TitleBarMock({ palette }: { palette: AppPalette }) {
   return (
@@ -355,8 +361,7 @@ function TerminalSample({
         p: 1,
         bgcolor: theme.background,
         color: theme.foreground,
-        fontFamily:
-          '"Cascadia Code", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace',
+        fontFamily: MONO_FONT,
         fontSize: 10,
         lineHeight: 1.5,
         overflow: "hidden",

@@ -38,7 +38,10 @@ export const NO_HOOKS_WARNING_TEXT =
   "No agent hooks are configured. Agent-specific notifications " +
   "(e.g. when Claude finishes responding) won't be delivered.";
 
-const PROVIDER_ICONS: Record<AgentName, { icon: IconType; color: string }> = {
+export const PROVIDER_ICONS: Record<
+  AgentName,
+  { icon: IconType; color: string }
+> = {
   Claude: { icon: SiClaude, color: "#D97757" },
 };
 

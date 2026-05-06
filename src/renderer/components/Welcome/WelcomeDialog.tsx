@@ -7,7 +7,6 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
-import { SiClaude } from "react-icons/si";
 import { VscArrowRight, VscQuestion } from "react-icons/vsc";
 import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
 import type { AppThemeId, TerminalThemeId } from "../../../shared/types";
@@ -31,6 +30,7 @@ import {
 import {
   HOOKS_HELP_TEXT,
   NO_HOOKS_WARNING_TEXT,
+  PROVIDER_ICONS,
 } from "../Settings/NotificationsSection";
 import { LabeledSelect, SettingRow } from "../Settings/shared";
 import { ThemePreview } from "./ThemePreview";
@@ -48,7 +48,11 @@ const ROOT_SX = {
   userSelect: "none",
 } as const;
 
-const CONTENT_SX = { width: "100%", maxWidth: 900 } as const;
+const CONTENT_SX = {
+  width: "100%",
+  maxWidth: 900,
+  alignItems: "stretch",
+} as const;
 const MONO_FONT = FONT_BY_ID["jetbrains-mono"].stack;
 
 const HEADER_TITLE_SX = {
@@ -58,19 +62,19 @@ const HEADER_TITLE_SX = {
   letterSpacing: "-0.02em",
 } as const;
 const HEADER_BRAND_SX = { color: "primary.main" } as const;
-const SUBHEAD_LABEL_SX = {
+const SUBHEAD_BASE_SX = {
   fontFamily: MONO_FONT,
   fontWeight: 700,
   letterSpacing: "0.08em",
-  textTransform: "uppercase",
   fontSize: 13,
+} as const;
+const SUBHEAD_LABEL_SX = {
+  ...SUBHEAD_BASE_SX,
+  textTransform: "uppercase",
   color: "text.primary",
 } as const;
 const SUBHEAD_INDEX_SX = {
-  fontFamily: MONO_FONT,
-  fontWeight: 700,
-  letterSpacing: "0.08em",
-  fontSize: 13,
+  ...SUBHEAD_BASE_SX,
   color: "primary.main",
 } as const;
 const SUBTITLE_SX = { color: "text.secondary" } as const;
@@ -107,25 +111,6 @@ const BUTTON_SX = {
   fontFamily: MONO_FONT,
   letterSpacing: "0.05em",
 } as const;
-
-const ACCENT_COLOR_OPTIONS = [
-  {
-    value: "blue",
-    label: (
-      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
-        <Box
-          sx={{
-            width: 12,
-            height: 12,
-            borderRadius: "50%",
-            bgcolor: "#0078d4",
-          }}
-        />
-        Blue
-      </Box>
-    ),
-  },
-];
 
 export function WelcomeDialog() {
   const persistedAppTheme = useWorkspaceStore((s) => s.appearance.appThemeId);
@@ -169,83 +154,76 @@ export function WelcomeDialog() {
     <Fade in={open} appear={false} timeout={300} onExited={dismissWelcome}>
       <Box sx={ROOT_SX}>
         <Fade in={open} timeout={500}>
-          <Box sx={CONTENT_SX}>
-            <Stack direction="row" spacing={4} sx={{ alignItems: "stretch" }}>
-              <Box sx={SETTINGS_COL_SX}>
-                <Box sx={HEADER_BLOCK_SX}>
-                  <Typography variant="h4" sx={HEADER_TITLE_SX}>
-                    Welcome to{" "}
-                    <Box component="span" sx={HEADER_BRAND_SX}>
-                      Astral
-                    </Box>
-                    .
-                  </Typography>
-                  <Typography variant="body2" sx={SUBTITLE_SX}>
-                    Configure defaults. Editable anytime via settings.
-                  </Typography>
-                </Box>
+          <Stack direction="row" spacing={4} sx={CONTENT_SX}>
+            <Box sx={SETTINGS_COL_SX}>
+              <Box sx={HEADER_BLOCK_SX}>
+                <Typography variant="h4" sx={HEADER_TITLE_SX}>
+                  Welcome to{" "}
+                  <Box component="span" sx={HEADER_BRAND_SX}>
+                    Astral
+                  </Box>
+                  .
+                </Typography>
+                <Typography variant="body2" sx={SUBTITLE_SX}>
+                  Configure defaults. Editable anytime via settings.
+                </Typography>
+              </Box>
 
-                <Stack spacing={4}>
-                  <Stack spacing={1}>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: "baseline" }}
-                    >
-                      <Typography sx={SUBHEAD_INDEX_SX}>01</Typography>
-                      <Typography sx={SUBHEAD_LABEL_SX}>Appearance</Typography>
-                    </Stack>
-
-                    <Stack spacing={1.5} sx={SECTION_BODY_SX}>
-                      <LabeledSelect
-                        label="App theme"
-                        value={draftAppTheme}
-                        options={APP_THEME_OPTIONS}
-                        onChange={setDraftAppTheme}
-                        maxWidth={240}
-                      />
-
-                      <LabeledSelect
-                        label="Terminal theme"
-                        value={draftTerminalTheme}
-                        options={TERMINAL_THEME_OPTIONS}
-                        onChange={setDraftTerminalTheme}
-                        maxWidth={240}
-                      />
-
-                      <LabeledSelect
-                        label="Accent color"
-                        value="blue"
-                        options={ACCENT_COLOR_OPTIONS}
-                        onChange={() => {}}
-                        maxWidth={240}
-                      />
-                    </Stack>
+              <Stack spacing={4}>
+                <Stack spacing={1}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "baseline" }}
+                  >
+                    <Typography sx={SUBHEAD_INDEX_SX}>01</Typography>
+                    <Typography sx={SUBHEAD_LABEL_SX}>Appearance</Typography>
                   </Stack>
 
-                  <Stack spacing={1.5}>
-                    <Stack
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: "baseline" }}
-                    >
-                      <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
-                      <Typography sx={SUBHEAD_LABEL_SX}>
-                        Install agent hooks
-                      </Typography>
-                      <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
-                        <Box component="span" sx={HOOKS_HELP_SX}>
-                          <VscQuestion size={16} />
-                        </Box>
-                      </Tooltip>
-                    </Stack>
+                  <Stack spacing={1.5} sx={SECTION_BODY_SX}>
+                    <LabeledSelect
+                      label="App theme"
+                      value={draftAppTheme}
+                      options={APP_THEME_OPTIONS}
+                      onChange={setDraftAppTheme}
+                      maxWidth={240}
+                    />
 
-                    <Stack spacing={1.5} sx={SECTION_BODY_SX}>
-                      {agentProviders.map((p) => (
+                    <LabeledSelect
+                      label="Terminal theme"
+                      value={draftTerminalTheme}
+                      options={TERMINAL_THEME_OPTIONS}
+                      onChange={setDraftTerminalTheme}
+                      maxWidth={240}
+                    />
+                  </Stack>
+                </Stack>
+
+                <Stack spacing={1.5}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "baseline" }}
+                  >
+                    <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
+                    <Typography sx={SUBHEAD_LABEL_SX}>
+                      Install agent hooks
+                    </Typography>
+                    <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
+                      <Box component="span" sx={HOOKS_HELP_SX}>
+                        <VscQuestion size={16} />
+                      </Box>
+                    </Tooltip>
+                  </Stack>
+
+                  <Stack spacing={1.5} sx={SECTION_BODY_SX}>
+                    {agentProviders.map((p) => {
+                      const { icon: Icon, color } = PROVIDER_ICONS[p.name];
+                      return (
                         <SettingRow
                           key={p.name}
                           title={p.name}
-                          icon={<SiClaude size={16} color="#D97757" />}
+                          icon={<Icon size={16} color={color} />}
                           control={
                             <Checkbox
                               size="small"
@@ -260,42 +238,42 @@ export function WelcomeDialog() {
                             />
                           }
                         />
-                      ))}
-                    </Stack>
+                      );
+                    })}
                   </Stack>
                 </Stack>
+              </Stack>
 
-                <Stack spacing={1.5} sx={{ mt: 1 }}>
-                  <Alert
-                    severity="error"
-                    variant="outlined"
-                    sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
-                  >
-                    {NO_HOOKS_WARNING_TEXT}
-                  </Alert>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    fullWidth
-                    onClick={handleGetStarted}
-                    autoFocus
-                    disabled={submitting}
-                    endIcon={<VscArrowRight />}
-                    sx={BUTTON_SX}
-                  >
-                    Get started
-                  </Button>
-                </Stack>
-              </Box>
+              <Stack spacing={1.5} sx={{ mt: 1 }}>
+                <Alert
+                  severity="error"
+                  variant="outlined"
+                  sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
+                >
+                  {NO_HOOKS_WARNING_TEXT}
+                </Alert>
+                <Button
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  onClick={handleGetStarted}
+                  autoFocus
+                  disabled={submitting}
+                  endIcon={<VscArrowRight />}
+                  sx={BUTTON_SX}
+                >
+                  Get started
+                </Button>
+              </Stack>
+            </Box>
 
-              <Box sx={PREVIEW_COL_SX}>
-                <ThemePreview
-                  appPalette={APP_PALETTES[draftAppTheme]}
-                  terminalTheme={TERMINAL_THEMES[draftTerminalTheme]}
-                />
-              </Box>
-            </Stack>
-          </Box>
+            <Box sx={PREVIEW_COL_SX}>
+              <ThemePreview
+                appPalette={APP_PALETTES[draftAppTheme]}
+                terminalTheme={TERMINAL_THEMES[draftTerminalTheme]}
+              />
+            </Box>
+          </Stack>
         </Fade>
       </Box>
     </Fade>
