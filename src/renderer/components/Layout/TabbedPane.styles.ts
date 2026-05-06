@@ -58,7 +58,7 @@ export const TAB_END_DROPZONE_SX = {
   flex: "1 0 auto",
   alignItems: "center",
   alignSelf: "stretch",
-  justifyContent: "space-between",
+  justifyContent: "flex-end",
 } as const;
 
 export const TAB_OVERLAY_SX = {
@@ -97,16 +97,4 @@ export const TAB_UNREAD_DOT_SX = {
   borderRadius: "50%",
   bgcolor: "primary.main",
   flexShrink: 0,
-} as const;
-
-const SURFACE_SLOT_BASE = { width: "100%", height: "100%" } as const;
-
-export const SURFACE_SLOT_ACTIVE_SX = {
-  ...SURFACE_SLOT_BASE,
-  display: "flex",
-} as const;
-
-export const SURFACE_SLOT_HIDDEN_SX = {
-  ...SURFACE_SLOT_BASE,
-  display: "none",
 } as const;

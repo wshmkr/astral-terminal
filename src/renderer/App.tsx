@@ -4,6 +4,8 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useRef, useState } from "react";
 import { agentProviders } from "../shared/agent-hooks";
 import { AppDndContext } from "./app/AppDndContext";
+import { SurfaceBodyRegistryProvider } from "./app/SurfaceBodyRegistry";
+import { WorkspaceSurfaceHost } from "./app/WorkspaceSurfaceHost";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
@@ -199,12 +201,15 @@ export function App() {
                       zIndex: isActive ? 1 : 0,
                     }}
                   >
-                    {containerSize && (
-                      <WorkspaceLayout
-                        layout={ws.layout}
-                        containerSize={containerSize}
-                      />
-                    )}
+                    <SurfaceBodyRegistryProvider>
+                      {containerSize && (
+                        <WorkspaceLayout
+                          layout={ws.layout}
+                          containerSize={containerSize}
+                        />
+                      )}
+                      <WorkspaceSurfaceHost workspace={ws} />
+                    </SurfaceBodyRegistryProvider>
                   </Box>
                 );
               })
