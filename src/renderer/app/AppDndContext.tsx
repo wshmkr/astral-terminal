@@ -37,11 +37,8 @@ const workspaceModifier: Modifier = (args) => {
 
 const modifiers = [workspaceModifier];
 
-// Inactive workspaces stay mounted with visibility:hidden to preserve xterm
-// state, so their pane droppables sit at the same coordinates as the active
-// workspace's. Filter hidden droppables before running the strategies, else
-// dnd-kit may resolve to an inactive workspace's pane and the move silently
-// no-ops.
+// Inactive workspaces stay mounted to preserve xterm state, so their
+// droppables overlap the active workspace's at the same coordinates
 function visibleDroppables(args: Parameters<CollisionDetection>[0]) {
   return {
     ...args,
@@ -85,10 +82,9 @@ export function AppDndContext({ children }: Props) {
   function handleDragEnd(event: DragEndEvent): void {
     setActiveTab(null);
     const { active, over } = event;
-    if (!over) return;
+    if (!over || active.id === over.id) return;
     const activeData = getDragData(active);
     if (activeData?.type === "workspace") {
-      if (active.id === over.id) return;
       reorderWorkspaces(String(active.id), String(over.id));
       return;
     }
@@ -102,7 +98,6 @@ export function AppDndContext({ children }: Props) {
       return;
     }
 
-    if (active.id === over.id) return;
     if (overData?.type !== "tab" && overData?.type !== "tab-end") return;
     const overSurfaceId =
       overData.type === "tab-end" ? overData.lastSurfaceId : String(over.id);

@@ -1,4 +1,4 @@
-import { useDndMonitor, useDroppable } from "@dnd-kit/core";
+import { type DragOverEvent, useDndMonitor, useDroppable } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -197,23 +197,23 @@ function TabbedPaneImpl({ pane }: Props) {
   const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
   const [isForeignTabOver, setIsForeignTabOver] = useState(false);
-  useDndMonitor({
-    onDragOver(event) {
-      const activeData = getDragData(event.active);
-      const overPaneId = getDragPaneId(getDragData(event.over));
-      const next =
-        activeData?.type === "tab" &&
-        activeData.paneId !== pane.id &&
-        overPaneId === pane.id;
-      setIsForeignTabOver((prev) => (prev === next ? prev : next));
-    },
-    onDragEnd() {
-      setIsForeignTabOver(false);
-    },
-    onDragCancel() {
-      setIsForeignTabOver(false);
-    },
-  });
+  const dndListeners = useMemo(
+    () => ({
+      onDragOver(event: DragOverEvent) {
+        const activeData = getDragData(event.active);
+        const overPaneId = getDragPaneId(getDragData(event.over));
+        setIsForeignTabOver(
+          activeData?.type === "tab" &&
+            activeData.paneId !== pane.id &&
+            overPaneId === pane.id,
+        );
+      },
+      onDragEnd: () => setIsForeignTabOver(false),
+      onDragCancel: () => setIsForeignTabOver(false),
+    }),
+    [pane.id],
+  );
+  useDndMonitor(dndListeners);
 
   const registerSurfaceBody = useSurfaceBodyRegister();
   const surfaceBodyRef = useCallback(
