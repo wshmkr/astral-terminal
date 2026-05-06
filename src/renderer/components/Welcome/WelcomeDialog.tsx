@@ -4,9 +4,10 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Fade from "@mui/material/Fade";
 import Stack from "@mui/material/Stack";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
-import { VscArrowRight } from "react-icons/vsc";
+import { type ReactNode, useState } from "react";
+import { VscArrowRight, VscQuestion } from "react-icons/vsc";
 import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
 import type { AppThemeId, TerminalThemeId } from "../../../shared/types";
 import {
@@ -16,12 +17,7 @@ import {
   setTerminalTheme,
   useWorkspaceStore,
 } from "../../store";
-import { MONO_FONT_STACK } from "../../theme/fonts";
-import {
-  APP_PALETTES,
-  APP_THEME_OPTIONS,
-  DARK_PALETTE,
-} from "../../theme/palettes";
+import { APP_PALETTES, APP_THEME_OPTIONS } from "../../theme/palettes";
 import {
   TERMINAL_THEME_OPTIONS,
   TERMINAL_THEMES,
@@ -32,48 +28,54 @@ import {
   PROVIDER_ICONS,
 } from "../Settings/NotificationsSection";
 import { LabeledSelect, SettingRow } from "../Settings/shared";
-import { NumberedSection } from "./NumberedSection";
 import { ThemePreview } from "./ThemePreview";
+import {
+  ALERT_SX,
+  BUTTON_SX,
+  CHECKBOX_SX,
+  HEADER_BRAND_SX,
+  HEADER_TITLE_SX,
+  PREVIEW_COL_SX,
+  ROOT_SX,
+  SECTION_BODY_SX,
+  SUBHEAD_HELP_ICON_SX,
+  SUBHEAD_INDEX_SX,
+  SUBHEAD_LABEL_SX,
+  SUBTITLE_SX,
+} from "./WelcomeDialog.styles";
 
-const ROOT_SX = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 100,
-  bgcolor: DARK_PALETTE.bgPaper,
-  overflow: "auto",
-  p: 4,
-  userSelect: "none",
-  alignItems: "center",
-  justifyContent: "center",
-} as const;
+interface NumberedSectionProps {
+  index: string;
+  label: string;
+  helpText?: string;
+  children: ReactNode;
+}
 
-const HEADER_TITLE_SX = {
-  mb: 0.5,
-  fontFamily: MONO_FONT_STACK,
-  fontWeight: 700,
-  letterSpacing: "-0.02em",
-} as const;
-const HEADER_BRAND_SX = { color: "primary.main" } as const;
-const SUBTITLE_SX = { color: "text.secondary" } as const;
-const PREVIEW_COL_SX = {
-  flex: "0 0 480px",
-  aspectRatio: "4 / 3",
-  alignSelf: "center",
-} as const;
-const CHECKBOX_SX = { p: 0.5 } as const;
-const ALERT_SX = {
-  py: 0,
-  textWrap: "balance",
-  alignItems: "center",
-  "& .MuiAlert-message": { py: 0.5, fontSize: 12, lineHeight: 1.4 },
-  "& .MuiAlert-icon": { mr: 1, py: 0.5 },
-} as const;
-const BUTTON_SX = {
-  py: 1.5,
-  fontSize: 16,
-  fontFamily: MONO_FONT_STACK,
-  letterSpacing: "0.05em",
-} as const;
+function NumberedSection({
+  index,
+  label,
+  helpText,
+  children,
+}: NumberedSectionProps) {
+  return (
+    <Stack spacing={1.5}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "baseline" }}>
+        <Typography sx={SUBHEAD_INDEX_SX}>{index}</Typography>
+        <Typography sx={SUBHEAD_LABEL_SX}>{label}</Typography>
+        {helpText && (
+          <Tooltip title={helpText} placement="right" arrow>
+            <Box component="span" sx={SUBHEAD_HELP_ICON_SX}>
+              <VscQuestion size={16} />
+            </Box>
+          </Tooltip>
+        )}
+      </Stack>
+      <Stack spacing={1.5} sx={SECTION_BODY_SX}>
+        {children}
+      </Stack>
+    </Stack>
+  );
+}
 
 export function WelcomeDialog() {
   const persistedAppTheme = useWorkspaceStore((s) => s.appearance.appThemeId);

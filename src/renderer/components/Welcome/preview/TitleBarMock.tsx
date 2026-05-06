@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { APP_NAME_SHORT } from "../../../../shared/meta";
 import type { AppPalette } from "../../../theme/palettes";
-import { TITLEBAR_HEIGHT } from "./dimensions";
+import { TITLEBAR_HEIGHT } from "../ThemePreview.styles";
 
 export function TitleBarMock({ palette }: { palette: AppPalette }) {
   return (
