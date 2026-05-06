@@ -8,38 +8,56 @@ import {
   type Modifier,
   PointerSensor,
   pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import {
   restrictToFirstScrollableAncestor,
-  restrictToHorizontalAxis,
   restrictToVerticalAxis,
 } from "@dnd-kit/modifiers";
 import { type ReactNode, useState } from "react";
 import { TabDragOverlay } from "../components/Layout/TabDragOverlay";
-import { reorderSurfaces, reorderWorkspaces } from "../store";
-import { getDragData } from "./dnd-types";
+import {
+  moveSurfaceToPane,
+  reorderSurfaces,
+  reorderWorkspaces,
+} from "../store";
+import { getDragData, getDragPaneId } from "./dnd-types";
 
-const restrictToActiveAxis: Modifier = (args) => {
+const workspaceModifier: Modifier = (args) => {
   const data = getDragData(args.active);
-  if (data?.type === "workspace") return restrictToVerticalAxis(args);
-  if (data?.type === "tab") return restrictToHorizontalAxis(args);
-  return args.transform;
+  if (data?.type !== "workspace") return args.transform;
+  const verticalOnly = restrictToVerticalAxis(args);
+  return restrictToFirstScrollableAncestor({
+    ...args,
+    transform: verticalOnly,
+  });
 };
 
-const modifiers = [restrictToActiveAxis, restrictToFirstScrollableAncestor];
+const modifiers = [workspaceModifier];
+
+// Inactive workspaces stay mounted with visibility:hidden to preserve xterm
+// state, so their pane droppables sit at the same coordinates as the active
+// workspace's. Filter hidden droppables before running the strategies, else
+// dnd-kit may resolve to an inactive workspace's pane and the move silently
+// no-ops.
+function visibleDroppables(args: Parameters<CollisionDetection>[0]) {
+  return {
+    ...args,
+    droppableContainers: args.droppableContainers.filter((c) => {
+      const node = c.node.current;
+      return !!node && node.checkVisibility({ visibilityProperty: true });
+    }),
+  };
+}
 
 const collisionDetection: CollisionDetection = (args) => {
   const data = getDragData(args.active);
   if (data?.type !== "tab") return closestCenter(args);
-  const { paneId } = data;
-  return pointerWithin({
-    ...args,
-    droppableContainers: args.droppableContainers.filter(
-      (c) => c.data.current?.paneId === paneId,
-    ),
-  });
+  const visible = visibleDroppables(args);
+  const pointer = pointerWithin(visible);
+  return pointer.length > 0 ? pointer : rectIntersection(visible);
 };
 
 interface ActiveTabDrag {
@@ -67,19 +85,35 @@ export function AppDndContext({ children }: Props) {
   function handleDragEnd(event: DragEndEvent): void {
     setActiveTab(null);
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over) return;
     const activeData = getDragData(active);
     if (activeData?.type === "workspace") {
+      if (active.id === over.id) return;
       reorderWorkspaces(String(active.id), String(over.id));
       return;
     }
     if (activeData?.type !== "tab") return;
     const overData = getDragData(over);
-    if (!overData || overData.type === "workspace") return;
-    if (overData.paneId !== activeData.paneId) return;
-    const overSurfaceId =
-      overData.type === "tab-end" ? overData.lastSurfaceId : String(over.id);
-    reorderSurfaces(activeData.paneId, String(active.id), overSurfaceId);
+    const targetPaneId = getDragPaneId(overData);
+    if (!targetPaneId) return;
+
+    if (targetPaneId !== activeData.paneId) {
+      moveSurfaceToPane(activeData.paneId, String(active.id), targetPaneId);
+      return;
+    }
+
+    if (active.id === over.id) return;
+    if (overData?.type === "tab-end") {
+      reorderSurfaces(
+        activeData.paneId,
+        String(active.id),
+        overData.lastSurfaceId,
+      );
+      return;
+    }
+    if (overData?.type === "tab") {
+      reorderSurfaces(activeData.paneId, String(active.id), String(over.id));
+    }
   }
 
   return (

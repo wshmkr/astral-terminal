@@ -3,7 +3,8 @@ import type { Active, Over } from "@dnd-kit/core";
 export type DragData =
   | { type: "workspace" }
   | { type: "tab"; paneId: string }
-  | { type: "tab-end"; paneId: string; lastSurfaceId: string };
+  | { type: "tab-end"; paneId: string; lastSurfaceId: string }
+  | { type: "pane"; paneId: string };
 
 export function getDragData(
   node: Active | Over | null | undefined,
@@ -24,6 +25,17 @@ export function getDragData(
       paneId: data.paneId,
       lastSurfaceId: data.lastSurfaceId,
     };
+  }
+  if (data.type === "pane" && typeof data.paneId === "string") {
+    return { type: "pane", paneId: data.paneId };
+  }
+  return null;
+}
+
+export function getDragPaneId(data: DragData | null): string | null {
+  if (!data) return null;
+  if (data.type === "tab" || data.type === "tab-end" || data.type === "pane") {
+    return data.paneId;
   }
   return null;
 }

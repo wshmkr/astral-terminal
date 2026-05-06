@@ -21,6 +21,7 @@ import type {
   Notification,
   Surface,
 } from "../../../shared/types";
+import { getDragData, getDragPaneId } from "../../app/dnd-types";
 import { useSurfaceBodyRegister } from "../../app/SurfaceBodyRegistry";
 import {
   addSurface,
@@ -38,10 +39,12 @@ import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
+  DROP_TARGET_OUTLINE_SX,
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
   TAB_ACTIONS_SX,
+  TAB_BAR_DROP_TARGET_SX,
   TAB_BAR_SX,
   TAB_END_DROPZONE_SX,
   TAB_SCROLLER_SX,
@@ -194,6 +197,21 @@ function TabbedPaneImpl({ pane }: Props) {
   );
   const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
+  const {
+    setNodeRef: setPaneDroppableRef,
+    active,
+    over,
+  } = useDroppable({
+    id: `pane:${pane.id}`,
+    data: { type: "pane", paneId: pane.id },
+  });
+  const activeData = getDragData(active);
+  const overPaneId = getDragPaneId(getDragData(over));
+  const isForeignTabOver =
+    activeData?.type === "tab" &&
+    activeData.paneId !== pane.id &&
+    overPaneId === pane.id;
+
   const registerSurfaceBody = useSurfaceBodyRegister();
   const surfaceBodyRef = useCallback(
     (el: HTMLDivElement | null) => {
@@ -204,10 +222,15 @@ function TabbedPaneImpl({ pane }: Props) {
 
   return (
     <Box
+      ref={setPaneDroppableRef}
       onMouseDownCapture={() => setFocusedPane(pane.id)}
-      sx={[ROOT_SX, showAttentionOutline && ATTENTION_OUTLINE_SX]}
+      sx={[
+        ROOT_SX,
+        showAttentionOutline && ATTENTION_OUTLINE_SX,
+        isForeignTabOver && DROP_TARGET_OUTLINE_SX,
+      ]}
     >
-      <Box sx={TAB_BAR_SX}>
+      <Box sx={[TAB_BAR_SX, isForeignTabOver && TAB_BAR_DROP_TARGET_SX]}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
           <SortableContext
             items={sortableItems}
