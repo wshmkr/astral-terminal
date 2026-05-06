@@ -1,4 +1,4 @@
-import { useDroppable } from "@dnd-kit/core";
+import { useDndContext, useDroppable } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -197,14 +197,7 @@ function TabbedPaneImpl({ pane }: Props) {
   );
   const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
-  const {
-    setNodeRef: setPaneDroppableRef,
-    active,
-    over,
-  } = useDroppable({
-    id: `pane:${pane.id}`,
-    data: { type: "pane", paneId: pane.id },
-  });
+  const { active, over } = useDndContext();
   const activeData = getDragData(active);
   const overPaneId = getDragPaneId(getDragData(over));
   const isForeignTabOver =
@@ -222,7 +215,6 @@ function TabbedPaneImpl({ pane }: Props) {
 
   return (
     <Box
-      ref={setPaneDroppableRef}
       onMouseDownCapture={() => setFocusedPane(pane.id)}
       sx={[
         ROOT_SX,

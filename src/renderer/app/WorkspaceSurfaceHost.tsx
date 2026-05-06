@@ -1,3 +1,4 @@
+import { useDroppable } from "@dnd-kit/core";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PaneNode, Surface, Workspace } from "../../shared/types";
@@ -69,6 +70,11 @@ function SurfacePortal({
 }: SurfaceViewProps) {
   const [slot] = useState(createSlot);
   const surfaceBody = useSurfaceBody(paneId);
+  const { setNodeRef: setDropRef } = useDroppable({
+    id: `surface-drop:${surface.id}`,
+    data: { type: "pane", paneId },
+    disabled: !isVisible,
+  });
 
   useLayoutEffect(() => {
     if (!surfaceBody) return;
@@ -80,6 +86,11 @@ function SurfacePortal({
   useLayoutEffect(() => {
     applySlotStyles(slot, isVisible);
   }, [isVisible, slot]);
+
+  useLayoutEffect(() => {
+    setDropRef(slot);
+    return () => setDropRef(null);
+  }, [setDropRef, slot]);
 
   useEffect(() => () => slot.remove(), [slot]);
 
