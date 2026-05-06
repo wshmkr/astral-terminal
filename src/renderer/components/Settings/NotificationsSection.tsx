@@ -30,9 +30,13 @@ const HOOKS_HELP_SX = {
   cursor: "help",
 } as const;
 
-const HOOKS_HELP_TEXT =
-  "Install hooks in the agent's settings file so it emits notifications " +
-  "and auto-restores sessions in this terminal.";
+export const HOOKS_HELP_TEXT =
+  "Install hooks in the agent's settings to emit notifications " +
+  "and auto-restore sessions in Astral Terminal.";
+
+export const NO_HOOKS_WARNING_TEXT =
+  "No agent hooks are installed. Agent-specific notifications " +
+  "(e.g. when Claude finishes responding) won't be delivered.";
 
 const PROVIDER_ICONS: Record<AgentName, { icon: IconType; color: string }> = {
   Claude: { icon: SiClaude, color: "#D97757" },
@@ -118,8 +122,7 @@ export function NotificationsSection() {
           variant="outlined"
           sx={{ mt: "auto", textWrap: "balance", alignItems: "center" }}
         >
-          No agent hooks are enabled. Agent-specific notifications (e.g. when
-          Claude finishes responding) won't be delivered.
+          {NO_HOOKS_WARNING_TEXT}
         </Alert>
       )}
     </Box>

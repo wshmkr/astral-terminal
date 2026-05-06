@@ -46,5 +46,10 @@ export const theme = createTheme({
         root: { borderRadius: 4 },
       },
     },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: { textWrap: "balance" },
+      },
+    },
   },
 });
