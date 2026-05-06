@@ -35,7 +35,7 @@ export const HOOKS_HELP_TEXT =
   "and auto-restore sessions in Astral Terminal.";
 
 export const NO_HOOKS_WARNING_TEXT =
-  "No agent hooks are installed. Agent-specific notifications " +
+  "No agent hooks are configured. Agent-specific notifications " +
   "(e.g. when Claude finishes responding) won't be delivered.";
 
 const PROVIDER_ICONS: Record<AgentName, { icon: IconType; color: string }> = {
@@ -118,7 +118,7 @@ export function NotificationsSection() {
 
       {noHooksEnabled && (
         <Alert
-          severity="warning"
+          severity="error"
           variant="outlined"
           sx={{ mt: "auto", textWrap: "balance", alignItems: "center" }}
         >

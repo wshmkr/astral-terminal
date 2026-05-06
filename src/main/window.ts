@@ -29,8 +29,8 @@ export function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 600,
-    minHeight: 400,
+    minWidth: 960,
+    minHeight: 640,
     frame: false,
     backgroundColor: INITIAL_WINDOW_BG,
     title: WINDOW_TITLE,

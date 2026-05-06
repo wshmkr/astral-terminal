@@ -155,75 +155,80 @@ export function App() {
       >
         <TitleBar />
         <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          <Sidebar />
-          <Box
-            ref={workspacesContainerRef}
-            sx={{
-              flex: 1,
-              display: "flex",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            {workspaces.length === 0 ? (
+          {welcomeOpen ? (
+            <WelcomeDialog />
+          ) : (
+            <>
+              <Sidebar />
               <Box
+                ref={workspacesContainerRef}
                 sx={{
+                  flex: 1,
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 0.5,
-                  width: "100%",
-                  userSelect: "none",
+                  overflow: "hidden",
+                  position: "relative",
                 }}
               >
-                <Typography variant="h5" color="text.disabled">
-                  No workspace open.
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ color: "text.disabled", opacity: 0.8 }}
-                >
-                  press Ctrl+Shift+T to create one
-                </Typography>
-              </Box>
-            ) : (
-              // visibility:hidden (not display:none) keeps inactive workspaces
-              // laid out so their terminals can size themselves before first show
-              workspaces.map((ws) => {
-                const isActive = ws.id === activeWorkspaceId;
-                return (
+                {workspaces.length === 0 ? (
                   <Box
-                    key={ws.id}
                     sx={{
-                      position: "absolute",
-                      inset: 0,
                       display: "flex",
-                      visibility: isActive ? "visible" : "hidden",
-                      zIndex: isActive ? 1 : 0,
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 0.5,
+                      width: "100%",
+                      userSelect: "none",
                     }}
                   >
-                    <SurfaceBodyRegistryProvider>
-                      {containerSize && (
-                        <WorkspaceLayout
-                          layout={ws.layout}
-                          containerSize={containerSize}
-                        />
-                      )}
-                      <WorkspaceSurfaceHost workspace={ws} />
-                    </SurfaceBodyRegistryProvider>
+                    <Typography variant="h5" color="text.disabled">
+                      No workspace open.
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "text.disabled", opacity: 0.8 }}
+                    >
+                      press Ctrl+Shift+T to create one
+                    </Typography>
                   </Box>
-                );
-              })
-            )}
-          </Box>
+                ) : (
+                  // visibility:hidden (not display:none) keeps inactive workspaces
+                  // laid out so their terminals can size themselves before first show
+                  workspaces.map((ws) => {
+                    const isActive = ws.id === activeWorkspaceId;
+                    return (
+                      <Box
+                        key={ws.id}
+                        sx={{
+                          position: "absolute",
+                          inset: 0,
+                          display: "flex",
+                          visibility: isActive ? "visible" : "hidden",
+                          zIndex: isActive ? 1 : 0,
+                        }}
+                      >
+                        <SurfaceBodyRegistryProvider>
+                          {containerSize && (
+                            <WorkspaceLayout
+                              layout={ws.layout}
+                              containerSize={containerSize}
+                            />
+                          )}
+                          <WorkspaceSurfaceHost workspace={ws} />
+                        </SurfaceBodyRegistryProvider>
+                      </Box>
+                    );
+                  })
+                )}
+              </Box>
+            </>
+          )}
         </Box>
       </Box>
       <SettingsDialog
         open={settingsOpen && !welcomeOpen}
         onClose={() => setSettingsOpen(false)}
       />
-      {welcomeOpen && <WelcomeDialog />}
     </AppDndContext>
   );
 }
