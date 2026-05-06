@@ -2,6 +2,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
+import Fade from "@mui/material/Fade";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -35,7 +36,9 @@ import { LabeledSelect, SettingRow } from "../Settings/shared";
 import { ThemePreview } from "./ThemePreview";
 
 const ROOT_SX = {
-  flex: 1,
+  position: "absolute",
+  inset: 0,
+  zIndex: 100,
   bgcolor: DARK_PALETTE.bgPaper,
   overflow: "auto",
   display: "flex",
@@ -146,6 +149,7 @@ export function WelcomeDialog() {
     ),
   );
   const [submitting, setSubmitting] = useState(false);
+  const [open, setOpen] = useState(true);
 
   const noHooksEnabled = agentProviders.every((p) => !draftHooks[p.name]);
 
@@ -158,135 +162,142 @@ export function WelcomeDialog() {
         .filter((p) => !!draftHooks[p.name] !== !!persistedHooks[p.name])
         .map((p) => setAgentHook(p.name, !!draftHooks[p.name])),
     );
-    dismissWelcome();
+    setOpen(false);
   };
 
   return (
-    <Box sx={ROOT_SX}>
-      <Box sx={CONTENT_SX}>
-        <Stack direction="row" spacing={4} sx={{ alignItems: "stretch" }}>
-          <Box sx={SETTINGS_COL_SX}>
-            <Box sx={HEADER_BLOCK_SX}>
-              <Typography variant="h4" sx={HEADER_TITLE_SX}>
-                Welcome to{" "}
-                <Box component="span" sx={HEADER_BRAND_SX}>
-                  Astral
-                </Box>
-                .
-              </Typography>
-              <Typography variant="body2" sx={SUBTITLE_SX}>
-                Configure defaults. Editable anytime via settings.
-              </Typography>
-            </Box>
-
-            <Stack spacing={4}>
-              <Stack spacing={1}>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ alignItems: "baseline" }}
-                >
-                  <Typography sx={SUBHEAD_INDEX_SX}>01</Typography>
-                  <Typography sx={SUBHEAD_LABEL_SX}>Appearance</Typography>
-                </Stack>
-
-                <Stack spacing={1.5} sx={SECTION_BODY_SX}>
-                  <LabeledSelect
-                    label="App theme"
-                    value={draftAppTheme}
-                    options={APP_THEME_OPTIONS}
-                    onChange={setDraftAppTheme}
-                    maxWidth={240}
-                  />
-
-                  <LabeledSelect
-                    label="Terminal theme"
-                    value={draftTerminalTheme}
-                    options={TERMINAL_THEME_OPTIONS}
-                    onChange={setDraftTerminalTheme}
-                    maxWidth={240}
-                  />
-
-                  <LabeledSelect
-                    label="Accent color"
-                    value="blue"
-                    options={ACCENT_COLOR_OPTIONS}
-                    onChange={() => {}}
-                    maxWidth={240}
-                  />
-                </Stack>
-              </Stack>
-
-              <Stack spacing={1.5}>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ alignItems: "baseline" }}
-                >
-                  <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
-                  <Typography sx={SUBHEAD_LABEL_SX}>
-                    Install agent hooks
-                  </Typography>
-                  <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
-                    <Box component="span" sx={HOOKS_HELP_SX}>
-                      <VscQuestion size={16} />
+    <Fade in={open} appear={false} timeout={300} onExited={dismissWelcome}>
+      <Box sx={ROOT_SX}>
+        <Fade in={open} timeout={500}>
+          <Box sx={CONTENT_SX}>
+            <Stack direction="row" spacing={4} sx={{ alignItems: "stretch" }}>
+              <Box sx={SETTINGS_COL_SX}>
+                <Box sx={HEADER_BLOCK_SX}>
+                  <Typography variant="h4" sx={HEADER_TITLE_SX}>
+                    Welcome to{" "}
+                    <Box component="span" sx={HEADER_BRAND_SX}>
+                      Astral
                     </Box>
-                  </Tooltip>
-                </Stack>
+                    .
+                  </Typography>
+                  <Typography variant="body2" sx={SUBTITLE_SX}>
+                    Configure defaults. Editable anytime via settings.
+                  </Typography>
+                </Box>
 
-                <Stack spacing={1.5} sx={SECTION_BODY_SX}>
-                  {agentProviders.map((p) => (
-                    <SettingRow
-                      key={p.name}
-                      title={p.name}
-                      icon={<SiClaude size={16} color="#D97757" />}
-                      control={
-                        <Checkbox
-                          size="small"
-                          sx={CHECKBOX_SX}
-                          checked={!!draftHooks[p.name]}
-                          onChange={(_, checked) =>
-                            setDraftHooks((h) => ({ ...h, [p.name]: checked }))
+                <Stack spacing={4}>
+                  <Stack spacing={1}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: "baseline" }}
+                    >
+                      <Typography sx={SUBHEAD_INDEX_SX}>01</Typography>
+                      <Typography sx={SUBHEAD_LABEL_SX}>Appearance</Typography>
+                    </Stack>
+
+                    <Stack spacing={1.5} sx={SECTION_BODY_SX}>
+                      <LabeledSelect
+                        label="App theme"
+                        value={draftAppTheme}
+                        options={APP_THEME_OPTIONS}
+                        onChange={setDraftAppTheme}
+                        maxWidth={240}
+                      />
+
+                      <LabeledSelect
+                        label="Terminal theme"
+                        value={draftTerminalTheme}
+                        options={TERMINAL_THEME_OPTIONS}
+                        onChange={setDraftTerminalTheme}
+                        maxWidth={240}
+                      />
+
+                      <LabeledSelect
+                        label="Accent color"
+                        value="blue"
+                        options={ACCENT_COLOR_OPTIONS}
+                        onChange={() => {}}
+                        maxWidth={240}
+                      />
+                    </Stack>
+                  </Stack>
+
+                  <Stack spacing={1.5}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: "baseline" }}
+                    >
+                      <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
+                      <Typography sx={SUBHEAD_LABEL_SX}>
+                        Install agent hooks
+                      </Typography>
+                      <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
+                        <Box component="span" sx={HOOKS_HELP_SX}>
+                          <VscQuestion size={16} />
+                        </Box>
+                      </Tooltip>
+                    </Stack>
+
+                    <Stack spacing={1.5} sx={SECTION_BODY_SX}>
+                      {agentProviders.map((p) => (
+                        <SettingRow
+                          key={p.name}
+                          title={p.name}
+                          icon={<SiClaude size={16} color="#D97757" />}
+                          control={
+                            <Checkbox
+                              size="small"
+                              sx={CHECKBOX_SX}
+                              checked={!!draftHooks[p.name]}
+                              onChange={(_, checked) =>
+                                setDraftHooks((h) => ({
+                                  ...h,
+                                  [p.name]: checked,
+                                }))
+                              }
+                            />
                           }
                         />
-                      }
-                    />
-                  ))}
+                      ))}
+                    </Stack>
+                  </Stack>
                 </Stack>
-              </Stack>
-            </Stack>
 
-            <Stack spacing={1.5} sx={{ mt: 1 }}>
-              <Alert
-                severity="error"
-                variant="outlined"
-                sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
-              >
-                {NO_HOOKS_WARNING_TEXT}
-              </Alert>
-              <Button
-                variant="contained"
-                size="large"
-                fullWidth
-                onClick={handleGetStarted}
-                autoFocus
-                disabled={submitting}
-                endIcon={<VscArrowRight />}
-                sx={BUTTON_SX}
-              >
-                Get started
-              </Button>
+                <Stack spacing={1.5} sx={{ mt: 1 }}>
+                  <Alert
+                    severity="error"
+                    variant="outlined"
+                    sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
+                  >
+                    {NO_HOOKS_WARNING_TEXT}
+                  </Alert>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    fullWidth
+                    onClick={handleGetStarted}
+                    autoFocus
+                    disabled={submitting}
+                    endIcon={<VscArrowRight />}
+                    sx={BUTTON_SX}
+                  >
+                    Get started
+                  </Button>
+                </Stack>
+              </Box>
+
+              <Box sx={PREVIEW_COL_SX}>
+                <ThemePreview
+                  appPalette={APP_PALETTES[draftAppTheme]}
+                  terminalTheme={TERMINAL_THEMES[draftTerminalTheme]}
+                />
+              </Box>
             </Stack>
           </Box>
-
-          <Box sx={PREVIEW_COL_SX}>
-            <ThemePreview
-              appPalette={APP_PALETTES[draftAppTheme]}
-              terminalTheme={TERMINAL_THEMES[draftTerminalTheme]}
-            />
-          </Box>
-        </Stack>
+        </Fade>
       </Box>
-    </Box>
+    </Fade>
   );
 }
