@@ -37,8 +37,6 @@ const workspaceModifier: Modifier = (args) => {
 
 const modifiers = [workspaceModifier];
 
-// Inactive workspaces stay mounted to preserve xterm state, so their
-// droppables overlap the active workspace's at the same coordinates
 function visibleDroppables(args: Parameters<CollisionDetection>[0]) {
   return {
     ...args,
