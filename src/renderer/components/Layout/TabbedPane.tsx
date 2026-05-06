@@ -39,12 +39,11 @@ import { CloseButton } from "../ui/CloseButton";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
-  DROP_TARGET_OUTLINE_SX,
+  DROP_TARGET_OVERLAY_SX,
   ROOT_SX,
   SPLIT_BUTTON_SX,
   SURFACE_BODY_SX,
   TAB_ACTIONS_SX,
-  TAB_BAR_DROP_TARGET_SX,
   TAB_BAR_SX,
   TAB_END_DROPZONE_SX,
   TAB_SCROLLER_SX,
@@ -230,10 +229,10 @@ function TabbedPaneImpl({ pane }: Props) {
       sx={[
         ROOT_SX,
         showAttentionOutline && ATTENTION_OUTLINE_SX,
-        isForeignTabOver && DROP_TARGET_OUTLINE_SX,
+        isForeignTabOver && DROP_TARGET_OVERLAY_SX,
       ]}
     >
-      <Box sx={[TAB_BAR_SX, isForeignTabOver && TAB_BAR_DROP_TARGET_SX]}>
+      <Box sx={TAB_BAR_SX}>
         <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
           <SortableContext
             items={sortableItems}
