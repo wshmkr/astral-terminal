@@ -2,13 +2,18 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { bootStore, getState } from "./store";
+import { bootStore, getState, setWelcomeOpen } from "./store";
 import { theme } from "./theme";
 import "./fonts.css";
 import "./components/Terminal/terminal.css";
 
 bootStore();
 window.app.setUiZoom(getState().appearance.uiScale);
+
+if (import.meta.env.DEV) {
+  (window as unknown as { showWelcome: () => void }).showWelcome = () =>
+    setWelcomeOpen(true);
+}
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");
