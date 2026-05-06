@@ -1,4 +1,4 @@
-import { useDndContext, useDroppable } from "@dnd-kit/core";
+import { useDndMonitor, useDroppable } from "@dnd-kit/core";
 import {
   horizontalListSortingStrategy,
   SortableContext,
@@ -8,7 +8,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { memo, type ReactNode, useCallback, useMemo } from "react";
+import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
 import {
   VscAdd,
   VscChromeClose,
@@ -197,13 +197,24 @@ function TabbedPaneImpl({ pane }: Props) {
   );
   const lastSurfaceId = pane.surfaces[pane.surfaces.length - 1]?.id;
 
-  const { active, over } = useDndContext();
-  const activeData = getDragData(active);
-  const overPaneId = getDragPaneId(getDragData(over));
-  const isForeignTabOver =
-    activeData?.type === "tab" &&
-    activeData.paneId !== pane.id &&
-    overPaneId === pane.id;
+  const [isForeignTabOver, setIsForeignTabOver] = useState(false);
+  useDndMonitor({
+    onDragOver(event) {
+      const activeData = getDragData(event.active);
+      const overPaneId = getDragPaneId(getDragData(event.over));
+      const next =
+        activeData?.type === "tab" &&
+        activeData.paneId !== pane.id &&
+        overPaneId === pane.id;
+      setIsForeignTabOver((prev) => (prev === next ? prev : next));
+    },
+    onDragEnd() {
+      setIsForeignTabOver(false);
+    },
+    onDragCancel() {
+      setIsForeignTabOver(false);
+    },
+  });
 
   const registerSurfaceBody = useSurfaceBodyRegister();
   const surfaceBodyRef = useCallback(
