@@ -313,8 +313,7 @@ export function moveSurfaceToPane(
   const ws = getActiveWorkspace();
   if (!ws) return;
   const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
-  const targetLeaf = findLeafPane(ws.layout, targetPaneId);
-  if (!sourceLeaf || !targetLeaf) return;
+  if (!sourceLeaf || !findLeafPane(ws.layout, targetPaneId)) return;
   const surface = sourceLeaf.surfaces.find((s) => s.id === surfaceId);
   if (!surface) return;
 

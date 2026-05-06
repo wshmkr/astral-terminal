@@ -103,17 +103,10 @@ export function AppDndContext({ children }: Props) {
     }
 
     if (active.id === over.id) return;
-    if (overData?.type === "tab-end") {
-      reorderSurfaces(
-        activeData.paneId,
-        String(active.id),
-        overData.lastSurfaceId,
-      );
-      return;
-    }
-    if (overData?.type === "tab") {
-      reorderSurfaces(activeData.paneId, String(active.id), String(over.id));
-    }
+    if (overData?.type !== "tab" && overData?.type !== "tab-end") return;
+    const overSurfaceId =
+      overData.type === "tab-end" ? overData.lastSurfaceId : String(over.id);
+    reorderSurfaces(activeData.paneId, String(active.id), overSurfaceId);
   }
 
   return (

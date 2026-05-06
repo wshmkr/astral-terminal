@@ -71,7 +71,7 @@ function SurfacePortal({
   const [slot] = useState(createSlot);
   const surfaceBody = useSurfaceBody(paneId);
   const { setNodeRef: setDropRef } = useDroppable({
-    id: `surface-drop:${surface.id}`,
+    id: `pane-drop:${surface.id}`,
     data: { type: "pane", paneId },
     disabled: !isVisible,
   });
