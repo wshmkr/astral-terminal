@@ -2,6 +2,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Checkbox from "@mui/material/Checkbox";
 import Divider from "@mui/material/Divider";
+import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -16,13 +17,6 @@ import { DIVIDER_SX, ROOT_SX, SettingRow, SUBHEAD_SX } from "./shared";
 const SWITCH_SX = { ml: -1 } as const;
 
 const CHECKBOX_SX = { p: 0.5 } as const;
-
-const HOOKS_HEAD_ROW_SX = {
-  display: "flex",
-  alignItems: "center",
-  gap: 0.75,
-  mb: -1,
-} as const;
 
 const HOOKS_HELP_SX = {
   display: "inline-flex",
@@ -85,7 +79,11 @@ export function NotificationsSection() {
 
       <Divider sx={DIVIDER_SX} />
 
-      <Box sx={HOOKS_HEAD_ROW_SX}>
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{ alignItems: "center", mb: -1 }}
+      >
         <Typography variant="subtitle1" sx={SUBHEAD_SX}>
           Hooks
         </Typography>
@@ -94,7 +92,7 @@ export function NotificationsSection() {
             <VscQuestion size={16} />
           </Box>
         </Tooltip>
-      </Box>
+      </Stack>
 
       {agentProviders.map((p) => {
         const { icon: Icon, color } = PROVIDER_ICONS[p.name];

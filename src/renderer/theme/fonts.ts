@@ -33,6 +33,8 @@ export const FONT_BY_ID = Object.fromEntries(
   FONT_OPTIONS.map((o) => [o.id, o]),
 ) as Record<FontFamilyId, FontOption>;
 
+export const MONO_FONT_STACK = FONT_BY_ID["jetbrains-mono"].stack;
+
 export const MIN_FONT_SIZE = 10;
 export const MAX_FONT_SIZE = 24;
 export const DEFAULT_FONT_SIZE = 16;

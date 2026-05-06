@@ -4,10 +4,9 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Fade from "@mui/material/Fade";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
-import { VscArrowRight, VscQuestion } from "react-icons/vsc";
+import { VscArrowRight } from "react-icons/vsc";
 import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
 import type { AppThemeId, TerminalThemeId } from "../../../shared/types";
 import {
@@ -17,7 +16,7 @@ import {
   setTerminalTheme,
   useWorkspaceStore,
 } from "../../store";
-import { FONT_BY_ID } from "../../theme/fonts";
+import { MONO_FONT_STACK } from "../../theme/fonts";
 import {
   APP_PALETTES,
   APP_THEME_OPTIONS,
@@ -33,6 +32,7 @@ import {
   PROVIDER_ICONS,
 } from "../Settings/NotificationsSection";
 import { LabeledSelect, SettingRow } from "../Settings/shared";
+import { NumberedSection } from "./NumberedSection";
 import { ThemePreview } from "./ThemePreview";
 
 const ROOT_SX = {
@@ -41,63 +41,26 @@ const ROOT_SX = {
   zIndex: 100,
   bgcolor: DARK_PALETTE.bgPaper,
   overflow: "auto",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
   p: 4,
   userSelect: "none",
+  alignItems: "center",
+  justifyContent: "center",
 } as const;
-
-const CONTENT_SX = {
-  width: "100%",
-  maxWidth: 900,
-  alignItems: "stretch",
-} as const;
-const MONO_FONT = FONT_BY_ID["jetbrains-mono"].stack;
 
 const HEADER_TITLE_SX = {
   mb: 0.5,
-  fontFamily: MONO_FONT,
+  fontFamily: MONO_FONT_STACK,
   fontWeight: 700,
   letterSpacing: "-0.02em",
 } as const;
 const HEADER_BRAND_SX = { color: "primary.main" } as const;
-const SUBHEAD_BASE_SX = {
-  fontFamily: MONO_FONT,
-  fontWeight: 700,
-  letterSpacing: "0.08em",
-  fontSize: 13,
-} as const;
-const SUBHEAD_LABEL_SX = {
-  ...SUBHEAD_BASE_SX,
-  textTransform: "uppercase",
-  color: "text.primary",
-} as const;
-const SUBHEAD_INDEX_SX = {
-  ...SUBHEAD_BASE_SX,
-  color: "primary.main",
-} as const;
 const SUBTITLE_SX = { color: "text.secondary" } as const;
-const HEADER_BLOCK_SX = { mb: 4 } as const;
-const SETTINGS_COL_SX = {
-  flex: 1,
-  minWidth: 0,
-  display: "flex",
-  flexDirection: "column",
-} as const;
 const PREVIEW_COL_SX = {
   flex: "0 0 480px",
   aspectRatio: "4 / 3",
   alignSelf: "center",
 } as const;
 const CHECKBOX_SX = { p: 0.5 } as const;
-const HOOKS_HELP_SX = {
-  display: "inline-flex",
-  alignSelf: "center",
-  color: "text.disabled",
-  cursor: "help",
-} as const;
-const SECTION_BODY_SX = { pl: 3.25 } as const;
 const ALERT_SX = {
   py: 0,
   textWrap: "balance",
@@ -108,7 +71,7 @@ const ALERT_SX = {
 const BUTTON_SX = {
   py: 1.5,
   fontSize: 16,
-  fontFamily: MONO_FONT,
+  fontFamily: MONO_FONT_STACK,
   letterSpacing: "0.05em",
 } as const;
 
@@ -152,11 +115,15 @@ export function WelcomeDialog() {
 
   return (
     <Fade in={open} appear={false} timeout={300} onExited={dismissWelcome}>
-      <Box sx={ROOT_SX}>
+      <Stack sx={ROOT_SX}>
         <Fade in={open} timeout={500}>
-          <Stack direction="row" spacing={4} sx={CONTENT_SX}>
-            <Box sx={SETTINGS_COL_SX}>
-              <Box sx={HEADER_BLOCK_SX}>
+          <Stack
+            direction="row"
+            spacing={4}
+            sx={{ width: "100%", maxWidth: 900 }}
+          >
+            <Stack sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ mb: 4 }}>
                 <Typography variant="h4" sx={HEADER_TITLE_SX}>
                   Welcome to{" "}
                   <Box component="span" sx={HEADER_BRAND_SX}>
@@ -170,78 +137,53 @@ export function WelcomeDialog() {
               </Box>
 
               <Stack spacing={4}>
-                <Stack spacing={1}>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "baseline" }}
-                  >
-                    <Typography sx={SUBHEAD_INDEX_SX}>01</Typography>
-                    <Typography sx={SUBHEAD_LABEL_SX}>Appearance</Typography>
-                  </Stack>
+                <NumberedSection index="01" label="Appearance">
+                  <LabeledSelect
+                    label="App theme"
+                    value={draftAppTheme}
+                    options={APP_THEME_OPTIONS}
+                    onChange={setDraftAppTheme}
+                    maxWidth={240}
+                  />
 
-                  <Stack spacing={1.5} sx={SECTION_BODY_SX}>
-                    <LabeledSelect
-                      label="App theme"
-                      value={draftAppTheme}
-                      options={APP_THEME_OPTIONS}
-                      onChange={setDraftAppTheme}
-                      maxWidth={240}
-                    />
+                  <LabeledSelect
+                    label="Terminal theme"
+                    value={draftTerminalTheme}
+                    options={TERMINAL_THEME_OPTIONS}
+                    onChange={setDraftTerminalTheme}
+                    maxWidth={240}
+                  />
+                </NumberedSection>
 
-                    <LabeledSelect
-                      label="Terminal theme"
-                      value={draftTerminalTheme}
-                      options={TERMINAL_THEME_OPTIONS}
-                      onChange={setDraftTerminalTheme}
-                      maxWidth={240}
-                    />
-                  </Stack>
-                </Stack>
-
-                <Stack spacing={1.5}>
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: "baseline" }}
-                  >
-                    <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
-                    <Typography sx={SUBHEAD_LABEL_SX}>
-                      Install agent hooks
-                    </Typography>
-                    <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
-                      <Box component="span" sx={HOOKS_HELP_SX}>
-                        <VscQuestion size={16} />
-                      </Box>
-                    </Tooltip>
-                  </Stack>
-
-                  <Stack spacing={1.5} sx={SECTION_BODY_SX}>
-                    {agentProviders.map((p) => {
-                      const { icon: Icon, color } = PROVIDER_ICONS[p.name];
-                      return (
-                        <SettingRow
-                          key={p.name}
-                          title={p.name}
-                          icon={<Icon size={16} color={color} />}
-                          control={
-                            <Checkbox
-                              size="small"
-                              sx={CHECKBOX_SX}
-                              checked={!!draftHooks[p.name]}
-                              onChange={(_, checked) =>
-                                setDraftHooks((h) => ({
-                                  ...h,
-                                  [p.name]: checked,
-                                }))
-                              }
-                            />
-                          }
-                        />
-                      );
-                    })}
-                  </Stack>
-                </Stack>
+                <NumberedSection
+                  index="02"
+                  label="Install agent hooks"
+                  helpText={HOOKS_HELP_TEXT}
+                >
+                  {agentProviders.map((p) => {
+                    const { icon: Icon, color } = PROVIDER_ICONS[p.name];
+                    return (
+                      <SettingRow
+                        key={p.name}
+                        title={p.name}
+                        icon={<Icon size={16} color={color} />}
+                        control={
+                          <Checkbox
+                            size="small"
+                            sx={CHECKBOX_SX}
+                            checked={!!draftHooks[p.name]}
+                            onChange={(_, checked) =>
+                              setDraftHooks((h) => ({
+                                ...h,
+                                [p.name]: checked,
+                              }))
+                            }
+                          />
+                        }
+                      />
+                    );
+                  })}
+                </NumberedSection>
               </Stack>
 
               <Stack spacing={1.5} sx={{ mt: 1 }}>
@@ -265,7 +207,7 @@ export function WelcomeDialog() {
                   Get started
                 </Button>
               </Stack>
-            </Box>
+            </Stack>
 
             <Box sx={PREVIEW_COL_SX}>
               <ThemePreview
@@ -275,7 +217,7 @@ export function WelcomeDialog() {
             </Box>
           </Stack>
         </Fade>
-      </Box>
+      </Stack>
     </Fade>
   );
 }
