@@ -1,13 +1,11 @@
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
-import { VscArrowRight, VscQuestion } from "react-icons/vsc";
+import { VscArrowRight } from "react-icons/vsc";
 import { agentProviders } from "../../../shared/agent-hooks";
 import type { AppThemeId, TerminalThemeId } from "../../../shared/types";
 import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
@@ -28,8 +26,8 @@ import {
   TERMINAL_THEMES,
 } from "../../theme/terminal-themes";
 import {
-  HOOKS_HELP_TEXT,
-  NO_HOOKS_WARNING_TEXT,
+  HooksHelpIcon,
+  NoHooksAlert,
   PROVIDER_ICONS,
 } from "../Settings/NotificationsSection";
 import { LabeledSelect, SettingRow } from "../Settings/shared";
@@ -82,8 +80,6 @@ const PREVIEW_COL_SX = {
 
 const ALERT_SX = {
   py: 0,
-  textWrap: "balance",
-  alignItems: "center",
   "& .MuiAlert-message": { py: 0.5, fontSize: 12, lineHeight: 1.4 },
   "& .MuiAlert-icon": { mr: 1, py: 0.5 },
 } as const;
@@ -184,19 +180,7 @@ export function WelcomeDialog() {
                 <Typography sx={SUBHEAD_LABEL_SX}>
                   Install agent hooks
                 </Typography>
-                <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
-                  <Box
-                    component="span"
-                    sx={{
-                      display: "inline-flex",
-                      alignSelf: "center",
-                      color: "text.disabled",
-                      cursor: "help",
-                    }}
-                  >
-                    <VscQuestion size={16} />
-                  </Box>
-                </Tooltip>
+                <HooksHelpIcon sx={{ alignSelf: "center" }} />
               </Stack>
               <Stack spacing={1.5} sx={{ pl: 3.25 }}>
                 {agentProviders.map((p) => {
@@ -226,13 +210,9 @@ export function WelcomeDialog() {
           </Stack>
 
           <Stack spacing={1.5} sx={{ mt: 1 }}>
-            <Alert
-              severity="error"
-              variant="outlined"
+            <NoHooksAlert
               sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
-            >
-              {NO_HOOKS_WARNING_TEXT}
-            </Alert>
+            />
             <Button
               variant="contained"
               size="large"

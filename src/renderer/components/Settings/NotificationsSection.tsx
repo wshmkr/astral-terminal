@@ -4,6 +4,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
+import type { SxProps, Theme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { IconType } from "react-icons";
@@ -18,19 +19,24 @@ const SWITCH_SX = { ml: -1 } as const;
 
 const CHECKBOX_SX = { p: 0.5 } as const;
 
-const HOOKS_HELP_SX = {
+const HOOKS_HELP_ICON_SX = {
   display: "inline-flex",
   color: "text.disabled",
   cursor: "help",
 } as const;
 
-export const HOOKS_HELP_TEXT =
+const HOOKS_HELP_TEXT =
   "Install hooks in the agent's settings to emit notifications " +
   "and auto-restore sessions in Astral Terminal.";
 
-export const NO_HOOKS_WARNING_TEXT =
+const NO_HOOKS_WARNING_TEXT =
   "No agent hooks are configured. Agent-specific notifications " +
   "(e.g. when Claude finishes responding) won't be delivered.";
+
+const NO_HOOKS_ALERT_BASE_SX = {
+  textWrap: "balance",
+  alignItems: "center",
+} as const;
 
 export const PROVIDER_ICONS: Record<
   AgentName,
@@ -38,6 +44,31 @@ export const PROVIDER_ICONS: Record<
 > = {
   Claude: { icon: SiClaude, color: "#D97757" },
 };
+
+export function HooksHelpIcon({ sx }: { sx?: SxProps<Theme> }) {
+  return (
+    <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
+      <Box
+        component="span"
+        sx={[HOOKS_HELP_ICON_SX, ...(Array.isArray(sx) ? sx : [sx])]}
+      >
+        <VscQuestion size={16} />
+      </Box>
+    </Tooltip>
+  );
+}
+
+export function NoHooksAlert({ sx }: { sx?: SxProps<Theme> }) {
+  return (
+    <Alert
+      severity="error"
+      variant="outlined"
+      sx={[NO_HOOKS_ALERT_BASE_SX, ...(Array.isArray(sx) ? sx : [sx])]}
+    >
+      {NO_HOOKS_WARNING_TEXT}
+    </Alert>
+  );
+}
 
 export function NotificationsSection() {
   const settings = useWorkspaceStore((s) => s.notificationSettings);
@@ -87,11 +118,7 @@ export function NotificationsSection() {
         <Typography variant="subtitle1" sx={SUBHEAD_SX}>
           Hooks
         </Typography>
-        <Tooltip title={HOOKS_HELP_TEXT} placement="right" arrow>
-          <Box component="span" sx={HOOKS_HELP_SX}>
-            <VscQuestion size={16} />
-          </Box>
-        </Tooltip>
+        <HooksHelpIcon />
       </Stack>
 
       {agentProviders.map((p) => {
@@ -117,15 +144,7 @@ export function NotificationsSection() {
         );
       })}
 
-      {noHooksEnabled && (
-        <Alert
-          severity="error"
-          variant="outlined"
-          sx={{ mt: "auto", textWrap: "balance", alignItems: "center" }}
-        >
-          {NO_HOOKS_WARNING_TEXT}
-        </Alert>
-      )}
+      {noHooksEnabled && <NoHooksAlert sx={{ mt: "auto" }} />}
     </Box>
   );
 }

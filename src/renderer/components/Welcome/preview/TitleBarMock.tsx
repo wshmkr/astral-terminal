@@ -3,14 +3,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { APP_NAME_SHORT } from "../../../../shared/meta";
 import type { AppPalette } from "../../../theme/palettes";
-import { TITLEBAR_HEIGHT } from "../ThemePreview";
+import { TITLE_BAR_HEIGHT } from "../ThemePreview";
 
 export function TitleBarMock({ palette }: { palette: AppPalette }) {
   return (
     <Stack
       direction="row"
       sx={{
-        height: TITLEBAR_HEIGHT,
+        height: TITLE_BAR_HEIGHT,
         bgcolor: palette.custom.titlebarFocused,
         borderBottom: `1px solid ${palette.divider}`,
         flexShrink: 0,

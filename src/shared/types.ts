@@ -148,6 +148,8 @@ export interface AppState {
   sidebarWidth: number;
   appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
+
+  // not persisted:
   windowFocused: boolean;
   settingsOpen: boolean;
   welcomeOpen: boolean;

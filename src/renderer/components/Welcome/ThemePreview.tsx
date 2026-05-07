@@ -6,7 +6,7 @@ import { PaneMock } from "./preview/PaneMock";
 import { SidebarMock } from "./preview/SidebarMock";
 import { TitleBarMock } from "./preview/TitleBarMock";
 
-export const TITLEBAR_HEIGHT = 24;
+export const TITLE_BAR_HEIGHT = 24;
 export const SIDEBAR_WIDTH = 80;
 export const TAB_BAR_HEIGHT = 30;
 
