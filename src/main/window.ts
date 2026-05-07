@@ -3,6 +3,12 @@ import { app, BrowserWindow, shell } from "electron";
 import { APP_NAME, DEV_SUFFIX } from "../shared/meta";
 import { encodeAppModeArg, INITIAL_WINDOW_BG, IPC } from "../shared/types";
 import { APP_MODE, IS_DEV } from "./env";
+import {
+  loadWindowState,
+  MIN_WINDOW_HEIGHT,
+  MIN_WINDOW_WIDTH,
+  trackWindowState,
+} from "./window-state";
 
 const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 const WINDOW_TITLE = IS_DEV ? `${APP_NAME}${DEV_SUFFIX}` : APP_NAME;
@@ -26,11 +32,15 @@ export function focusMainWindow(win: BrowserWindow): void {
 }
 
 export function createWindow(): void {
+  const savedState = loadWindowState();
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 600,
-    minHeight: 400,
+    width: savedState.width,
+    height: savedState.height,
+    x: savedState.x,
+    y: savedState.y,
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
+    show: false,
     frame: false,
     backgroundColor: INITIAL_WINDOW_BG,
     title: WINDOW_TITLE,
@@ -43,6 +53,15 @@ export function createWindow(): void {
       additionalArguments: [encodeAppModeArg(APP_MODE)],
     },
   });
+
+  if (savedState.isMaximized) {
+    mainWindow.maximize();
+  }
+  mainWindow.once("ready-to-show", () => {
+    mainWindow?.show();
+  });
+
+  trackWindowState(mainWindow);
 
   if (DEV_URL) {
     mainWindow.loadURL(DEV_URL);
