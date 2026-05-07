@@ -4,6 +4,9 @@ import { app, type BrowserWindow, screen } from "electron";
 
 const FILE_NAME = "window-state.json";
 
+export const MIN_WINDOW_WIDTH = 600;
+export const MIN_WINDOW_HEIGHT = 400;
+
 export interface WindowState {
   width: number;
   height: number;
@@ -26,7 +29,7 @@ function isValidState(v: unknown): v is WindowState {
   if (typeof v !== "object" || v === null) return false;
   const s = v as Record<string, unknown>;
   if (typeof s.width !== "number" || typeof s.height !== "number") return false;
-  if (s.width < 200 || s.height < 200) return false;
+  if (s.width < MIN_WINDOW_WIDTH || s.height < MIN_WINDOW_HEIGHT) return false;
   if (s.x !== undefined && typeof s.x !== "number") return false;
   if (s.y !== undefined && typeof s.y !== "number") return false;
   if (typeof s.isMaximized !== "boolean") return false;
@@ -38,10 +41,10 @@ function isOnVisibleDisplay(state: WindowState): boolean {
   if (x === undefined || y === undefined) return true;
   return screen.getAllDisplays().some(({ bounds }) => {
     return (
-      x >= bounds.x &&
-      y >= bounds.y &&
-      x + width <= bounds.x + bounds.width &&
-      y + height <= bounds.y + bounds.height
+      x < bounds.x + bounds.width &&
+      y < bounds.y + bounds.height &&
+      x + width > bounds.x &&
+      y + height > bounds.y
     );
   });
 }
