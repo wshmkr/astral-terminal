@@ -1,3 +1,4 @@
+import sessionScript from "./hooks/agent-session.sh?raw";
 import { APP_PACKAGE_NAME } from "./meta";
 
 export const AGENT_SESSION_OSC_IDENT = 778;
@@ -36,17 +37,20 @@ export function parseAgentSessionOsc(
   return { agentName, event, sessionId, cwd };
 }
 
+export function shellSingleQuote(s: string): string {
+  return `'${s.replace(/'/g, "'\\''")}'`;
+}
+
 export function buildSessionHookShellCommand(opts: {
   agentName: string;
   event: AgentSessionEvent;
-  extractSessionId: string;
-  extractCwd: string;
   hookMarker: string;
 }): string {
-  const emit = `printf '\\033]${AGENT_SESSION_OSC_IDENT};${opts.agentName};${opts.event};%s;%s\\007' "$sid" "$cwdb64"`;
-  const readInput = "in=$(cat)";
-  const extractSid = `sid=$(printf '%s' "$in" | ${opts.extractSessionId})`;
-  const extractCwd = `cwd=$(printf '%s' "$in" | ${opts.extractCwd})`;
-  const encodeCwd = `cwdb64=$(printf '%s' "$cwd" | base64 | tr -d '\\n')`;
-  return `: ${opts.hookMarker}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ${readInput}; ${extractSid}; ${extractCwd}; ${encodeCwd}; [ -n "$sid" ] && ${emit} > /dev/tty; fi`;
+  return `: ${opts.hookMarker}
+if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then
+AGENT_OSC=${AGENT_SESSION_OSC_IDENT}
+AGENT_NAME=${shellSingleQuote(opts.agentName)}
+AGENT_EVENT=${shellSingleQuote(opts.event)}
+${sessionScript}
+fi`;
 }

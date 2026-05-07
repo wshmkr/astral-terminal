@@ -14,10 +14,6 @@ export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Matches the first `session_id`; assumes Claude emits it at the top level
-const CLAUDE_SESSION_ID_EXTRACTOR = `sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1`;
-const CLAUDE_CWD_EXTRACTOR = `sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n 1`;
-
 export function agentHookStrings(agent: string) {
   return {
     permissionPrompt: {
@@ -36,13 +32,13 @@ export function agentHookStrings(agent: string) {
   };
 }
 
-function shellSingleQuote(s: string): string {
+function escapeInSingleQuotes(s: string): string {
   return s.replace(/'/g, "'\\''");
 }
 
 function oscNotifyCommand(title: string, body: string): string {
-  const t = shellSingleQuote(title);
-  const b = shellSingleQuote(body);
+  const t = escapeInSingleQuotes(title);
+  const b = escapeInSingleQuotes(body);
   return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then printf '\\033]777;notify;${t};${b}\\007' > /dev/tty; fi`;
 }
 
@@ -53,12 +49,7 @@ function notifyHook(entry: { title: string; body: string }) {
   };
 }
 
-function sessionHook(opts: {
-  agentName: string;
-  event: AgentSessionEvent;
-  extractSessionId: string;
-  extractCwd: string;
-}) {
+function sessionHook(opts: { agentName: string; event: AgentSessionEvent }) {
   return {
     type: "command",
     command: buildSessionHookShellCommand({
@@ -87,12 +78,7 @@ const claudeProvider: AgentHookProvider<"Claude"> = {
   generateHooksConfig() {
     const s = agentHookStrings(this.name);
     const session = (event: AgentSessionEvent) =>
-      sessionHook({
-        agentName: this.name,
-        event,
-        extractSessionId: CLAUDE_SESSION_ID_EXTRACTOR,
-        extractCwd: CLAUDE_CWD_EXTRACTOR,
-      });
+      sessionHook({ agentName: this.name, event });
     return {
       hooks: {
         Notification: [
