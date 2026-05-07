@@ -40,6 +40,7 @@ export function createWindow(): void {
     y: savedState.y,
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
+    show: false,
     frame: false,
     backgroundColor: INITIAL_WINDOW_BG,
     title: WINDOW_TITLE,
@@ -56,6 +57,7 @@ export function createWindow(): void {
   if (savedState.isMaximized) {
     mainWindow.maximize();
   }
+  mainWindow.show();
 
   trackWindowState(mainWindow);
 

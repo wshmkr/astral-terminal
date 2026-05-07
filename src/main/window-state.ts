@@ -28,10 +28,14 @@ function statePath(): string {
 function isValidState(v: unknown): v is WindowState {
   if (typeof v !== "object" || v === null) return false;
   const s = v as Record<string, unknown>;
-  if (typeof s.width !== "number" || typeof s.height !== "number") return false;
-  if (s.width < MIN_WINDOW_WIDTH || s.height < MIN_WINDOW_HEIGHT) return false;
-  if (s.x !== undefined && typeof s.x !== "number") return false;
-  if (s.y !== undefined && typeof s.y !== "number") return false;
+  if (!Number.isFinite(s.width) || !Number.isFinite(s.height)) return false;
+  if (
+    (s.width as number) < MIN_WINDOW_WIDTH ||
+    (s.height as number) < MIN_WINDOW_HEIGHT
+  )
+    return false;
+  if (s.x !== undefined && !Number.isFinite(s.x)) return false;
+  if (s.y !== undefined && !Number.isFinite(s.y)) return false;
   if (typeof s.isMaximized !== "boolean") return false;
   return true;
 }
@@ -39,12 +43,12 @@ function isValidState(v: unknown): v is WindowState {
 function isOnVisibleDisplay(state: WindowState): boolean {
   const { x, y, width, height } = state;
   if (x === undefined || y === undefined) return true;
-  return screen.getAllDisplays().some(({ bounds }) => {
+  return screen.getAllDisplays().some(({ workArea }) => {
     return (
-      x < bounds.x + bounds.width &&
-      y < bounds.y + bounds.height &&
-      x + width > bounds.x &&
-      y + height > bounds.y
+      x < workArea.x + workArea.width &&
+      y < workArea.y + workArea.height &&
+      x + width > workArea.x &&
+      y + height > workArea.y
     );
   });
 }
@@ -63,9 +67,7 @@ export function loadWindowState(): WindowState {
     return DEFAULTS;
   }
   if (!isValidState(parsed)) return DEFAULTS;
-  if (!isOnVisibleDisplay(parsed)) {
-    return { ...DEFAULTS, isMaximized: parsed.isMaximized };
-  }
+  if (!isOnVisibleDisplay(parsed)) return DEFAULTS;
   return parsed;
 }
 
