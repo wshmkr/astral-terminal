@@ -1,16 +1,29 @@
 import { MONO_FONT_STACK } from "../../theme/fonts";
 import { DARK_PALETTE } from "../../theme/palettes";
+import { TITLE_BAR_HEIGHT } from "../ui/TitleBar";
 
-export const ROOT_SX = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 100,
-  bgcolor: DARK_PALETTE.bgPaper,
-  overflow: "auto",
-  p: 4,
-  userSelect: "none",
+export const DIALOG_SX = {
+  top: TITLE_BAR_HEIGHT,
+} as const;
+
+export const BACKDROP_SX = {
+  top: TITLE_BAR_HEIGHT,
+} as const;
+
+export const PAPER_SX = {
   alignItems: "center",
   justifyContent: "center",
+  userSelect: "none",
+  overflow: "auto",
+  bgcolor: DARK_PALETTE.bgPaper,
+  backgroundImage: "none",
+  p: 4,
+} as const;
+
+export const CONTENT_STACK_SX = {
+  width: "100%",
+  maxWidth: 900,
+  flexShrink: 0,
 } as const;
 
 export const HEADER_TITLE_SX = {

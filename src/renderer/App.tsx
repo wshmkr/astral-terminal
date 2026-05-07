@@ -154,14 +154,7 @@ export function App() {
         }}
       >
         <TitleBar />
-        <Box
-          sx={{
-            display: "flex",
-            flex: 1,
-            overflow: "hidden",
-            position: "relative",
-          }}
-        >
+        <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
           <Sidebar />
           <Box
             ref={workspacesContainerRef}
