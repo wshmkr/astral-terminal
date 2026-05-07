@@ -57,7 +57,9 @@ export function createWindow(): void {
   if (savedState.isMaximized) {
     mainWindow.maximize();
   }
-  mainWindow.show();
+  mainWindow.once("ready-to-show", () => {
+    mainWindow?.show();
+  });
 
   trackWindowState(mainWindow);
 

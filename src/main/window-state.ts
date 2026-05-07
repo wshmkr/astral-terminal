@@ -67,7 +67,9 @@ export function loadWindowState(): WindowState {
     return DEFAULTS;
   }
   if (!isValidState(parsed)) return DEFAULTS;
-  if (!isOnVisibleDisplay(parsed)) return DEFAULTS;
+  if (!isOnVisibleDisplay(parsed)) {
+    return { ...parsed, x: undefined, y: undefined };
+  }
   return parsed;
 }
 
