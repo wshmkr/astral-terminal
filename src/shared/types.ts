@@ -107,6 +107,15 @@ export type FontFamilyId =
   | "cascadia-code"
   | "consolas"
   | "system-monospace";
+export type AccentColorId =
+  | "blue"
+  | "purple"
+  | "pink"
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "teal";
 
 export interface AppearanceSettings {
   appThemeId: AppThemeId;
@@ -114,6 +123,7 @@ export interface AppearanceSettings {
   fontFamily: FontFamilyId;
   fontSize: number;
   uiScale: number;
+  accentColorId: AccentColorId;
 }
 
 export interface NotificationFirePayload {

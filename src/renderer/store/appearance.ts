@@ -1,9 +1,14 @@
 import type {
+  AccentColorId,
   AppearanceSettings,
   AppThemeId,
   FontFamilyId,
   TerminalThemeId,
 } from "../../shared/types";
+import {
+  ACCENT_COLOR_BY_ID,
+  DEFAULT_ACCENT_COLOR_ID,
+} from "../theme/accent-colors";
 import {
   DEFAULT_FONT_SIZE,
   DEFAULT_UI_SCALE,
@@ -22,6 +27,7 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
   fontFamily: "jetbrains-mono",
   fontSize: DEFAULT_FONT_SIZE,
   uiScale: DEFAULT_UI_SCALE,
+  accentColorId: DEFAULT_ACCENT_COLOR_ID,
 };
 
 function clampFontSize(n: number): number {
@@ -41,6 +47,9 @@ export function normalizeAppearance(
   if (!(merged.terminalThemeId in TERMINAL_THEMES)) {
     merged.terminalThemeId = DEFAULT_APPEARANCE.terminalThemeId;
   }
+  if (!(merged.accentColorId in ACCENT_COLOR_BY_ID)) {
+    merged.accentColorId = DEFAULT_APPEARANCE.accentColorId;
+  }
   return merged;
 }
 
@@ -58,6 +67,11 @@ export function setAppTheme(id: AppThemeId): void {
 export function setTerminalTheme(id: TerminalThemeId): void {
   if (getState().appearance.terminalThemeId === id) return;
   update({ terminalThemeId: id });
+}
+
+export function setAccentColor(id: AccentColorId): void {
+  if (getState().appearance.accentColorId === id) return;
+  update({ accentColorId: id });
 }
 
 export function setFontFamily(id: FontFamilyId): void {

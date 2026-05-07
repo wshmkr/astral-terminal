@@ -73,6 +73,10 @@ export const APP_PALETTES: Record<AppThemeId, AppPalette> = {
   light: LIGHT_PALETTE,
 };
 
+export function withAccent(palette: AppPalette, accentHex: string): AppPalette {
+  return { ...palette, primary: accentHex };
+}
+
 export const APP_THEME_OPTIONS: Array<{ value: AppThemeId; label: string }> = [
   { value: "dark", label: "Dark" },
   { value: "light", label: "Light" },

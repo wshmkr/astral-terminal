@@ -1,4 +1,5 @@
 export {
+  setAccentColor,
   setAppTheme,
   setFontFamily,
   setFontSize,
