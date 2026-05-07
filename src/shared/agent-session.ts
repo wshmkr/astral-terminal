@@ -1,4 +1,4 @@
-import sessionScript from "./hooks/agent-session.sh?raw";
+import sessionScript from "./agent-hooks/agent-session.sh?raw";
 import { APP_PACKAGE_NAME } from "./meta";
 
 export const AGENT_SESSION_OSC_IDENT = 778;
