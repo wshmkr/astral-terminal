@@ -10,9 +10,14 @@ import "./components/Terminal/terminal.css";
 bootStore();
 window.app.setUiZoom(getState().appearance.uiScale);
 
+declare global {
+  interface Window {
+    showWelcome?: () => void;
+  }
+}
+
 if (import.meta.env.DEV) {
-  (window as unknown as { showWelcome: () => void }).showWelcome = () =>
-    setWelcomeOpen(true);
+  window.showWelcome = () => setWelcomeOpen(true);
 }
 
 const rootEl = document.getElementById("root");
