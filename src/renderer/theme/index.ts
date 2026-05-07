@@ -1,8 +1,4 @@
-import {
-  createTheme,
-  type PaletteOptions,
-  type Theme,
-} from "@mui/material/styles";
+import { createTheme, type PaletteOptions } from "@mui/material/styles";
 import {
   APP_PALETTES,
   type AppPalette,
@@ -35,12 +31,8 @@ function paletteFromApp(p: AppPalette): PaletteOptions {
   };
 }
 
-const themeCache = new Map<string, Theme>();
-
-export function buildTheme(accentHex: string): Theme {
-  const cached = themeCache.get(accentHex);
-  if (cached) return cached;
-  const theme = createTheme({
+export function buildTheme(accentHex: string) {
+  return createTheme({
     cssVariables: { colorSchemeSelector: "data-mui-color-scheme" },
     defaultColorScheme: "dark",
     colorSchemes: {
@@ -67,6 +59,4 @@ export function buildTheme(accentHex: string): Theme {
       },
     },
   });
-  themeCache.set(accentHex, theme);
-  return theme;
 }

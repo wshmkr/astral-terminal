@@ -5,7 +5,10 @@ import type {
   FontFamilyId,
   TerminalThemeId,
 } from "../../shared/types";
-import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR_ID } from "../theme/accent-colors";
+import {
+  ACCENT_COLOR_BY_ID,
+  DEFAULT_ACCENT_COLOR_ID,
+} from "../theme/accent-colors";
 import {
   DEFAULT_FONT_SIZE,
   DEFAULT_UI_SCALE,
@@ -44,7 +47,7 @@ export function normalizeAppearance(
   if (!(merged.terminalThemeId in TERMINAL_THEMES)) {
     merged.terminalThemeId = DEFAULT_APPEARANCE.terminalThemeId;
   }
-  if (!(merged.accentColorId in ACCENT_COLORS)) {
+  if (!(merged.accentColorId in ACCENT_COLOR_BY_ID)) {
     merged.accentColorId = DEFAULT_APPEARANCE.accentColorId;
   }
   return merged;

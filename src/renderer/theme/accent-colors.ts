@@ -8,30 +8,23 @@ export interface AccentColorOption {
   hex: string;
 }
 
-export const ACCENT_COLORS: Record<AccentColorId, AccentColorOption> = {
-  blue: { id: "blue", label: "Blue", hex: "#0078d4" },
-  purple: { id: "purple", label: "Purple", hex: "#8b5cf6" },
-  pink: { id: "pink", label: "Pink", hex: "#ec4899" },
-  red: { id: "red", label: "Red", hex: "#ef4444" },
-  orange: { id: "orange", label: "Orange", hex: "#f97316" },
-  yellow: { id: "yellow", label: "Yellow", hex: "#eab308" },
-  green: { id: "green", label: "Green", hex: "#22c55e" },
-  teal: { id: "teal", label: "Teal", hex: "#14b8a6" },
-};
-
-export const ACCENT_COLOR_OPTIONS: ReadonlyArray<AccentColorOption> = [
-  ACCENT_COLORS.blue,
-  ACCENT_COLORS.teal,
-  ACCENT_COLORS.green,
-  ACCENT_COLORS.yellow,
-  ACCENT_COLORS.orange,
-  ACCENT_COLORS.red,
-  ACCENT_COLORS.pink,
-  ACCENT_COLORS.purple,
+export const ACCENT_COLOR_OPTIONS: AccentColorOption[] = [
+  { id: "blue", label: "Blue", hex: "#0078d4" },
+  { id: "teal", label: "Teal", hex: "#14b8a6" },
+  { id: "green", label: "Green", hex: "#22c55e" },
+  { id: "yellow", label: "Yellow", hex: "#eab308" },
+  { id: "orange", label: "Orange", hex: "#f97316" },
+  { id: "red", label: "Red", hex: "#ef4444" },
+  { id: "pink", label: "Pink", hex: "#ec4899" },
+  { id: "purple", label: "Purple", hex: "#8b5cf6" },
 ];
+
+export const ACCENT_COLOR_BY_ID = Object.fromEntries(
+  ACCENT_COLOR_OPTIONS.map((o) => [o.id, o]),
+) as Record<AccentColorId, AccentColorOption>;
 
 export const DEFAULT_ACCENT_COLOR_ID: AccentColorId = "blue";
 
 export function resolveAccentHex(id: AccentColorId): string {
-  return (ACCENT_COLORS[id] ?? ACCENT_COLORS[DEFAULT_ACCENT_COLOR_ID]).hex;
+  return ACCENT_COLOR_BY_ID[id].hex;
 }
