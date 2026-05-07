@@ -138,8 +138,7 @@ function purgeOwnHooks(
         });
         if (filtered.length === 0) continue;
         kept.push({ ...e, hooks: filtered });
-      } else if (isOwnHookCommand(e.command)) {
-      } else {
+      } else if (!isOwnHookCommand(e.command)) {
         kept.push(entry);
       }
     }
