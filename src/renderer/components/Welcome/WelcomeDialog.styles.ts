@@ -11,8 +11,6 @@ export const BACKDROP_SX = {
 } as const;
 
 export const PAPER_SX = {
-  alignItems: "center",
-  justifyContent: "center",
   userSelect: "none",
   overflow: "auto",
   bgcolor: DARK_PALETTE.bgPaper,
@@ -24,6 +22,7 @@ export const CONTENT_STACK_SX = {
   width: "100%",
   maxWidth: 900,
   flexShrink: 0,
+  m: "auto",
 } as const;
 
 export const HEADER_TITLE_SX = {
@@ -58,6 +57,11 @@ export const SUBHEAD_HELP_ICON_SX = {
   cursor: "help",
 } as const;
 export const SECTION_BODY_SX = { pl: 3.25 } as const;
+
+export const FORM_COL_SX = {
+  width: 388,
+  flexShrink: 0,
+} as const;
 
 export const PREVIEW_COL_SX = {
   flex: "0 0 480px",

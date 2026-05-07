@@ -36,6 +36,7 @@ import {
   CHECKBOX_SX,
   CONTENT_STACK_SX,
   DIALOG_SX,
+  FORM_COL_SX,
   HEADER_BRAND_SX,
   HEADER_TITLE_SX,
   PAPER_SX,
@@ -117,7 +118,7 @@ export function WelcomeDialog() {
       aria-labelledby="welcome-title"
     >
       <Stack direction="row" spacing={4} sx={CONTENT_STACK_SX}>
-        <Stack sx={{ flex: 1, minWidth: 0 }}>
+        <Stack sx={FORM_COL_SX}>
           <Box sx={{ mb: 4 }}>
             <Typography id="welcome-title" variant="h4" sx={HEADER_TITLE_SX}>
               Welcome to{" "}
