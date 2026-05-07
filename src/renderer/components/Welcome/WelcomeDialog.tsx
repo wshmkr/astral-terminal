@@ -110,9 +110,9 @@ export function WelcomeDialog() {
       open={open}
       onClose={() => {}}
       slotProps={{
-        transition: { onExited: dismissWelcome },
+        transition: { appear: false, onExited: dismissWelcome },
         paper: { elevation: 0, sx: PAPER_SX },
-        backdrop: { sx: BACKDROP_SX },
+        backdrop: { sx: BACKDROP_SX, appear: false },
       }}
       sx={DIALOG_SX}
       aria-labelledby="welcome-title"
