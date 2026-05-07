@@ -7,6 +7,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import {
   memo,
@@ -20,8 +24,10 @@ import {
 import {
   VscAdd,
   VscChromeClose,
+  VscGlobe,
   VscSplitHorizontal,
   VscSplitVertical,
+  VscTerminal,
 } from "react-icons/vsc";
 import type {
   AppState,
@@ -177,6 +183,55 @@ function TabBarActions({ paneId }: { paneId: string }) {
   );
 }
 
+function NewTabButton({ paneId }: { paneId: string }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  return (
+    <>
+      <Tooltip title="New Terminal Tab">
+        <IconButton
+          size="small"
+          onClick={() => addSurface(paneId, "terminal")}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setAnchor(e.currentTarget);
+          }}
+          sx={ADD_TAB_BUTTON_SX}
+        >
+          <VscAdd size={14} />
+        </IconButton>
+      </Tooltip>
+      <Menu
+        open={anchor !== null}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+      >
+        <MenuItem
+          onClick={() => {
+            addSurface(paneId, "terminal");
+            setAnchor(null);
+          }}
+        >
+          <ListItemIcon>
+            <VscTerminal size={16} />
+          </ListItemIcon>
+          <ListItemText>New Terminal Tab</ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            addSurface(paneId, "browser");
+            setAnchor(null);
+          }}
+        >
+          <ListItemIcon>
+            <VscGlobe size={16} />
+          </ListItemIcon>
+          <ListItemText>New Browser Tab</ListItemText>
+        </MenuItem>
+      </Menu>
+    </>
+  );
+}
+
 function onTabScrollerWheel(e: React.WheelEvent<HTMLDivElement>) {
   if (e.deltaY !== 0) {
     e.currentTarget.scrollLeft += e.deltaY;
@@ -274,15 +329,7 @@ function TabbedPaneImpl({ pane }: Props) {
               );
             })}
           </SortableContext>
-          <Tooltip title="New Tab">
-            <IconButton
-              size="small"
-              onClick={() => addSurface(pane.id)}
-              sx={ADD_TAB_BUTTON_SX}
-            >
-              <VscAdd size={14} />
-            </IconButton>
-          </Tooltip>
+          <NewTabButton paneId={pane.id} />
         </Box>
         {lastSurfaceId && (
           <TabEndDropZone paneId={pane.id} lastSurfaceId={lastSurfaceId}>

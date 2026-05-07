@@ -2,6 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PaneNode, Surface, Workspace } from "../../shared/types";
+import { BrowserPane } from "../components/Browser/BrowserPane";
 import { forEachLeaf } from "../components/Layout/pane-tree";
 import { TerminalPane } from "../components/Terminal/TerminalPane";
 import { useSurfaceBody } from "./SurfaceBodyRegistry";
@@ -43,6 +44,15 @@ function SurfaceView({
     case "terminal":
       return (
         <TerminalPane
+          workspaceId={workspaceId}
+          paneId={paneId}
+          surface={surface}
+          isVisible={isVisible}
+        />
+      );
+    case "browser":
+      return (
+        <BrowserPane
           workspaceId={workspaceId}
           paneId={paneId}
           surface={surface}

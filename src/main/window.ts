@@ -1,8 +1,9 @@
 import path from "node:path";
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow } from "electron";
 import { APP_NAME, DEV_SUFFIX } from "../shared/meta";
 import { encodeAppModeArg, INITIAL_WINDOW_BG, IPC } from "../shared/types";
 import { APP_MODE, IS_DEV } from "./env";
+import { attachExternalLinkHandler } from "./external-links";
 import {
   loadWindowState,
   MIN_WINDOW_HEIGHT,
@@ -80,15 +81,7 @@ export function createWindow(): void {
     },
   );
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    try {
-      const u = new URL(url);
-      if (u.protocol === "http:" || u.protocol === "https:") {
-        shell.openExternal(url);
-      }
-    } catch {}
-    return { action: "deny" };
-  });
+  attachExternalLinkHandler(mainWindow.webContents);
 
   mainWindow.webContents.on("will-navigate", (event, url) => {
     if (DEV_URL && url.startsWith(DEV_URL)) return;

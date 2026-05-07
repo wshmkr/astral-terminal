@@ -27,11 +27,40 @@ export interface TerminalSurface {
   cwd: string;
 }
 
-export type Surface = TerminalSurface;
+export interface BrowserSurface {
+  type: "browser";
+  id: string;
+  name: string;
+  initialUrl: string;
+}
+
+export type Surface = TerminalSurface | BrowserSurface;
+export type SurfaceKind = Surface["type"];
 
 export function isTerminalSurface(s: Surface): s is TerminalSurface {
   return s.type === "terminal";
 }
+
+export function isBrowserSurface(s: Surface): s is BrowserSurface {
+  return s.type === "browser";
+}
+
+export interface BrowserState {
+  url: string;
+  title: string;
+  isLoading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
+export interface BrowserBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export const DEFAULT_BROWSER_URL = "about:blank";
 
 export interface LeafPane {
   kind: "leaf";
@@ -210,8 +239,22 @@ export const IPC = {
     uninstall: "agent-hooks:uninstall",
     status: "agent-hooks:status",
   },
+  browser: {
+    create: "browser:create",
+    destroy: "browser:destroy",
+    setBounds: "browser:set-bounds",
+    setVisible: "browser:set-visible",
+    loadURL: "browser:load-url",
+    goBack: "browser:go-back",
+    goForward: "browser:go-forward",
+    reload: "browser:reload",
+    stop: "browser:stop",
+    focus: "browser:focus",
+  },
 } as const;
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;
 export const ptyExitChannel = (ptyId: string) => `pty:exit:${ptyId}`;
 export const ptyCwdChannel = (ptyId: string) => `pty:cwd:${ptyId}`;
+export const browserStateChannel = (surfaceId: string) =>
+  `browser:state:${surfaceId}`;

@@ -5,8 +5,10 @@ import {
   type AgentName,
   agentProviders,
 } from "../shared/agent-hooks";
+import { isValidSurfaceId } from "../shared/surface-id";
 import {
   type AppConfig,
+  type BrowserBounds,
   IPC,
   type NotificationFirePayload,
   type PersistedSettings,
@@ -19,13 +21,10 @@ import {
   getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
+import type { BrowserManager } from "./browser-manager";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
-
-const SURFACE_ID_PATTERN = /^[A-Za-z0-9_.-]{1,128}$/;
-const isValidSurfaceId = (id: unknown): id is string =>
-  typeof id === "string" && SURFACE_ID_PATTERN.test(id);
 
 interface PtyDeps {
   getPtyManager: () => Promise<PtyManager>;
@@ -192,4 +191,68 @@ export function registerAgentHookIpc(): void {
       Record<AgentName, AgentHookStatus>
     >;
   });
+}
+
+interface BrowserDeps {
+  browserManager: BrowserManager;
+}
+
+function ensureSurfaceId(value: unknown): string {
+  if (!isValidSurfaceId(value)) {
+    throw new Error("browser ipc: invalid surfaceId");
+  }
+  return value;
+}
+
+const NO_ARG_BROWSER_OPS: ReadonlyArray<
+  [string, "goBack" | "goForward" | "reload" | "stop" | "focus"]
+> = [
+  [IPC.browser.goBack, "goBack"],
+  [IPC.browser.goForward, "goForward"],
+  [IPC.browser.reload, "reload"],
+  [IPC.browser.stop, "stop"],
+  [IPC.browser.focus, "focus"],
+];
+
+export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
+  ipcMain.on(
+    IPC.browser.create,
+    (_event, msg: { surfaceId: string; initialUrl: string }) => {
+      browserManager.create(
+        ensureSurfaceId(msg.surfaceId),
+        msg.initialUrl ?? "about:blank",
+      );
+    },
+  );
+
+  ipcMain.on(IPC.browser.destroy, (_event, msg: { surfaceId: string }) => {
+    browserManager.destroy(ensureSurfaceId(msg.surfaceId));
+  });
+
+  ipcMain.on(
+    IPC.browser.setBounds,
+    (_event, msg: { surfaceId: string; bounds: BrowserBounds }) => {
+      browserManager.setBounds(ensureSurfaceId(msg.surfaceId), msg.bounds);
+    },
+  );
+
+  ipcMain.on(
+    IPC.browser.setVisible,
+    (_event, msg: { surfaceId: string; visible: boolean }) => {
+      browserManager.setVisible(ensureSurfaceId(msg.surfaceId), msg.visible);
+    },
+  );
+
+  ipcMain.on(
+    IPC.browser.loadURL,
+    (_event, msg: { surfaceId: string; url: string }) => {
+      browserManager.loadURL(ensureSurfaceId(msg.surfaceId), msg.url);
+    },
+  );
+
+  for (const [channel, method] of NO_ARG_BROWSER_OPS) {
+    ipcMain.on(channel, (_event, msg: { surfaceId: string }) => {
+      browserManager[method](ensureSurfaceId(msg.surfaceId));
+    });
+  }
 }

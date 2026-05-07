@@ -1,4 +1,5 @@
 import {
+  DEFAULT_BROWSER_URL,
   DEFAULT_CWD,
   type LeafPane,
   type Surface,
@@ -16,6 +17,15 @@ export function createTerminalSurface(cwd?: string): Surface {
     id: generateId(),
     name: DEFAULT_CWD,
     cwd: resolvedCwd,
+  };
+}
+
+export function createBrowserSurface(initialUrl?: string): Surface {
+  return {
+    type: "browser",
+    id: generateId(),
+    name: "New Tab",
+    initialUrl: initialUrl || DEFAULT_BROWSER_URL,
   };
 }
 
