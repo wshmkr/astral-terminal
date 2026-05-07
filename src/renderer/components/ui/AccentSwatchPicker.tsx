@@ -1,5 +1,6 @@
-import ButtonBase from "@mui/material/ButtonBase";
-import Stack from "@mui/material/Stack";
+import Box from "@mui/material/Box";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
 import Tooltip from "@mui/material/Tooltip";
 import {
   ACCENT_COLOR_OPTIONS,
@@ -16,56 +17,64 @@ interface Props {
   onChange: (id: AccentColorId) => void;
 }
 
+function SwatchIcon({ hex, selected }: { hex: string; selected: boolean }) {
+  return (
+    <Box
+      sx={{
+        width: FOCUS_PAD,
+        height: FOCUS_PAD,
+        borderRadius: "50%",
+        position: "relative",
+        display: "grid",
+        placeItems: "center",
+        "& .swatch-dot": {
+          width: SWATCH_SIZE,
+          height: SWATCH_SIZE,
+          borderRadius: "50%",
+          bgcolor: hex,
+          transition: "transform 120ms ease",
+        },
+        "&::after": selected
+          ? {
+              content: '""',
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: `${RING_THICKNESS}px solid ${hex}`,
+              pointerEvents: "none",
+            }
+          : undefined,
+      }}
+    >
+      <span className="swatch-dot" />
+    </Box>
+  );
+}
+
 export function AccentSwatchPicker({ value, onChange }: Props) {
   return (
-    <Stack
-      direction="row"
-      spacing={0.5}
-      role="radiogroup"
+    <RadioGroup
+      row
+      value={value}
+      onChange={(_, v) => onChange(v as AccentColorId)}
       aria-label="Accent color"
+      sx={{ gap: 0.5, flexWrap: "nowrap" }}
     >
-      {ACCENT_COLOR_OPTIONS.map((opt) => {
-        const selected = opt.id === value;
-        return (
-          <Tooltip key={opt.id} title={opt.label} disableInteractive>
-            <ButtonBase
-              role="radio"
-              aria-checked={selected}
-              aria-label={opt.label}
-              onClick={() => onChange(opt.id)}
-              focusRipple
-              sx={{
-                width: FOCUS_PAD,
-                height: FOCUS_PAD,
-                borderRadius: "50%",
-                position: "relative",
-                "&:hover .swatch-dot": {
-                  transform: "scale(1.08)",
-                },
-                "& .swatch-dot": {
-                  width: SWATCH_SIZE,
-                  height: SWATCH_SIZE,
-                  borderRadius: "50%",
-                  bgcolor: opt.hex,
-                  transition: "transform 120ms ease",
-                },
-                "&::after": selected
-                  ? {
-                      content: '""',
-                      position: "absolute",
-                      inset: 0,
-                      borderRadius: "50%",
-                      border: `${RING_THICKNESS}px solid ${opt.hex}`,
-                      pointerEvents: "none",
-                    }
-                  : undefined,
-              }}
-            >
-              <span className="swatch-dot" />
-            </ButtonBase>
-          </Tooltip>
-        );
-      })}
-    </Stack>
+      {ACCENT_COLOR_OPTIONS.map((opt) => (
+        <Tooltip key={opt.id} title={opt.label} disableInteractive>
+          <Radio
+            value={opt.id}
+            disableRipple
+            icon={<SwatchIcon hex={opt.hex} selected={false} />}
+            checkedIcon={<SwatchIcon hex={opt.hex} selected={true} />}
+            slotProps={{ input: { "aria-label": opt.label } }}
+            sx={{
+              p: 0,
+              "&:hover .swatch-dot": { transform: "scale(1.08)" },
+            }}
+          />
+        </Tooltip>
+      ))}
+    </RadioGroup>
   );
 }
