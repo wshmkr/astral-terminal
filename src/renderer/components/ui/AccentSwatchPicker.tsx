@@ -1,6 +1,7 @@
 import Box from "@mui/material/Box";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
+import { styled } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import {
   ACCENT_COLOR_OPTIONS,
@@ -10,30 +11,30 @@ import {
 const SWATCH_SIZE = 20;
 const RING_GAP = 2;
 const RING_THICKNESS = 2;
-const FOCUS_PAD = SWATCH_SIZE + (RING_GAP + RING_THICKNESS) * 2;
+const OUTER_SIZE = SWATCH_SIZE + (RING_GAP + RING_THICKNESS) * 2;
 
 interface Props {
   value: AccentColorId;
   onChange: (id: AccentColorId) => void;
 }
 
+const SwatchDot = styled("span")({
+  width: SWATCH_SIZE,
+  height: SWATCH_SIZE,
+  borderRadius: "50%",
+  transition: "transform 120ms ease",
+});
+
 function SwatchIcon({ hex, selected }: { hex: string; selected: boolean }) {
   return (
     <Box
       sx={{
-        width: FOCUS_PAD,
-        height: FOCUS_PAD,
+        width: OUTER_SIZE,
+        height: OUTER_SIZE,
         borderRadius: "50%",
         position: "relative",
         display: "grid",
         placeItems: "center",
-        "& .swatch-dot": {
-          width: SWATCH_SIZE,
-          height: SWATCH_SIZE,
-          borderRadius: "50%",
-          bgcolor: hex,
-          transition: "transform 120ms ease",
-        },
         "&::after": selected
           ? {
               content: '""',
@@ -46,7 +47,7 @@ function SwatchIcon({ hex, selected }: { hex: string; selected: boolean }) {
           : undefined,
       }}
     >
-      <span className="swatch-dot" />
+      <SwatchDot style={{ backgroundColor: hex }} />
     </Box>
   );
 }
@@ -70,7 +71,7 @@ export function AccentSwatchPicker({ value, onChange }: Props) {
             slotProps={{ input: { "aria-label": opt.label } }}
             sx={{
               p: 0,
-              "&:hover .swatch-dot": { transform: "scale(1.08)" },
+              [`&:hover ${SwatchDot}`]: { transform: "scale(1.08)" },
             }}
           />
         </Tooltip>
