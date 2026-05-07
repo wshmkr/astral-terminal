@@ -16,10 +16,9 @@ interface ParsedAgentSessionOsc extends AgentSession {
 }
 
 function decodeBase64Utf8(s: string): string | undefined {
-  if (!s) return undefined;
   try {
-    const decoded = Buffer.from(s, "base64").toString("utf-8");
-    return decoded.length > 0 ? decoded : undefined;
+    const bytes = Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes) || undefined;
   } catch {
     return undefined;
   }

@@ -234,7 +234,12 @@ export class PtyManager {
 
     const isWindows = process.platform === "win32";
     const shell = isWindows ? "wsl.exe" : "/bin/sh";
-    const effectiveCwd = restoredAgentSession?.cwd ?? cwd;
+    // On Windows, restoredCwd is a WSL path we can't stat from the host;
+    // trust it. On Linux, verify so a deleted worktree falls back cleanly.
+    const restoredCwd = restoredAgentSession?.cwd;
+    const restoredCwdUsable =
+      !!restoredCwd && (isWindows || fs.existsSync(restoredCwd));
+    const effectiveCwd = restoredCwdUsable ? restoredCwd : cwd;
     const wslCwd = effectiveCwd || DEFAULT_CWD;
     const args = buildShellArgs({
       isWindows,
