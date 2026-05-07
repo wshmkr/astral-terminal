@@ -6,14 +6,17 @@ import { promisify } from "node:util";
 import {
   type AgentHookProvider,
   findAgentProvider,
-  HOOK_MARKER,
-  HOOK_MARKER_PREFIX,
-  HOOK_MARKER_VERSION,
-} from "../shared/agent-hooks";
+} from "../../shared/agent-hooks";
 import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
-} from "../shared/types";
+} from "../../shared/types";
+import {
+  buildAgentHooksConfig,
+  HOOK_MARKER,
+  HOOK_MARKER_PREFIX,
+  HOOK_MARKER_VERSION,
+} from "./build";
 
 const pathLocks = new Map<string, Promise<unknown>>();
 const execFileAsync = promisify(execFile);
@@ -205,7 +208,7 @@ async function runConfigure(
       existing,
       (v) => isOwnHookCommand(v) && !isCurrentHookCommand(v),
     );
-    const { hooks } = provider.generateHooksConfig();
+    const { hooks } = buildAgentHooksConfig(provider.name);
     const expectedCount = countHookCommands(hooks, isCurrentHookCommand);
     const currentCount = countHookCommands(existing, isCurrentHookCommand);
 

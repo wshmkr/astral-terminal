@@ -6,15 +6,16 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
-import { findAgentProvider, resumeCommandFor } from "../shared/agent-hooks";
+import { findAgentProvider } from "../shared/agent-hooks";
+import { APP_PACKAGE_NAME } from "../shared/meta";
+import { windowsPtyOptions } from "../shared/pty-options";
+import { type AppConfig, DEFAULT_CWD } from "../shared/types";
 import {
   AGENT_SESSION_OSC_IDENT,
   type AgentSession,
   parseAgentSessionOsc,
-} from "../shared/agent-session";
-import { APP_PACKAGE_NAME } from "../shared/meta";
-import { windowsPtyOptions } from "../shared/pty-options";
-import { type AppConfig, DEFAULT_CWD } from "../shared/types";
+  resumeCommandFor,
+} from "./agent-hooks/osc";
 
 const HEADLESS_SCROLLBACK = 10000;
 const SERIALIZE_SCROLLBACK = 5000;

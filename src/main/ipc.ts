@@ -10,7 +10,7 @@ import {
 import {
   configureAgentHooks,
   uninstallAgentHooks,
-} from "./agent-hook-installer";
+} from "./agent-hooks/installer";
 import { PtyManager } from "./pty-manager";
 import { focusMainWindow } from "./window";
 

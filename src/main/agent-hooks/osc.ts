@@ -1,5 +1,4 @@
-import sessionScript from "./agent-hooks/agent-session.sh?raw";
-import { APP_PACKAGE_NAME } from "./meta";
+import { findAgentProvider } from "../../shared/agent-hooks";
 
 export const AGENT_SESSION_OSC_IDENT = 778;
 
@@ -36,20 +35,12 @@ export function parseAgentSessionOsc(
   return { agentName, event, sessionId, cwd };
 }
 
-export function shellSingleQuote(s: string): string {
-  return `'${s.replace(/'/g, "'\\''")}'`;
-}
-
-export function buildSessionHookShellCommand(opts: {
-  agentName: string;
-  event: AgentSessionEvent;
-  hookMarker: string;
-}): string {
-  return `: ${opts.hookMarker}
-if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then
-AGENT_OSC=${AGENT_SESSION_OSC_IDENT}
-AGENT_NAME=${shellSingleQuote(opts.agentName)}
-AGENT_EVENT=${shellSingleQuote(opts.event)}
-${sessionScript}
-fi`;
+export function resumeCommandFor(
+  session: AgentSession | undefined,
+): string | undefined {
+  if (!session) return undefined;
+  const provider = findAgentProvider(session.agentName);
+  if (!provider) return undefined;
+  if (!provider.sessionIdPattern.test(session.sessionId)) return undefined;
+  return provider.resumeCommand(session.sessionId);
 }
