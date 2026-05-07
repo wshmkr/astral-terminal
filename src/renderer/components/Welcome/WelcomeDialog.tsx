@@ -7,19 +7,26 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { VscArrowRight } from "react-icons/vsc";
 import { agentProviders } from "../../../shared/agent-hooks";
-import type { AppThemeId, TerminalThemeId } from "../../../shared/types";
+import type {
+  AccentColorId,
+  AppThemeId,
+  TerminalThemeId,
+} from "../../../shared/types";
 import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {
   dismissWelcome,
+  setAccentColor,
   setAppTheme,
   setTerminalTheme,
   useWorkspaceStore,
 } from "../../store";
+import { resolveAccentHex } from "../../theme/accent-colors";
 import { MONO_FONT_STACK } from "../../theme/fonts";
 import {
   APP_PALETTES,
   APP_THEME_OPTIONS,
   DARK_PALETTE,
+  withAccent,
 } from "../../theme/palettes";
 import {
   TERMINAL_THEME_OPTIONS,
@@ -30,7 +37,13 @@ import {
   NoHooksAlert,
   PROVIDER_ICONS,
 } from "../Settings/NotificationsSection";
-import { LabeledSelect, SettingRow } from "../Settings/shared";
+import {
+  FIELD_LABEL_SX,
+  FIELD_SX,
+  LabeledSelect,
+  SettingRow,
+} from "../Settings/shared";
+import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";
 import { TITLE_BAR_HEIGHT } from "../ui/TitleBar";
 import { ThemePreview } from "./ThemePreview";
 
@@ -96,6 +109,9 @@ export function WelcomeDialog() {
   const persistedTerminalTheme = useWorkspaceStore(
     (s) => s.appearance.terminalThemeId,
   );
+  const persistedAccentColor = useWorkspaceStore(
+    (s) => s.appearance.accentColorId,
+  );
   const hooks = useWorkspaceStore((s) => s.notificationSettings.agentHooks);
   const { toggle, pending, errors } = useAgentHookToggle();
 
@@ -104,6 +120,8 @@ export function WelcomeDialog() {
   const [draftTerminalTheme, setDraftTerminalTheme] = useState<TerminalThemeId>(
     persistedTerminalTheme,
   );
+  const [draftAccentColor, setDraftAccentColor] =
+    useState<AccentColorId>(persistedAccentColor);
   const [open, setOpen] = useState(true);
 
   const noHooksEnabled = agentProviders.every((p) => !hooks[p.name]);
@@ -111,6 +129,7 @@ export function WelcomeDialog() {
   const handleGetStarted = () => {
     setAppTheme(draftAppTheme);
     setTerminalTheme(draftTerminalTheme);
+    setAccentColor(draftAccentColor);
     setOpen(false);
   };
 
@@ -167,6 +186,13 @@ export function WelcomeDialog() {
                   onChange={setDraftTerminalTheme}
                   maxWidth={240}
                 />
+                <Box sx={FIELD_SX}>
+                  <Typography sx={FIELD_LABEL_SX}>Accent</Typography>
+                  <AccentSwatchPicker
+                    value={draftAccentColor}
+                    onChange={setDraftAccentColor}
+                  />
+                </Box>
               </Stack>
             </Stack>
 
@@ -229,7 +255,10 @@ export function WelcomeDialog() {
 
         <Box sx={PREVIEW_COL_SX}>
           <ThemePreview
-            appPalette={APP_PALETTES[draftAppTheme]}
+            appPalette={withAccent(
+              APP_PALETTES[draftAppTheme],
+              resolveAccentHex(draftAccentColor),
+            )}
             terminalTheme={TERMINAL_THEMES[draftTerminalTheme]}
           />
         </Box>

@@ -3,6 +3,7 @@ import Divider from "@mui/material/Divider";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
+  setAccentColor,
   setAppTheme,
   setFontFamily,
   setFontSize,
@@ -18,6 +19,7 @@ import {
 } from "../../theme/fonts";
 import { APP_THEME_OPTIONS } from "../../theme/palettes";
 import { TERMINAL_THEME_OPTIONS } from "../../theme/terminal-themes";
+import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";
 import {
   DIVIDER_SX,
   FIELD_LABEL_SX,
@@ -60,6 +62,14 @@ export function AppearanceSection() {
         onChange={setUiScale}
         maxWidth={160}
       />
+
+      <Box sx={FIELD_SX}>
+        <Typography sx={FIELD_LABEL_SX}>Accent</Typography>
+        <AccentSwatchPicker
+          value={appearance.accentColorId}
+          onChange={setAccentColor}
+        />
+      </Box>
 
       <Divider sx={DIVIDER_SX} />
 

@@ -99,7 +99,7 @@ export function NotificationPanel() {
           onClick={(e) => setAnchorEl(e.currentTarget)}
           sx={BELL_BUTTON_SX}
         >
-          <Badge badgeContent={totalUnread} color="error" sx={BADGE_SX}>
+          <Badge badgeContent={totalUnread} color="primary" sx={BADGE_SX}>
             <VscBell size={16} />
           </Badge>
         </IconButton>
