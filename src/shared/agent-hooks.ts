@@ -6,7 +6,7 @@ import {
 import { APP_PACKAGE_NAME } from "./meta";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "3";
+export const HOOK_MARKER_VERSION = "4";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
@@ -111,7 +111,13 @@ const claudeProvider: AgentHookProvider<"Claude"> = {
             hooks: [notifyHook(s.askUserQuestion)],
           },
         ],
-        Stop: [{ hooks: [notifyHook(s.stop), session("update")] }],
+        PostToolUse: [
+          {
+            matcher: "EnterWorktree|ExitWorktree",
+            hooks: [session("update")],
+          },
+        ],
+        Stop: [{ hooks: [notifyHook(s.stop)] }],
         SessionStart: [{ hooks: [session("start")] }],
         SessionEnd: [{ hooks: [session("end")] }],
       },
