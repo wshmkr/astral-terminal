@@ -14,18 +14,20 @@ export const ACCENT_COLORS: Record<AccentColorId, AccentColorOption> = {
   pink: { id: "pink", label: "Pink", hex: "#ec4899" },
   red: { id: "red", label: "Red", hex: "#ef4444" },
   orange: { id: "orange", label: "Orange", hex: "#f97316" },
+  yellow: { id: "yellow", label: "Yellow", hex: "#eab308" },
   green: { id: "green", label: "Green", hex: "#22c55e" },
   teal: { id: "teal", label: "Teal", hex: "#14b8a6" },
 };
 
 export const ACCENT_COLOR_OPTIONS: ReadonlyArray<AccentColorOption> = [
   ACCENT_COLORS.blue,
-  ACCENT_COLORS.purple,
-  ACCENT_COLORS.pink,
-  ACCENT_COLORS.red,
-  ACCENT_COLORS.orange,
-  ACCENT_COLORS.green,
   ACCENT_COLORS.teal,
+  ACCENT_COLORS.green,
+  ACCENT_COLORS.yellow,
+  ACCENT_COLORS.orange,
+  ACCENT_COLORS.red,
+  ACCENT_COLORS.pink,
+  ACCENT_COLORS.purple,
 ];
 
 export const DEFAULT_ACCENT_COLOR_ID: AccentColorId = "blue";

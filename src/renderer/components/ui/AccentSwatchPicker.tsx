@@ -6,7 +6,7 @@ import {
   type AccentColorId,
 } from "../../theme/accent-colors";
 
-const SWATCH_SIZE = 22;
+const SWATCH_SIZE = 20;
 const RING_GAP = 2;
 const RING_THICKNESS = 2;
 const FOCUS_PAD = SWATCH_SIZE + (RING_GAP + RING_THICKNESS) * 2;
@@ -20,7 +20,7 @@ export function AccentSwatchPicker({ value, onChange }: Props) {
   return (
     <Stack
       direction="row"
-      spacing={1}
+      spacing={0.5}
       role="radiogroup"
       aria-label="Accent color"
     >

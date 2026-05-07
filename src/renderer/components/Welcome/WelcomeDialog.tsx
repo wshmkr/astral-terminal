@@ -187,7 +187,7 @@ export function WelcomeDialog() {
                   maxWidth={240}
                 />
                 <Box sx={FIELD_SX}>
-                  <Typography sx={FIELD_LABEL_SX}>Accent</Typography>
+                  <Typography sx={FIELD_LABEL_SX}>Accent color</Typography>
                   <AccentSwatchPicker
                     value={draftAccentColor}
                     onChange={setDraftAccentColor}

@@ -113,6 +113,7 @@ export type AccentColorId =
   | "pink"
   | "red"
   | "orange"
+  | "yellow"
   | "green"
   | "teal";
 
