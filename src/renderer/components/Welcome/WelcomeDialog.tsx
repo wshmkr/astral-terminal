@@ -8,11 +8,11 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { type ReactNode, useState } from "react";
 import { VscArrowRight, VscQuestion } from "react-icons/vsc";
-import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
+import { agentProviders } from "../../../shared/agent-hooks";
 import type { AppThemeId, TerminalThemeId } from "../../../shared/types";
+import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {
   dismissWelcome,
-  setAgentHook,
   setAppTheme,
   setTerminalTheme,
   useWorkspaceStore,
@@ -82,36 +82,21 @@ export function WelcomeDialog() {
   const persistedTerminalTheme = useWorkspaceStore(
     (s) => s.appearance.terminalThemeId,
   );
-  const persistedHooks = useWorkspaceStore(
-    (s) => s.notificationSettings.agentHooks,
-  );
+  const hooks = useWorkspaceStore((s) => s.notificationSettings.agentHooks);
+  const { toggle, pending, errors } = useAgentHookToggle();
 
   const [draftAppTheme, setDraftAppTheme] =
     useState<AppThemeId>(persistedAppTheme);
   const [draftTerminalTheme, setDraftTerminalTheme] = useState<TerminalThemeId>(
     persistedTerminalTheme,
   );
-  const [draftHooks, setDraftHooks] = useState<
-    Partial<Record<AgentName, boolean>>
-  >(() =>
-    Object.fromEntries(
-      agentProviders.map((p) => [p.name, !!persistedHooks[p.name]]),
-    ),
-  );
-  const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(true);
 
-  const noHooksEnabled = agentProviders.every((p) => !draftHooks[p.name]);
+  const noHooksEnabled = agentProviders.every((p) => !hooks[p.name]);
 
-  const handleGetStarted = async () => {
-    setSubmitting(true);
+  const handleGetStarted = () => {
     setAppTheme(draftAppTheme);
     setTerminalTheme(draftTerminalTheme);
-    await Promise.allSettled(
-      agentProviders
-        .filter((p) => !!draftHooks[p.name] !== !!persistedHooks[p.name])
-        .map((p) => setAgentHook(p.name, !!draftHooks[p.name])),
-    );
     setOpen(false);
   };
 
@@ -164,22 +149,21 @@ export function WelcomeDialog() {
                 >
                   {agentProviders.map((p) => {
                     const { icon: Icon, color } = PROVIDER_ICONS[p.name];
+                    const error = errors[p.name];
                     return (
                       <SettingRow
                         key={p.name}
                         title={p.name}
                         icon={<Icon size={16} color={color} />}
+                        description={error}
+                        descriptionTone={error ? "error" : "default"}
                         control={
                           <Checkbox
                             size="small"
                             sx={CHECKBOX_SX}
-                            checked={!!draftHooks[p.name]}
-                            onChange={(_, checked) =>
-                              setDraftHooks((h) => ({
-                                ...h,
-                                [p.name]: checked,
-                              }))
-                            }
+                            checked={!!hooks[p.name]}
+                            disabled={!!pending[p.name]}
+                            onChange={(_, checked) => toggle(p.name, checked)}
                           />
                         }
                       />
@@ -202,7 +186,6 @@ export function WelcomeDialog() {
                   fullWidth
                   onClick={handleGetStarted}
                   autoFocus
-                  disabled={submitting}
                   endIcon={<VscArrowRight />}
                   sx={BUTTON_SX}
                 >

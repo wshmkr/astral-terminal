@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import type { ReactNode } from "react";
 import type { TerminalTheme } from "../../../../shared/types";
 import type { AppPalette } from "../../../theme/palettes";
-import { TAB_BAR_HEIGHT } from "../ThemePreview.styles";
+import { TAB_BAR_HEIGHT } from "../ThemePreview";
 import { TerminalSample } from "./TerminalSample";
 
 interface PaneTab {

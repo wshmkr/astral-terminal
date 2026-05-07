@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { VscBell } from "react-icons/vsc";
 import type { AppPalette } from "../../../theme/palettes";
-import { SIDEBAR_WIDTH, TAB_BAR_HEIGHT } from "../ThemePreview.styles";
+import { SIDEBAR_WIDTH, TAB_BAR_HEIGHT } from "../ThemePreview";
 
 interface PreviewSurface {
   id: string;
