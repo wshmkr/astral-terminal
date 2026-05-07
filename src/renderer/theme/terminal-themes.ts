@@ -58,9 +58,9 @@ export const TERMINAL_THEMES: Record<TerminalThemeId, TerminalTheme> = {
 };
 
 export const TERMINAL_THEME_OPTIONS: Array<{
-  id: TerminalThemeId;
+  value: TerminalThemeId;
   label: string;
 }> = [
-  { id: "one-half-dark", label: "One Half Dark" },
-  { id: "one-half-light", label: "One Half Light" },
+  { value: "one-half-dark", label: "One Half Dark" },
+  { value: "one-half-light", label: "One Half Light" },
 ];

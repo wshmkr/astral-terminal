@@ -31,21 +31,6 @@ const TEXTFIELD_SX = {
   "& .MuiInputBase-input": { py: 0.5 },
 } as const;
 
-const APP_THEME_OPTS = APP_THEME_OPTIONS.map((o) => ({
-  value: o.id,
-  label: o.label,
-}));
-
-const UI_SCALE_OPTS = UI_SCALE_OPTIONS.map((o) => ({
-  value: o.value,
-  label: o.label,
-}));
-
-const TERMINAL_THEME_OPTS = TERMINAL_THEME_OPTIONS.map((o) => ({
-  value: o.id,
-  label: o.label,
-}));
-
 const FONT_OPTS = FONT_OPTIONS.map((o) => ({
   value: o.id,
   label: <span style={{ fontFamily: o.stack }}>{o.label}</span>,
@@ -63,7 +48,7 @@ export function AppearanceSection() {
       <LabeledSelect
         label="Theme"
         value={appearance.appThemeId}
-        options={APP_THEME_OPTS}
+        options={APP_THEME_OPTIONS}
         onChange={setAppTheme}
         maxWidth={160}
       />
@@ -71,7 +56,7 @@ export function AppearanceSection() {
       <LabeledSelect
         label="UI scale"
         value={appearance.uiScale}
-        options={UI_SCALE_OPTS}
+        options={UI_SCALE_OPTIONS}
         onChange={setUiScale}
         maxWidth={160}
       />
@@ -85,7 +70,7 @@ export function AppearanceSection() {
       <LabeledSelect
         label="Theme"
         value={appearance.terminalThemeId}
-        options={TERMINAL_THEME_OPTS}
+        options={TERMINAL_THEME_OPTIONS}
         onChange={setTerminalTheme}
         maxWidth={240}
       />
