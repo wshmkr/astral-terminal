@@ -3,6 +3,7 @@ import type {
   AppConfig,
   AppMode,
   BrowserBounds,
+  BrowserCommand,
   BrowserState,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
@@ -60,16 +61,12 @@ export interface AppAPI {
     callback: (maximized: boolean) => void,
   ) => () => void;
 
-  createBrowserView: (surfaceId: string, initialUrl: string) => void;
-  destroyBrowserView: (surfaceId: string) => void;
+  createBrowser: (surfaceId: string, initialUrl: string) => void;
+  destroyBrowser: (surfaceId: string) => void;
   setBrowserBounds: (surfaceId: string, bounds: BrowserBounds) => void;
   setBrowserVisible: (surfaceId: string, visible: boolean) => void;
   loadBrowserURL: (surfaceId: string, url: string) => void;
-  browserGoBack: (surfaceId: string) => void;
-  browserGoForward: (surfaceId: string) => void;
-  browserReload: (surfaceId: string) => void;
-  browserStop: (surfaceId: string) => void;
-  focusBrowser: (surfaceId: string) => void;
+  browserCommand: (surfaceId: string, cmd: BrowserCommand) => void;
   onBrowserState: (
     surfaceId: string,
     callback: (state: BrowserState) => void,

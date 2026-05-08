@@ -8,7 +8,9 @@ import {
 import { isValidSurfaceId } from "../shared/surface-id";
 import {
   type AppConfig,
+  BROWSER_COMMANDS,
   type BrowserBounds,
+  type BrowserCommand,
   IPC,
   type NotificationFirePayload,
   type PersistedSettings,
@@ -208,10 +210,7 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   ipcMain.on(
     IPC.browser.create,
     (_event, msg: { surfaceId: string; initialUrl: string }) => {
-      browserManager.create(
-        ensureSurfaceId(msg.surfaceId),
-        msg.initialUrl ?? "about:blank",
-      );
+      browserManager.create(ensureSurfaceId(msg.surfaceId), msg.initialUrl);
     },
   );
 
@@ -240,23 +239,11 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
     },
   );
 
-  ipcMain.on(IPC.browser.goBack, (_event, msg: { surfaceId: string }) => {
-    browserManager.goBack(ensureSurfaceId(msg.surfaceId));
-  });
-
-  ipcMain.on(IPC.browser.goForward, (_event, msg: { surfaceId: string }) => {
-    browserManager.goForward(ensureSurfaceId(msg.surfaceId));
-  });
-
-  ipcMain.on(IPC.browser.reload, (_event, msg: { surfaceId: string }) => {
-    browserManager.reload(ensureSurfaceId(msg.surfaceId));
-  });
-
-  ipcMain.on(IPC.browser.stop, (_event, msg: { surfaceId: string }) => {
-    browserManager.stop(ensureSurfaceId(msg.surfaceId));
-  });
-
-  ipcMain.on(IPC.browser.focus, (_event, msg: { surfaceId: string }) => {
-    browserManager.focus(ensureSurfaceId(msg.surfaceId));
-  });
+  ipcMain.on(
+    IPC.browser.command,
+    (_event, msg: { surfaceId: string; cmd: BrowserCommand }) => {
+      if (!BROWSER_COMMANDS.has(msg.cmd)) return;
+      browserManager[msg.cmd](ensureSurfaceId(msg.surfaceId));
+    },
+  );
 }

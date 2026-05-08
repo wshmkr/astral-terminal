@@ -22,7 +22,7 @@ export class BrowserController {
     this.anchor = opts.anchor;
     this.onState = opts.onState;
 
-    window.app.createBrowserView(opts.surfaceId, opts.initialUrl);
+    window.app.createBrowser(opts.surfaceId, opts.initialUrl);
     this.unsubscribeState = window.app.onBrowserState(
       opts.surfaceId,
       (state) => {
@@ -87,20 +87,20 @@ export class BrowserController {
   }
 
   goBack(): void {
-    window.app.browserGoBack(this.surfaceId);
+    window.app.browserCommand(this.surfaceId, "goBack");
   }
   goForward(): void {
-    window.app.browserGoForward(this.surfaceId);
+    window.app.browserCommand(this.surfaceId, "goForward");
   }
   reload(): void {
-    window.app.browserReload(this.surfaceId);
+    window.app.browserCommand(this.surfaceId, "reload");
   }
   stop(): void {
-    window.app.browserStop(this.surfaceId);
+    window.app.browserCommand(this.surfaceId, "stop");
   }
   focus(): void {
     if (this.disposed) return;
-    window.app.focusBrowser(this.surfaceId);
+    window.app.browserCommand(this.surfaceId, "focus");
   }
 
   dispose(): void {
@@ -114,6 +114,6 @@ export class BrowserController {
     this.resizeObserver = null;
     this.unsubscribeState?.();
     this.unsubscribeState = null;
-    window.app.destroyBrowserView(this.surfaceId);
+    window.app.destroyBrowser(this.surfaceId);
   }
 }

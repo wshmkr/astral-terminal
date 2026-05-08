@@ -245,13 +245,24 @@ export const IPC = {
     setBounds: "browser:set-bounds",
     setVisible: "browser:set-visible",
     loadURL: "browser:load-url",
-    goBack: "browser:go-back",
-    goForward: "browser:go-forward",
-    reload: "browser:reload",
-    stop: "browser:stop",
-    focus: "browser:focus",
+    command: "browser:command",
   },
 } as const;
+
+export type BrowserCommand =
+  | "goBack"
+  | "goForward"
+  | "reload"
+  | "stop"
+  | "focus";
+
+export const BROWSER_COMMANDS: ReadonlySet<BrowserCommand> = new Set([
+  "goBack",
+  "goForward",
+  "reload",
+  "stop",
+  "focus",
+]);
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;
 export const ptyExitChannel = (ptyId: string) => `pty:exit:${ptyId}`;

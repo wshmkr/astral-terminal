@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import type {
   BrowserBounds,
+  BrowserCommand,
   BrowserState,
   NotificationFirePayload,
   PersistedSettings,
@@ -98,9 +99,9 @@ contextBridge.exposeInMainWorld("app", {
     ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
   getAgentHookStatuses: () => ipcRenderer.invoke(IPC.agentHooks.status),
 
-  createBrowserView: (surfaceId: string, initialUrl: string) =>
+  createBrowser: (surfaceId: string, initialUrl: string) =>
     ipcRenderer.send(IPC.browser.create, { surfaceId, initialUrl }),
-  destroyBrowserView: (surfaceId: string) =>
+  destroyBrowser: (surfaceId: string) =>
     ipcRenderer.send(IPC.browser.destroy, { surfaceId }),
   setBrowserBounds: (surfaceId: string, bounds: BrowserBounds) =>
     ipcRenderer.send(IPC.browser.setBounds, { surfaceId, bounds }),
@@ -108,16 +109,8 @@ contextBridge.exposeInMainWorld("app", {
     ipcRenderer.send(IPC.browser.setVisible, { surfaceId, visible }),
   loadBrowserURL: (surfaceId: string, url: string) =>
     ipcRenderer.send(IPC.browser.loadURL, { surfaceId, url }),
-  browserGoBack: (surfaceId: string) =>
-    ipcRenderer.send(IPC.browser.goBack, { surfaceId }),
-  browserGoForward: (surfaceId: string) =>
-    ipcRenderer.send(IPC.browser.goForward, { surfaceId }),
-  browserReload: (surfaceId: string) =>
-    ipcRenderer.send(IPC.browser.reload, { surfaceId }),
-  browserStop: (surfaceId: string) =>
-    ipcRenderer.send(IPC.browser.stop, { surfaceId }),
-  focusBrowser: (surfaceId: string) =>
-    ipcRenderer.send(IPC.browser.focus, { surfaceId }),
+  browserCommand: (surfaceId: string, cmd: BrowserCommand) =>
+    ipcRenderer.send(IPC.browser.command, { surfaceId, cmd }),
   onBrowserState: (
     surfaceId: string,
     callback: (state: BrowserState) => void,
