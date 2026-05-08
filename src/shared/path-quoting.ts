@@ -1,5 +1,5 @@
 export function quoteForPosixShell(path: string): string {
-  return `'${path.replace(/'/g, "'\\''")}'`;
+  return `"${path.replace(/(["\\$`])/g, "\\$1")}"`;
 }
 
 const WIN_DRIVE_RE = /^([A-Za-z]):[\\/]/;
