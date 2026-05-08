@@ -3,6 +3,7 @@ import type { NotificationFirePayload } from "../shared/types";
 import {
   decodeAppModeArg,
   IPC,
+  ptyCwdChannel,
   ptyDataChannel,
   ptyExitChannel,
 } from "../shared/types";
@@ -47,6 +48,8 @@ contextBridge.exposeInMainWorld("app", {
     ptyId: string,
     callback: (exitCode: number, signal?: number) => void,
   ) => subscribe<[number, number | undefined]>(ptyExitChannel(ptyId), callback),
+  onPtyCwd: (ptyId: string, callback: (cwd: string) => void) =>
+    subscribe<[string]>(ptyCwdChannel(ptyId), callback),
 
   setUiZoom: (factor: number) => webFrame.setZoomFactor(factor),
 

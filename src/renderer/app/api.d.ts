@@ -27,6 +27,7 @@ export interface AppAPI {
     ptyId: string,
     callback: (exitCode: number, signal?: number) => void,
   ) => () => void;
+  onPtyCwd: (ptyId: string, callback: (cwd: string) => void) => () => void;
   configureAgentHooks: (params: {
     providerName: string;
   }) => Promise<ConfigureAgentHooksResult>;
