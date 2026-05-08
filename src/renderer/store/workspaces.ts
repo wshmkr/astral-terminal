@@ -192,10 +192,13 @@ export function closePane(paneId: string): void {
 }
 
 export function setFocusedPane(id: string): void {
-  const s = getState();
-  if (s.focusedPaneId === id) return;
-  setState({ ...s, focusedPaneId: id });
-  notify();
+  const ws = getActiveWorkspace();
+  const surfaceId = ws && findLeafPane(ws.layout, id)?.activeSurfaceId;
+  const notifsChanged =
+    ws && surfaceId ? markSurfaceNotificationsRead(ws.id, surfaceId) : false;
+  const paneChanged = getState().focusedPaneId !== id;
+  if (paneChanged) setState({ ...getState(), focusedPaneId: id });
+  if (paneChanged || notifsChanged) notify();
 }
 
 export function renameSurface(
