@@ -8,7 +8,15 @@ import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   VscAdd,
   VscChromeClose,
@@ -223,9 +231,21 @@ function TabbedPaneImpl({ pane }: Props) {
     [registerSurfaceBody, pane.id],
   );
 
+  // Native capture listener: clicks inside portaled terminal slots don't reach
+  // React's synthetic onMouseDownCapture (the portal parent is elsewhere in
+  // the React tree), but they do bubble through the real DOM.
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const onDown = () => setFocusedPane(pane.id);
+    el.addEventListener("mousedown", onDown, { capture: true });
+    return () => el.removeEventListener("mousedown", onDown, { capture: true });
+  }, [pane.id]);
+
   return (
     <Box
-      onMouseDownCapture={() => setFocusedPane(pane.id)}
+      ref={wrapperRef}
       sx={[
         ROOT_SX,
         showAttentionOutline && ATTENTION_OUTLINE_SX,
