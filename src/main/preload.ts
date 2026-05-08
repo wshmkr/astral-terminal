@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, webFrame } from "electron";
+import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import type { NotificationFirePayload } from "../shared/types";
 import {
   decodeAppModeArg,
@@ -47,6 +47,8 @@ contextBridge.exposeInMainWorld("app", {
     ptyId: string,
     callback: (exitCode: number, signal?: number) => void,
   ) => subscribe<[number, number | undefined]>(ptyExitChannel(ptyId), callback),
+
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 
   setUiZoom: (factor: number) => webFrame.setZoomFactor(factor),
 
