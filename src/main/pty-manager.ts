@@ -301,6 +301,9 @@ export class PtyManager {
       if (!provider.sessionIdPattern.test(parsed.sessionId)) return false;
       const { agentName, event, sessionId, cwd: parsedCwd } = parsed;
       if (event === "start") {
+        // Launch cwd is where ~/.claude/projects/<encoded>/<sid>.jsonl lives;
+        // EnterWorktree updates the per-message cwd but never moves the file,
+        // so we freeze this for resume and only forward updates to the surface
         entry.agentSession = { agentName, sessionId, cwd: parsedCwd };
         this.writeMeta(entry.surfaceId, entry.agentSession);
         if (parsedCwd) callbacks?.onAgentCwd?.(parsedCwd);
@@ -309,11 +312,7 @@ export class PtyManager {
         entry.agentSession.sessionId === sessionId
       ) {
         if (event === "update") {
-          if (parsedCwd && parsedCwd !== entry.agentSession.cwd) {
-            entry.agentSession.cwd = parsedCwd;
-            this.writeMeta(entry.surfaceId, entry.agentSession);
-            callbacks?.onAgentCwd?.(parsedCwd);
-          }
+          if (parsedCwd) callbacks?.onAgentCwd?.(parsedCwd);
         } else {
           entry.agentSession = undefined;
           this.deleteMeta(entry.surfaceId);
