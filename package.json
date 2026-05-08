@@ -2,7 +2,7 @@
   "name": "astral-terminal",
   "productName": "Astral Terminal",
   "productNameShort": "Astral",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Terminal multiplexer for AI coding agents on Windows/WSL",
   "private": true,
   "homepage": "https://github.com/wshmkr/astral-terminal",

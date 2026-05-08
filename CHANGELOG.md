@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.3.0](https://github.com/wshmkr/astral-terminal/compare/v0.2.1...v0.3.0) (2026-05-08)
+
+
+### Features
+
+* add first-run welcome splash ([#20](https://github.com/wshmkr/astral-terminal/issues/20)) ([621a78f](https://github.com/wshmkr/astral-terminal/commit/621a78fb41a743ed6f31af68a6591df9928332e2))
+* drag tabs across panes while keeping terminals alive ([#26](https://github.com/wshmkr/astral-terminal/issues/26)) ([b4bc211](https://github.com/wshmkr/astral-terminal/commit/b4bc2114364c09259d9a3ac44f7a7e1db8d67bf1))
+* drag to reorder tabs within a pane ([#27](https://github.com/wshmkr/astral-terminal/issues/27)) ([de0d1c0](https://github.com/wshmkr/astral-terminal/commit/de0d1c09079b8ceb2755aa59154e8d4a76b9c17a))
+* drag to reorder workspaces in the sidebar ([#25](https://github.com/wshmkr/astral-terminal/issues/25)) ([84f039c](https://github.com/wshmkr/astral-terminal/commit/84f039c051e8db6fbec7e6e3a9052b9f605d16ab))
+* drag-and-drop file paths and text into terminal ([#38](https://github.com/wshmkr/astral-terminal/issues/38)) ([b2a483a](https://github.com/wshmkr/astral-terminal/commit/b2a483afe37e805f73c31b5aea84bdaadaec85a4))
+* highlight panes and sidebar previews with unread activity ([#19](https://github.com/wshmkr/astral-terminal/issues/19)) ([c209906](https://github.com/wshmkr/astral-terminal/commit/c209906746e7d0251c6dc76afe168b02ebbe8a0d))
+* let users pick the app accent color ([#32](https://github.com/wshmkr/astral-terminal/issues/32)) ([e662b87](https://github.com/wshmkr/astral-terminal/commit/e662b876cd959a0f2dab4444e582ba8a15be8917))
+* persist window size and position across restarts ([#31](https://github.com/wshmkr/astral-terminal/issues/31)) ([25b79f1](https://github.com/wshmkr/astral-terminal/commit/25b79f1198721b5f86c7abe9f5072f581bb230f3))
+* show app version in settings dialog ([#24](https://github.com/wshmkr/astral-terminal/issues/24)) ([71c14ac](https://github.com/wshmkr/astral-terminal/commit/71c14acea884ded09640364d7ae8d64d20d1a55d))
+
+
+### Bug Fixes
+
+* clear pane attention outline when clicking the terminal area ([#39](https://github.com/wshmkr/astral-terminal/issues/39)) ([10149cb](https://github.com/wshmkr/astral-terminal/commit/10149cbe1a03c47287426929a784d80457c6db33))
+* dark native theme to hide maximized white edge sliver ([#36](https://github.com/wshmkr/astral-terminal/issues/36)) ([d045732](https://github.com/wshmkr/astral-terminal/commit/d0457328534a2e9c65f3b59eef708dbf5b9bf1b8))
+* keep agent-session cwd at launch dir so resume works ([#41](https://github.com/wshmkr/astral-terminal/issues/41)) ([f9c1932](https://github.com/wshmkr/astral-terminal/commit/f9c1932eb050d618f520177ed2ad6f7d8e48230c))
+* preserve Claude session cwd across worktree changes ([#29](https://github.com/wshmkr/astral-terminal/issues/29)) ([6b4142c](https://github.com/wshmkr/astral-terminal/commit/6b4142c8e4d94d4764592ff45cb23aa6c88acfa3))
+* propagate Claude worktree cwd to renderer surface ([#35](https://github.com/wshmkr/astral-terminal/issues/35)) ([b49136e](https://github.com/wshmkr/astral-terminal/commit/b49136e2e0648fa08c9dca23b003eeb079c1b063))
+
 ## [0.2.1](https://github.com/wshmkr/astral-terminal/compare/v0.2.0...v0.2.1) (2026-04-27)
 
 
