@@ -33,10 +33,7 @@ export class BrowserController {
     this.scheduleSync();
     this.resizeObserver = new ResizeObserver(() => this.scheduleSync());
     this.resizeObserver.observe(this.anchor);
-    window.addEventListener("resize", this.handleWindowResize);
   }
-
-  private handleWindowResize = () => this.scheduleSync();
 
   private scheduleSync(): void {
     if (this.disposed) return;
@@ -115,7 +112,6 @@ export class BrowserController {
     }
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
-    window.removeEventListener("resize", this.handleWindowResize);
     this.unsubscribeState?.();
     this.unsubscribeState = null;
     window.app.destroyBrowserView(this.surfaceId);

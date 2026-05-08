@@ -204,16 +204,6 @@ function ensureSurfaceId(value: unknown): string {
   return value;
 }
 
-const NO_ARG_BROWSER_OPS: ReadonlyArray<
-  [string, "goBack" | "goForward" | "reload" | "stop" | "focus"]
-> = [
-  [IPC.browser.goBack, "goBack"],
-  [IPC.browser.goForward, "goForward"],
-  [IPC.browser.reload, "reload"],
-  [IPC.browser.stop, "stop"],
-  [IPC.browser.focus, "focus"],
-];
-
 export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   ipcMain.on(
     IPC.browser.create,
@@ -250,9 +240,23 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
     },
   );
 
-  for (const [channel, method] of NO_ARG_BROWSER_OPS) {
-    ipcMain.on(channel, (_event, msg: { surfaceId: string }) => {
-      browserManager[method](ensureSurfaceId(msg.surfaceId));
-    });
-  }
+  ipcMain.on(IPC.browser.goBack, (_event, msg: { surfaceId: string }) => {
+    browserManager.goBack(ensureSurfaceId(msg.surfaceId));
+  });
+
+  ipcMain.on(IPC.browser.goForward, (_event, msg: { surfaceId: string }) => {
+    browserManager.goForward(ensureSurfaceId(msg.surfaceId));
+  });
+
+  ipcMain.on(IPC.browser.reload, (_event, msg: { surfaceId: string }) => {
+    browserManager.reload(ensureSurfaceId(msg.surfaceId));
+  });
+
+  ipcMain.on(IPC.browser.stop, (_event, msg: { surfaceId: string }) => {
+    browserManager.stop(ensureSurfaceId(msg.surfaceId));
+  });
+
+  ipcMain.on(IPC.browser.focus, (_event, msg: { surfaceId: string }) => {
+    browserManager.focus(ensureSurfaceId(msg.surfaceId));
+  });
 }

@@ -1,11 +1,14 @@
 import {
   type BrowserWindow,
+  session,
   type WebContents,
   WebContentsView,
 } from "electron";
 import type { BrowserBounds, BrowserState } from "../shared/types";
-import { getBrowserSession } from "./browser-session";
-import { attachExternalLinkHandler } from "./external-links";
+
+// Browser surfaces use a separate persistent partition so cookies/storage are
+// isolated from the app shell and to escape the renderer's strict CSP
+const BROWSER_PARTITION = "persist:browser-default";
 
 interface Entry {
   view: WebContentsView;
@@ -65,7 +68,7 @@ export class BrowserManager {
 
     const view = new WebContentsView({
       webPreferences: {
-        session: getBrowserSession(),
+        session: session.fromPartition(BROWSER_PARTITION),
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: true,
@@ -76,7 +79,6 @@ export class BrowserManager {
     this.window.contentView.addChildView(view);
 
     const wc = view.webContents;
-    attachExternalLinkHandler(wc);
 
     const entry: Entry = {
       view,
@@ -118,11 +120,7 @@ export class BrowserManager {
     this.entries.delete(surfaceId);
     try {
       entry.view.webContents.removeAllListeners();
-    } catch {}
-    try {
       this.window.contentView.removeChildView(entry.view);
-    } catch {}
-    try {
       entry.view.webContents.close();
     } catch {}
   }
