@@ -231,10 +231,8 @@ function TabbedPaneImpl({ pane }: Props) {
     [registerSurfaceBody, pane.id],
   );
 
-  // Native capture listener: clicks inside portaled terminal slots don't reach
-  // React's synthetic onMouseDownCapture (the portal parent is elsewhere in
-  // the React tree), but they do bubble through the real DOM.
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  // Native listener: portaled terminal clicks bypass React synthetic events
+  const wrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
