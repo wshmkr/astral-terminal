@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, nativeTheme, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import type { AppConfig } from "../shared/types";
@@ -60,6 +60,8 @@ function installCsp() {
     });
   });
 }
+
+nativeTheme.themeSource = "dark";
 
 app.whenReady().then(() => {
   installCsp();
