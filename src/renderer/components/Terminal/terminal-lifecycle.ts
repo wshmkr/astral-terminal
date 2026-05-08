@@ -7,6 +7,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import { windowsPtyOptions } from "../../../shared/pty-options";
 import type { AppConfig, TerminalTheme } from "../../../shared/types";
+import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
 
 const RESIZE_DEBOUNCE_MS = 100;
@@ -190,6 +191,7 @@ export class TerminalController {
 
     this.cleanupFns.push(
       attachClipboardHandlers(term, opts.container, opts.onRequestFind),
+      attachDropHandlers(opts.container, term, () => opts.getLiveSurface().cwd),
     );
 
     this.resizeObserver = new ResizeObserver(() => {

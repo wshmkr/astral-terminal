@@ -22,6 +22,7 @@ export interface AppAPI {
     ptyId: string,
   ) => Promise<{ cols: number; rows: number; content: string }>;
   pruneTerminalBuffers: (surfaceIds: string[]) => Promise<void>;
+  getPathForFile: (file: File) => string;
   onPtyData: (ptyId: string, callback: (data: string) => void) => () => void;
   onPtyExit: (
     ptyId: string,
