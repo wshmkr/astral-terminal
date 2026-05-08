@@ -79,6 +79,7 @@ function buildShellArgs(opts: {
 export interface PtyCallbacks {
   onData?: (data: string) => void;
   onExit?: (exitCode: number, signal?: number) => void;
+  onAgentCwd?: (cwd: string) => void;
 }
 
 export interface CreatePtyOptions {
@@ -302,6 +303,7 @@ export class PtyManager {
       if (event === "start") {
         entry.agentSession = { agentName, sessionId, cwd: parsedCwd };
         this.writeMeta(entry.surfaceId, entry.agentSession);
+        if (parsedCwd) callbacks?.onAgentCwd?.(parsedCwd);
       } else if (
         entry.agentSession?.agentName === agentName &&
         entry.agentSession.sessionId === sessionId
@@ -310,6 +312,7 @@ export class PtyManager {
           if (parsedCwd && parsedCwd !== entry.agentSession.cwd) {
             entry.agentSession.cwd = parsedCwd;
             this.writeMeta(entry.surfaceId, entry.agentSession);
+            callbacks?.onAgentCwd?.(parsedCwd);
           }
         } else {
           entry.agentSession = undefined;

@@ -4,6 +4,7 @@ import {
   type AppConfig,
   IPC,
   type NotificationFirePayload,
+  ptyCwdChannel,
   ptyDataChannel,
   ptyExitChannel,
 } from "../shared/types";
@@ -57,6 +58,9 @@ export function registerPtyIpc({
               exitCode,
               signal,
             );
+          },
+          onAgentCwd: (cwd) => {
+            getMainWindow()?.webContents.send(ptyCwdChannel(ptyId), cwd);
           },
         }),
       });

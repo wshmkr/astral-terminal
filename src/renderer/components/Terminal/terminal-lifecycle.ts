@@ -314,6 +314,10 @@ export class TerminalController {
         if (this.disposed) return;
         this.term.write("\r\n\x1b[90m[Process exited]\x1b[0m\r\n");
       }),
+      window.app.onPtyCwd(id, (cwd) => {
+        if (this.disposed) return;
+        if (cwd !== this.opts.getLiveSurface().cwd) this.opts.onCwdChange(cwd);
+      }),
     );
 
     const replay = await window.app.replayPty(id);

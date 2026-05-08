@@ -195,3 +195,4 @@ export const IPC = {
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;
 export const ptyExitChannel = (ptyId: string) => `pty:exit:${ptyId}`;
+export const ptyCwdChannel = (ptyId: string) => `pty:cwd:${ptyId}`;
