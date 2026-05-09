@@ -1,6 +1,7 @@
 import {
   type BrowserWindow,
   session,
+  shell,
   type WebContents,
   WebContentsView,
 } from "electron";
@@ -79,6 +80,15 @@ export class BrowserManager {
     this.window.contentView.addChildView(view);
 
     const wc = view.webContents;
+    wc.setWindowOpenHandler(({ url }) => {
+      try {
+        const u = new URL(url);
+        if (u.protocol === "http:" || u.protocol === "https:") {
+          shell.openExternal(url);
+        }
+      } catch {}
+      return { action: "deny" };
+    });
 
     const entry: Entry = {
       view,
