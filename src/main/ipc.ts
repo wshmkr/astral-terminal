@@ -8,10 +8,10 @@ import {
 import { isValidSurfaceId } from "../shared/surface-id";
 import {
   type AppConfig,
-  BROWSER_COMMANDS,
   type BrowserBounds,
   type BrowserCommand,
   IPC,
+  isBrowserCommand,
   type NotificationFirePayload,
   type PersistedSettings,
   ptyCwdChannel,
@@ -242,7 +242,7 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   ipcMain.on(
     IPC.browser.command,
     (_event, msg: { surfaceId: string; cmd: BrowserCommand }) => {
-      if (!BROWSER_COMMANDS.has(msg.cmd)) return;
+      if (!isBrowserCommand(msg.cmd)) return;
       browserManager[msg.cmd](ensureSurfaceId(msg.surfaceId));
     },
   );

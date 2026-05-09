@@ -1,4 +1,8 @@
-import type { BrowserBounds, BrowserState } from "../../../shared/types";
+import type {
+  BrowserBounds,
+  BrowserCommand,
+  BrowserState,
+} from "../../../shared/types";
 
 interface ControllerOptions {
   surfaceId: string;
@@ -86,21 +90,9 @@ export class BrowserController {
     window.app.loadBrowserURL(this.surfaceId, url);
   }
 
-  goBack(): void {
-    window.app.browserCommand(this.surfaceId, "goBack");
-  }
-  goForward(): void {
-    window.app.browserCommand(this.surfaceId, "goForward");
-  }
-  reload(): void {
-    window.app.browserCommand(this.surfaceId, "reload");
-  }
-  stop(): void {
-    window.app.browserCommand(this.surfaceId, "stop");
-  }
-  focus(): void {
+  command(cmd: BrowserCommand): void {
     if (this.disposed) return;
-    window.app.browserCommand(this.surfaceId, "focus");
+    window.app.browserCommand(this.surfaceId, cmd);
   }
 
   dispose(): void {

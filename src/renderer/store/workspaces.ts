@@ -174,7 +174,9 @@ export function splitPane(
   const targetLeaf = findLeafPane(ws.layout, targetPaneId);
   const activeSurface = targetLeaf ? getActiveSurface(targetLeaf) : undefined;
   const cwd =
-    activeSurface && "cwd" in activeSurface ? activeSurface.cwd : undefined;
+    activeSurface && isTerminalSurface(activeSurface)
+      ? activeSurface.cwd
+      : undefined;
   const newLeaf = createLeafPane(cwd);
   const newLayout = mapNode(ws.layout, targetPaneId, (node) => ({
     kind: "split" as const,
@@ -247,7 +249,7 @@ export function addSurface(
   if (!ws) return;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const active = getActiveSurface(leaf);
-    const cwd = active && "cwd" in active ? active.cwd : undefined;
+    const cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
     const surface =
       kind === "browser" ? createBrowserSurface() : createTerminalSurface(cwd);
     return {

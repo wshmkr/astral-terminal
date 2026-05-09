@@ -256,13 +256,17 @@ export type BrowserCommand =
   | "stop"
   | "focus";
 
-export const BROWSER_COMMANDS: ReadonlySet<BrowserCommand> = new Set([
-  "goBack",
-  "goForward",
-  "reload",
-  "stop",
-  "focus",
-]);
+const BROWSER_COMMAND_TABLE: Record<BrowserCommand, true> = {
+  goBack: true,
+  goForward: true,
+  reload: true,
+  stop: true,
+  focus: true,
+};
+
+export function isBrowserCommand(x: unknown): x is BrowserCommand {
+  return typeof x === "string" && x in BROWSER_COMMAND_TABLE;
+}
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;
 export const ptyExitChannel = (ptyId: string) => `pty:exit:${ptyId}`;

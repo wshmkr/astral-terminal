@@ -132,7 +132,7 @@ export function BrowserPane({
   useEffect(() => {
     if (!isVisible) return;
     if (focusedPaneId !== paneId) return;
-    controllerRef.current?.focus();
+    controllerRef.current?.command("focus");
   }, [isVisible, focusedPaneId, paneId]);
 
   const submitUrl = () => {
@@ -145,8 +145,7 @@ export function BrowserPane({
   };
 
   const reloadOrStop = () => {
-    if (state.isLoading) controllerRef.current?.stop();
-    else controllerRef.current?.reload();
+    controllerRef.current?.command(state.isLoading ? "stop" : "reload");
   };
 
   return (
@@ -157,7 +156,7 @@ export function BrowserPane({
             <IconButton
               size="small"
               disabled={!state.canGoBack}
-              onClick={() => controllerRef.current?.goBack()}
+              onClick={() => controllerRef.current?.command("goBack")}
               sx={NAV_BUTTON_SX}
             >
               <VscArrowLeft size={16} />
@@ -169,7 +168,7 @@ export function BrowserPane({
             <IconButton
               size="small"
               disabled={!state.canGoForward}
-              onClick={() => controllerRef.current?.goForward()}
+              onClick={() => controllerRef.current?.command("goForward")}
               sx={NAV_BUTTON_SX}
             >
               <VscArrowRight size={16} />
