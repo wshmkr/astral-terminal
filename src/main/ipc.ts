@@ -147,9 +147,9 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
 
 export function registerSettingsIpc(): void {
   ipcMain.handle(IPC.settings.read, () => loadSettings());
-  ipcMain.on(IPC.settings.write, (_event, settings: PersistedSettings) => {
-    saveSettings(settings);
-  });
+  ipcMain.handle(IPC.settings.write, (_event, settings: PersistedSettings) =>
+    saveSettings(settings),
+  );
 }
 
 export function registerAgentHookIpc(): void {

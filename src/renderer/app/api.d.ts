@@ -12,7 +12,7 @@ export interface AppAPI {
   mode: AppMode;
   readConfig: () => Promise<AppConfig>;
   readSettings: () => Promise<PersistedSettings | null>;
-  writeSettings: (settings: PersistedSettings) => void;
+  writeSettings: (settings: PersistedSettings) => Promise<void>;
   createPty: (options: {
     cwd?: string;
     surfaceId: string;

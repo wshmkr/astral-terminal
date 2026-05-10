@@ -12,7 +12,9 @@ export function saveState(state: AppState): void {
     appearance: state.appearance,
     notificationSettings: state.notificationSettings,
   };
-  window.app.writeSettings(persisted);
+  window.app.writeSettings(persisted).catch((err) => {
+    console.error("Failed to save settings:", err);
+  });
 }
 
 export function loadState(): Promise<PersistedSettings | null> {

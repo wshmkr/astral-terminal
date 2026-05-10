@@ -44,10 +44,6 @@ export async function writeUserDataJsonAtomic(
 ): Promise<void> {
   const finalPath = userDataPath(fileName);
   const tmpPath = `${finalPath}.tmp`;
-  try {
-    await fs.promises.writeFile(tmpPath, JSON.stringify(value));
-    await fs.promises.rename(tmpPath, finalPath);
-  } catch (err) {
-    console.error(`${fileName}: save failed:`, err);
-  }
+  await fs.promises.writeFile(tmpPath, JSON.stringify(value));
+  await fs.promises.rename(tmpPath, finalPath);
 }

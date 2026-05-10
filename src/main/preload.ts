@@ -30,8 +30,8 @@ contextBridge.exposeInMainWorld("app", {
 
   readSettings: (): Promise<PersistedSettings | null> =>
     ipcRenderer.invoke(IPC.settings.read),
-  writeSettings: (settings: PersistedSettings) =>
-    ipcRenderer.send(IPC.settings.write, settings),
+  writeSettings: (settings: PersistedSettings): Promise<void> =>
+    ipcRenderer.invoke(IPC.settings.write, settings),
 
   createPty: (options: {
     cwd?: string;
