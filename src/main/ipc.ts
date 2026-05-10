@@ -4,6 +4,7 @@ import {
   type AppConfig,
   IPC,
   type NotificationFirePayload,
+  type PersistedSettings,
   ptyCwdChannel,
   ptyDataChannel,
   ptyExitChannel,
@@ -13,6 +14,7 @@ import {
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
 import { PtyManager } from "./pty-manager";
+import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
 
 interface PtyDeps {
@@ -134,6 +136,13 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
       });
     });
     notif.show();
+  });
+}
+
+export function registerSettingsIpc(): void {
+  ipcMain.handle(IPC.settings.read, () => loadSettings());
+  ipcMain.on(IPC.settings.write, (_event, settings: PersistedSettings) => {
+    saveSettings(settings);
   });
 }
 

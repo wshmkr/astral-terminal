@@ -3,12 +3,15 @@ import type {
   AppMode,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
+  PersistedSettings,
   UninstallAgentHooksResult,
 } from "../../shared/types";
 
 export interface AppAPI {
   mode: AppMode;
   readConfig: () => Promise<AppConfig>;
+  readSettings: () => Promise<PersistedSettings | null>;
+  writeSettings: (settings: PersistedSettings) => void;
   createPty: (options: {
     cwd?: string;
     surfaceId: string;

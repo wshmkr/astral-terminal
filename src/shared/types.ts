@@ -151,6 +151,14 @@ export type UninstallAgentHooksResult =
   | { status: "not-installed" }
   | { status: "error"; message: string };
 
+export interface PersistedSettings {
+  workspaces: Array<Omit<Workspace, "notifications">>;
+  activeWorkspaceId: string | null;
+  sidebarWidth?: number;
+  appearance?: AppearanceSettings;
+  notificationSettings?: NotificationSettings;
+}
+
 export interface AppState {
   workspaces: Workspace[];
   activeWorkspaceId: string | null;
@@ -186,6 +194,10 @@ export const IPC = {
   },
   config: {
     read: "config:read",
+  },
+  settings: {
+    read: "settings:read",
+    write: "settings:write",
   },
   agentHooks: {
     configure: "agent-hooks:configure",

@@ -13,8 +13,8 @@ import { DEFAULT_NOTIFICATION_SETTINGS } from "./preferences";
 const INITIAL_WINDOW_FOCUSED =
   typeof document !== "undefined" ? document.hasFocus() : true;
 
-function initState(): AppState {
-  const loaded = loadState();
+async function initState(): Promise<AppState> {
+  const loaded = await loadState();
   const isFirstRun = loaded === null;
   if (loaded && loaded.workspaces.length > 0) {
     const workspaces: Workspace[] = loaded.workspaces.map((pw) => ({
@@ -56,8 +56,8 @@ function initState(): AppState {
   };
 }
 
-export function bootStore(): void {
-  const initial = initState();
+export async function bootStore(): Promise<void> {
+  const initial = await initState();
   initializeStore(initial);
 
   if (typeof window !== "undefined" && window.app?.pruneTerminalBuffers) {
