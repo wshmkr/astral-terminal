@@ -32,6 +32,7 @@ export {
   clampSidebarWidth,
   dismissWelcome,
   setAgentHook,
+  setAgentHookStatuses,
   setSettingsOpen,
   setSidebarWidth,
   setWelcomeOpen,

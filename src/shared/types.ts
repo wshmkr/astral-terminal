@@ -1,4 +1,4 @@
-import type { AgentName } from "./agent-hooks";
+import type { AgentHookStatus, AgentName } from "./agent-hooks";
 
 export type AppMode = "packaged" | "dev";
 
@@ -97,7 +97,6 @@ export interface TerminalTheme {
 export interface NotificationSettings {
   soundEnabled: boolean;
   osNotificationsEnabled: boolean;
-  agentHooks: Partial<Record<AgentName, boolean>>;
 }
 
 export type AppThemeId = "dark" | "light";
@@ -168,6 +167,7 @@ export interface AppState {
   notificationSettings: NotificationSettings;
 
   // not persisted:
+  agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
   windowFocused: boolean;
   settingsOpen: boolean;
   welcomeOpen: boolean;
@@ -202,6 +202,7 @@ export const IPC = {
   agentHooks: {
     configure: "agent-hooks:configure",
     uninstall: "agent-hooks:uninstall",
+    status: "agent-hooks:status",
   },
 } as const;
 

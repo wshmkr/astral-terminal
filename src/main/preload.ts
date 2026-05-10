@@ -87,4 +87,5 @@ contextBridge.exposeInMainWorld("app", {
     ipcRenderer.invoke(IPC.agentHooks.configure, params),
   uninstallAgentHooks: (params: { providerName: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
+  getAgentHookStatuses: () => ipcRenderer.invoke(IPC.agentHooks.status),
 });

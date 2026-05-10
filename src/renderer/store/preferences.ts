@@ -1,4 +1,4 @@
-import type { AgentName } from "../../shared/agent-hooks";
+import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
   ConfigureAgentHooksResult,
   NotificationSettings,
@@ -13,7 +13,6 @@ import { commit, getState, notify, setState } from "./core";
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   soundEnabled: false,
   osNotificationsEnabled: false,
-  agentHooks: {},
 };
 
 export function clampSidebarWidth(
@@ -59,21 +58,22 @@ export async function setAgentHook(
     ? await window.app.configureAgentHooks({ providerName })
     : await window.app.uninstallAgentHooks({ providerName });
   if (result.status === "error") return result;
+  setAgentHookStatuses({ [providerName]: enabled ? "installed" : "missing" });
+  return result;
+}
+
+export function setAgentHookStatuses(
+  statuses: Partial<Record<AgentName, AgentHookStatus>>,
+): void {
   const s = getState();
-  if (s.notificationSettings.agentHooks[providerName] === enabled)
-    return result;
+  const entries = Object.entries(statuses) as [AgentName, AgentHookStatus][];
+  const changed = entries.some(([k, v]) => s.agentHookStatuses[k] !== v);
+  if (!changed) return;
   setState({
     ...s,
-    notificationSettings: {
-      ...s.notificationSettings,
-      agentHooks: {
-        ...s.notificationSettings.agentHooks,
-        [providerName]: enabled,
-      },
-    },
+    agentHookStatuses: { ...s.agentHookStatuses, ...statuses },
   });
-  commit();
-  return result;
+  notify();
 }
 
 export function setWindowFocused(focused: boolean): void {

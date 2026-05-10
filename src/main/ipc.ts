@@ -1,6 +1,11 @@
 import type { BrowserWindow } from "electron";
 import { ipcMain, Notification } from "electron";
 import {
+  type AgentHookStatus,
+  type AgentName,
+  agentProviders,
+} from "../shared/agent-hooks";
+import {
   type AppConfig,
   IPC,
   type NotificationFirePayload,
@@ -11,6 +16,7 @@ import {
 } from "../shared/types";
 import {
   configureAgentHooks,
+  getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
 import { PtyManager } from "./pty-manager";
@@ -158,4 +164,19 @@ export function registerAgentHookIpc(): void {
     (_event, { providerName }: { providerName: string }) =>
       uninstallAgentHooks(providerName),
   );
+
+  ipcMain.handle(IPC.agentHooks.status, async () => {
+    const entries = await Promise.all(
+      agentProviders.map(
+        async (p) =>
+          [p.name, await getAgentHookStatus(p.name)] as [
+            AgentName,
+            AgentHookStatus,
+          ],
+      ),
+    );
+    return Object.fromEntries(entries) as Partial<
+      Record<AgentName, AgentHookStatus>
+    >;
+  });
 }

@@ -10,7 +10,11 @@ import Typography from "@mui/material/Typography";
 import type { IconType } from "react-icons";
 import { SiClaude } from "react-icons/si";
 import { VscQuestion } from "react-icons/vsc";
-import { type AgentName, agentProviders } from "../../../shared/agent-hooks";
+import {
+  type AgentName,
+  agentProviders,
+  isAgentHookInstalled,
+} from "../../../shared/agent-hooks";
 import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import { updateNotificationSettings, useWorkspaceStore } from "../../store";
 import { DIVIDER_SX, ROOT_SX, SettingRow, SUBHEAD_SX } from "./shared";
@@ -72,10 +76,11 @@ export function NoHooksAlert({ sx }: { sx?: SxProps<Theme> }) {
 
 export function NotificationsSection() {
   const settings = useWorkspaceStore((s) => s.notificationSettings);
+  const hookStatuses = useWorkspaceStore((s) => s.agentHookStatuses);
   const { toggle, pending, errors } = useAgentHookToggle();
 
   const noHooksEnabled = agentProviders.every(
-    (p) => !settings.agentHooks[p.name],
+    (p) => !isAgentHookInstalled(hookStatuses[p.name]),
   );
 
   return (
@@ -135,7 +140,7 @@ export function NotificationsSection() {
               <Checkbox
                 size="small"
                 sx={CHECKBOX_SX}
-                checked={!!settings.agentHooks[p.name]}
+                checked={isAgentHookInstalled(hookStatuses[p.name])}
                 disabled={!!pending[p.name]}
                 onChange={(_, checked) => toggle(p.name, checked)}
               />

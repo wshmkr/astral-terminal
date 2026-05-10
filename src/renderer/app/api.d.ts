@@ -1,3 +1,4 @@
+import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
   AppConfig,
   AppMode,
@@ -38,6 +39,9 @@ export interface AppAPI {
   uninstallAgentHooks: (params: {
     providerName: string;
   }) => Promise<UninstallAgentHooksResult>;
+  getAgentHookStatuses: () => Promise<
+    Partial<Record<AgentName, AgentHookStatus>>
+  >;
   fireNotification: (payload: NotificationFirePayload) => void;
   onNotificationClick: (
     callback: (data: {
