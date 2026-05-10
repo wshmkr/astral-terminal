@@ -27,6 +27,27 @@ import {
   useWorkspaceStore,
 } from "./store";
 
+function refreshAgentHookStatuses() {
+  window.app
+    .getAgentHookStatuses()
+    .then((statuses) => {
+      setAgentHookStatuses(statuses);
+      for (const provider of agentProviders) {
+        if (statuses[provider.name] === "stale") {
+          setAgentHook(provider.name, true).catch((err) => {
+            console.error(
+              `Failed to upgrade ${provider.name} notification hooks:`,
+              err,
+            );
+          });
+        }
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to read agent hook statuses:", err);
+    });
+}
+
 export function App() {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
@@ -118,26 +139,13 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!settingsOpen && !welcomeOpen) return;
-    window.app
-      .getAgentHookStatuses()
-      .then((statuses) => {
-        setAgentHookStatuses(statuses);
-        for (const provider of agentProviders) {
-          if (statuses[provider.name] === "stale") {
-            setAgentHook(provider.name, true).catch((err) => {
-              console.error(
-                `Failed to upgrade ${provider.name} notification hooks:`,
-                err,
-              );
-            });
-          }
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to read agent hook statuses:", err);
-      });
-  }, [settingsOpen, welcomeOpen]);
+    if (!settingsOpen) return;
+    refreshAgentHookStatuses();
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    refreshAgentHookStatuses();
+  }, []);
 
   return (
     <AppDndContext>
