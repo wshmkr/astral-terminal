@@ -21,7 +21,7 @@ function oscNotifyCommand(title: string, body: string): string {
   const t = escapeInSingleQuotes(title);
   const b = escapeInSingleQuotes(body);
   const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
-  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then __tt=${parentTty}; [ -n "$__tt" ] && [ "$__tt" != "?" ] && printf '\\033]777;notify;${t};${b}\\007' > "/dev/$__tt"; fi`;
+  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; [ -n "$ptty" ] && [ "$ptty" != "?" ] && printf '\\033]777;notify;${t};${b}\\007' > "/dev/$ptty"; fi`;
 }
 
 function sessionHookCommand(
