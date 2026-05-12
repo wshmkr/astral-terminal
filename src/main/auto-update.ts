@@ -4,7 +4,12 @@ import { loadUpdatePrefs } from "./update-prefs";
 
 const FEED_HOST = "https://update.electronjs.org";
 
+autoUpdater.on("error", (err) => {
+  console.error("auto-updater error:", err);
+});
+
 export function checkForUpdatesOnStartup(): void {
+  if (process.platform !== "win32") return;
   if (!app.isPackaged) return;
   if (!loadUpdatePrefs().autoUpdatesEnabled) return;
 
@@ -12,9 +17,6 @@ export function checkForUpdatesOnStartup(): void {
   autoUpdater.setFeedURL({
     url: feedURL,
     headers: { "User-Agent": `${app.getName()}/${app.getVersion()}` },
-  });
-  autoUpdater.on("error", (err) => {
-    console.error("auto-updater error:", err);
   });
   autoUpdater.checkForUpdates();
 }
