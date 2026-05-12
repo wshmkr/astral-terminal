@@ -1,7 +1,5 @@
 # Emits OSC $AGENT_OSC;$AGENT_NAME;$AGENT_EVENT;<sid>;<cwd-b64> from hook JSON on stdin.
 
-# Claude Code spawns hooks via setsid, so /dev/tty is unopenable here.
-# Resolve the parent's tty (claude) and write to that path instead
 ptty=$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')
 [ -n "$ptty" ] && [ "$ptty" != "?" ] || exit 0
 
