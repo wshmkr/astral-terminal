@@ -1,14 +1,18 @@
+import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
   AppConfig,
   AppMode,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
+  PersistedSettings,
   UninstallAgentHooksResult,
 } from "../../shared/types";
 
 export interface AppAPI {
   mode: AppMode;
   readConfig: () => Promise<AppConfig>;
+  readSettings: () => Promise<PersistedSettings | null>;
+  writeSettings: (settings: PersistedSettings) => Promise<void>;
   createPty: (options: {
     cwd?: string;
     surfaceId: string;
@@ -35,6 +39,9 @@ export interface AppAPI {
   uninstallAgentHooks: (params: {
     providerName: string;
   }) => Promise<UninstallAgentHooksResult>;
+  getAgentHookStatuses: () => Promise<
+    Partial<Record<AgentName, AgentHookStatus>>
+  >;
   fireNotification: (payload: NotificationFirePayload) => void;
   onNotificationClick: (
     callback: (data: {

@@ -9,6 +9,7 @@ import {
   registerAgentHookIpc,
   registerNotificationIpc,
   registerPtyIpc,
+  registerSettingsIpc,
   registerWindowIpc,
 } from "./ipc";
 import { PtyManager } from "./pty-manager";
@@ -71,6 +72,7 @@ app.whenReady().then(() => {
   registerPtyIpc({ ptyManager, getConfig, getMainWindow });
   registerWindowIpc({ getMainWindow });
   registerNotificationIpc({ getMainWindow });
+  registerSettingsIpc();
   registerAgentHookIpc();
   createWindow();
 });

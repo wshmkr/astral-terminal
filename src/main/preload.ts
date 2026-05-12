@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
-import type { NotificationFirePayload } from "../shared/types";
+import type {
+  NotificationFirePayload,
+  PersistedSettings,
+} from "../shared/types";
 import {
   decodeAppModeArg,
   IPC,
@@ -24,6 +27,11 @@ contextBridge.exposeInMainWorld("app", {
   mode,
 
   readConfig: () => ipcRenderer.invoke(IPC.config.read),
+
+  readSettings: (): Promise<PersistedSettings | null> =>
+    ipcRenderer.invoke(IPC.settings.read),
+  writeSettings: (settings: PersistedSettings): Promise<void> =>
+    ipcRenderer.invoke(IPC.settings.write, settings),
 
   createPty: (options: {
     cwd?: string;
@@ -79,4 +87,5 @@ contextBridge.exposeInMainWorld("app", {
     ipcRenderer.invoke(IPC.agentHooks.configure, params),
   uninstallAgentHooks: (params: { providerName: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
+  getAgentHookStatuses: () => ipcRenderer.invoke(IPC.agentHooks.status),
 });

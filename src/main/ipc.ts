@@ -1,18 +1,26 @@
 import type { BrowserWindow } from "electron";
 import { ipcMain, Notification } from "electron";
 import {
+  type AgentHookStatus,
+  type AgentName,
+  agentProviders,
+} from "../shared/agent-hooks";
+import {
   type AppConfig,
   IPC,
   type NotificationFirePayload,
+  type PersistedSettings,
   ptyCwdChannel,
   ptyDataChannel,
   ptyExitChannel,
 } from "../shared/types";
 import {
   configureAgentHooks,
+  getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
 import { PtyManager } from "./pty-manager";
+import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
 
 interface PtyDeps {
@@ -137,6 +145,13 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
   });
 }
 
+export function registerSettingsIpc(): void {
+  ipcMain.handle(IPC.settings.read, () => loadSettings());
+  ipcMain.handle(IPC.settings.write, (_event, settings: PersistedSettings) =>
+    saveSettings(settings),
+  );
+}
+
 export function registerAgentHookIpc(): void {
   ipcMain.handle(
     IPC.agentHooks.configure,
@@ -149,4 +164,19 @@ export function registerAgentHookIpc(): void {
     (_event, { providerName }: { providerName: string }) =>
       uninstallAgentHooks(providerName),
   );
+
+  ipcMain.handle(IPC.agentHooks.status, async () => {
+    const entries = await Promise.all(
+      agentProviders.map(
+        async (p) =>
+          [p.name, await getAgentHookStatus(p.name)] as [
+            AgentName,
+            AgentHookStatus,
+          ],
+      ),
+    );
+    return Object.fromEntries(entries) as Partial<
+      Record<AgentName, AgentHookStatus>
+    >;
+  });
 }

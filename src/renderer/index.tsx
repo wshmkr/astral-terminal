@@ -14,9 +14,6 @@ import { resolveAccentHex } from "./theme/accent-colors";
 import "./fonts.css";
 import "./components/Terminal/terminal.css";
 
-bootStore();
-window.app.setUiZoom(getState().appearance.uiScale);
-
 declare global {
   interface Window {
     showWelcome?: () => void;
@@ -41,7 +38,15 @@ function ThemedApp() {
   );
 }
 
-const rootEl = document.getElementById("root");
-if (!rootEl) throw new Error("Root element #root not found");
-const root = createRoot(rootEl);
-root.render(<ThemedApp />);
+bootStore()
+  .then(() => {
+    window.app.setUiZoom(getState().appearance.uiScale);
+    const rootEl = document.getElementById("root");
+    if (!rootEl) throw new Error("Root element #root not found");
+    const root = createRoot(rootEl);
+    root.render(<ThemedApp />);
+  })
+  .catch((err) => {
+    console.error("Boot failed:", err);
+    document.body.textContent = "Failed to start. See console for details.";
+  });

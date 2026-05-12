@@ -21,10 +21,32 @@ import {
   setActiveSurface,
   setActiveWorkspace,
   setAgentHook,
+  setAgentHookStatuses,
   setSettingsOpen,
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
+
+function refreshAgentHookStatuses() {
+  window.app
+    .getAgentHookStatuses()
+    .then((statuses) => {
+      setAgentHookStatuses(statuses);
+      for (const provider of agentProviders) {
+        if (statuses[provider.name] === "stale") {
+          setAgentHook(provider.name, true).catch((err) => {
+            console.error(
+              `Failed to upgrade ${provider.name} notification hooks:`,
+              err,
+            );
+          });
+        }
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to read agent hook statuses:", err);
+    });
+}
 
 export function App() {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
@@ -117,30 +139,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const enabled = getState().notificationSettings.agentHooks;
-    for (const provider of agentProviders) {
-      const setting = enabled[provider.name];
-      if (setting === undefined) continue;
-      setAgentHook(provider.name, setting)
-        .then((result) => {
-          if (result.status === "configured") {
-            console.log(`Configured ${provider.name} notification hooks`);
-          } else if (result.status === "uninstalled") {
-            console.log(`Removed stale ${provider.name} notification hooks`);
-          } else if (result.status === "error") {
-            console.error(
-              `Failed to reconcile ${provider.name} notification hooks:`,
-              result.message,
-            );
-          }
-        })
-        .catch((err) => {
-          console.error(
-            `Failed to reconcile ${provider.name} notification hooks:`,
-            err,
-          );
-        });
-    }
+    if (!settingsOpen) return;
+    refreshAgentHookStatuses();
+  }, [settingsOpen]);
+
+  useEffect(() => {
+    refreshAgentHookStatuses();
   }, []);
 
   return (

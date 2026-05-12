@@ -6,7 +6,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { VscArrowRight } from "react-icons/vsc";
-import { agentProviders } from "../../../shared/agent-hooks";
+import {
+  agentProviders,
+  isAgentHookInstalled,
+} from "../../../shared/agent-hooks";
 import type {
   AccentColorId,
   AppThemeId,
@@ -112,7 +115,7 @@ export function WelcomeDialog() {
   const persistedAccentColor = useWorkspaceStore(
     (s) => s.appearance.accentColorId,
   );
-  const hooks = useWorkspaceStore((s) => s.notificationSettings.agentHooks);
+  const hookStatuses = useWorkspaceStore((s) => s.agentHookStatuses);
   const { toggle, pending, errors } = useAgentHookToggle();
 
   const [draftAppTheme, setDraftAppTheme] =
@@ -124,7 +127,9 @@ export function WelcomeDialog() {
     useState<AccentColorId>(persistedAccentColor);
   const [open, setOpen] = useState(true);
 
-  const noHooksEnabled = agentProviders.every((p) => !hooks[p.name]);
+  const noHooksEnabled = agentProviders.every(
+    (p) => !isAgentHookInstalled(hookStatuses[p.name]),
+  );
 
   const handleGetStarted = () => {
     setAppTheme(draftAppTheme);
@@ -223,7 +228,7 @@ export function WelcomeDialog() {
                         <Checkbox
                           size="small"
                           sx={{ p: 0.5 }}
-                          checked={!!hooks[p.name]}
+                          checked={isAgentHookInstalled(hookStatuses[p.name])}
                           disabled={!!pending[p.name]}
                           onChange={(_, checked) => toggle(p.name, checked)}
                         />

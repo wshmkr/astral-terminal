@@ -5,6 +5,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import {
   type AgentHookProvider,
+  type AgentHookStatus,
   findAgentProvider,
 } from "../../shared/agent-hooks";
 import type {
@@ -294,4 +295,26 @@ export async function uninstallAgentHooks(
       message: `Unknown agent provider: ${providerName}`,
     };
   return withProviderLock(provider, () => runUninstall(provider));
+}
+
+export async function getAgentHookStatus(
+  providerName: string,
+): Promise<AgentHookStatus> {
+  const provider = findAgentProvider(providerName);
+  if (!provider) return "missing";
+  try {
+    const filePath = await resolveWslPath(provider.settingsPath);
+    const parsed = await readSettings(filePath);
+    if (!parsed) return "missing";
+    const { hooks: existing } = parsed;
+    if (!hookTreeHas(existing, isOwnHookCommand)) return "missing";
+    if (!hookTreeHas(existing, isCurrentHookCommand)) return "stale";
+    const { hooks } = buildAgentHooksConfig(provider.name);
+    const expected = countHookCommands(hooks, isCurrentHookCommand);
+    const actual = countHookCommands(existing, isCurrentHookCommand);
+    return actual === expected ? "installed" : "stale";
+  } catch (err) {
+    console.warn(`Failed to read agent hook status for ${providerName}:`, err);
+    return "missing";
+  }
 }

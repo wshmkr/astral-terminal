@@ -1,6 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
-import { app, type BrowserWindow, screen } from "electron";
+import { type BrowserWindow, screen } from "electron";
+import { readUserDataJson, writeUserDataJsonSync } from "./user-data-json";
 
 const FILE_NAME = "window-state.json";
 
@@ -20,10 +19,6 @@ const DEFAULTS: WindowState = {
   height: 800,
   isMaximized: false,
 };
-
-function statePath(): string {
-  return path.join(app.getPath("userData"), FILE_NAME);
-}
 
 function isValidState(v: unknown): v is WindowState {
   if (typeof v !== "object" || v === null) return false;
@@ -54,19 +49,8 @@ function isOnVisibleDisplay(state: WindowState): boolean {
 }
 
 export function loadWindowState(): WindowState {
-  let raw: string;
-  try {
-    raw = fs.readFileSync(statePath(), "utf-8");
-  } catch {
-    return DEFAULTS;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return DEFAULTS;
-  }
-  if (!isValidState(parsed)) return DEFAULTS;
+  const parsed = readUserDataJson(FILE_NAME, isValidState);
+  if (!parsed) return DEFAULTS;
   if (!isOnVisibleDisplay(parsed)) {
     return { ...parsed, x: undefined, y: undefined };
   }
@@ -74,11 +58,7 @@ export function loadWindowState(): WindowState {
 }
 
 function saveWindowState(state: WindowState): void {
-  try {
-    fs.writeFileSync(statePath(), JSON.stringify(state));
-  } catch (err) {
-    console.error("Failed to save window state:", err);
-  }
+  writeUserDataJsonSync(FILE_NAME, state);
 }
 
 export function trackWindowState(win: BrowserWindow): void {
