@@ -4,7 +4,7 @@ import { AGENT_SESSION_OSC_IDENT, type AgentSessionEvent } from "./osc";
 import sessionScript from "./session.sh?raw";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "3";
+export const HOOK_MARKER_VERSION = "4";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
@@ -20,7 +20,10 @@ function escapeInSingleQuotes(s: string): string {
 function oscNotifyCommand(title: string, body: string): string {
   const t = escapeInSingleQuotes(title);
   const b = escapeInSingleQuotes(body);
-  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then printf '\\033]777;notify;${t};${b}\\007' > /dev/tty; fi`;
+  // Claude Code spawns hooks via setsid, so /dev/tty is unopenable
+  // in the hook process. Resolve the parent's tty (claude) instead
+  const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
+  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then __tt=${parentTty}; [ -n "$__tt" ] && [ "$__tt" != "?" ] && printf '\\033]777;notify;${t};${b}\\007' > "/dev/$__tt"; fi`;
 }
 
 function sessionHookCommand(
