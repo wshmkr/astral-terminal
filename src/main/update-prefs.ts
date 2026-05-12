@@ -1,6 +1,4 @@
-import fs from "node:fs";
-import path from "node:path";
-import { app } from "electron";
+import { readUserDataJson, writeUserDataJsonSync } from "./user-data-json";
 
 const FILE_NAME = "update-prefs.json";
 
@@ -12,10 +10,6 @@ const DEFAULTS: UpdatePrefs = {
   autoUpdatesEnabled: true,
 };
 
-function prefsPath(): string {
-  return path.join(app.getPath("userData"), FILE_NAME);
-}
-
 function isValidPrefs(v: unknown): v is UpdatePrefs {
   if (typeof v !== "object" || v === null) return false;
   const p = v as Record<string, unknown>;
@@ -23,26 +17,9 @@ function isValidPrefs(v: unknown): v is UpdatePrefs {
 }
 
 export function loadUpdatePrefs(): UpdatePrefs {
-  let raw: string;
-  try {
-    raw = fs.readFileSync(prefsPath(), "utf-8");
-  } catch {
-    return DEFAULTS;
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return DEFAULTS;
-  }
-  if (!isValidPrefs(parsed)) return DEFAULTS;
-  return parsed;
+  return readUserDataJson(FILE_NAME, isValidPrefs) ?? DEFAULTS;
 }
 
 export function saveUpdatePrefs(prefs: UpdatePrefs): void {
-  try {
-    fs.writeFileSync(prefsPath(), JSON.stringify(prefs));
-  } catch (err) {
-    console.error("Failed to save update prefs:", err);
-  }
+  writeUserDataJsonSync(FILE_NAME, prefs);
 }
