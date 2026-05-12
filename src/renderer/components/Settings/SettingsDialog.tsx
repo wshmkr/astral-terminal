@@ -12,14 +12,16 @@ import { APP_VERSION } from "../../../shared/meta";
 import { CUSTOM_SCROLLBAR_SX } from "../../theme/scrollbar";
 import { AppearanceSection } from "./AppearanceSection";
 import { NotificationsSection } from "./NotificationsSection";
+import { UpdatesSection } from "./UpdatesSection";
 
 const HEADER_HEIGHT = 40;
 
-type SectionId = "appearance" | "notifications";
+type SectionId = "appearance" | "notifications" | "updates";
 
 const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
+  { id: "updates", label: "Updates" },
 ];
 
 const PAPER_SX = {
@@ -162,6 +164,7 @@ export function SettingsDialog({ open, onClose }: Props) {
         <Box sx={CONTENT_SX}>
           {section === "appearance" && <AppearanceSection />}
           {section === "notifications" && <NotificationsSection />}
+          {section === "updates" && <UpdatesSection />}
         </Box>
       </Box>
     </Dialog>

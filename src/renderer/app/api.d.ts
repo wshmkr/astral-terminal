@@ -57,6 +57,8 @@ export interface AppAPI {
   onWindowMaximizedChange: (
     callback: (maximized: boolean) => void,
   ) => () => void;
+  getAutoUpdatesEnabled: () => Promise<boolean>;
+  setAutoUpdatesEnabled: (enabled: boolean) => Promise<void>;
 }
 
 declare global {

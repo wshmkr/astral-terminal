@@ -204,6 +204,10 @@ export const IPC = {
     uninstall: "agent-hooks:uninstall",
     status: "agent-hooks:status",
   },
+  updates: {
+    getAutoEnabled: "updates:get-auto-enabled",
+    setAutoEnabled: "updates:set-auto-enabled",
+  },
 } as const;
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;

@@ -4,12 +4,22 @@ import electron from "vite-plugin-electron";
 import electronRenderer from "vite-plugin-electron-renderer";
 import pkg from "./package.json";
 
+function githubRepoSlug(repositoryUrl: string): string {
+  const match = repositoryUrl.match(
+    /github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?$/,
+  );
+  if (!match)
+    throw new Error(`Cannot parse GitHub slug from: ${repositoryUrl}`);
+  return `${match[1]}/${match[2]}`;
+}
+
 const brandingDefines = {
   __APP_NAME__: JSON.stringify(pkg.productName),
   __APP_NAME_SHORT__: JSON.stringify(pkg.productNameShort),
   __APP_PACKAGE_NAME__: JSON.stringify(pkg.name),
   __APP_ID__: JSON.stringify(pkg.build.appId),
   __APP_VERSION__: JSON.stringify(pkg.version),
+  __APP_GITHUB_SLUG__: JSON.stringify(githubRepoSlug(pkg.repository.url)),
 };
 
 function htmlBranding(): Plugin {
