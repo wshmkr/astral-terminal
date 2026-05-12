@@ -38,6 +38,7 @@ export {
   setWelcomeOpen,
   setWindowFocused,
   updateNotificationSettings,
+  updateUpdateSettings,
 } from "./preferences";
 
 export {

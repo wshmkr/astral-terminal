@@ -99,6 +99,10 @@ export interface NotificationSettings {
   osNotificationsEnabled: boolean;
 }
 
+export interface UpdateSettings {
+  autoEnabled: boolean;
+}
+
 export type AppThemeId = "dark" | "light";
 export type TerminalThemeId = "one-half-dark" | "one-half-light";
 export type FontFamilyId =
@@ -156,6 +160,7 @@ export interface PersistedSettings {
   sidebarWidth?: number;
   appearance?: AppearanceSettings;
   notificationSettings?: NotificationSettings;
+  updateSettings?: UpdateSettings;
 }
 
 export interface AppState {
@@ -165,6 +170,7 @@ export interface AppState {
   sidebarWidth: number;
   appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
+  updateSettings: UpdateSettings;
 
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
@@ -203,10 +209,6 @@ export const IPC = {
     configure: "agent-hooks:configure",
     uninstall: "agent-hooks:uninstall",
     status: "agent-hooks:status",
-  },
-  updates: {
-    getAutoEnabled: "updates:get-auto-enabled",
-    setAutoEnabled: "updates:set-auto-enabled",
   },
 } as const;
 

@@ -21,7 +21,6 @@ import {
 } from "./agent-hooks/installer";
 import { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
-import { loadUpdatePrefs, saveUpdatePrefs } from "./update-prefs";
 import { focusMainWindow } from "./window";
 
 interface PtyDeps {
@@ -179,16 +178,5 @@ export function registerAgentHookIpc(): void {
     return Object.fromEntries(entries) as Partial<
       Record<AgentName, AgentHookStatus>
     >;
-  });
-}
-
-export function registerUpdateIpc(): void {
-  ipcMain.handle(
-    IPC.updates.getAutoEnabled,
-    () => loadUpdatePrefs().autoUpdatesEnabled,
-  );
-
-  ipcMain.handle(IPC.updates.setAutoEnabled, (_event, enabled: boolean) => {
-    saveUpdatePrefs({ autoUpdatesEnabled: enabled });
   });
 }

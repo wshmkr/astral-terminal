@@ -11,7 +11,6 @@ import {
   registerNotificationIpc,
   registerPtyIpc,
   registerSettingsIpc,
-  registerUpdateIpc,
   registerWindowIpc,
 } from "./ipc";
 import { PtyManager } from "./pty-manager";
@@ -76,7 +75,6 @@ app.whenReady().then(() => {
   registerNotificationIpc({ getMainWindow });
   registerSettingsIpc();
   registerAgentHookIpc();
-  registerUpdateIpc();
   createWindow();
   checkForUpdatesOnStartup();
 });

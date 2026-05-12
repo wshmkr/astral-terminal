@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Switch from "@mui/material/Switch";
 import { useEffect, useState } from "react";
 import { loadAppConfig } from "../../app/config-loader";
+import { updateUpdateSettings, useWorkspaceStore } from "../../store";
 import { ROOT_SX, SettingRow } from "./shared";
 
 const SWITCH_SX = { ml: -1 } as const;
@@ -15,18 +16,12 @@ const UNSUPPORTED_DESCRIPTION =
   "Automatic updates are only available on Windows.";
 
 export function UpdatesSection() {
-  const [enabled, setEnabled] = useState(true);
+  const autoEnabled = useWorkspaceStore((s) => s.updateSettings.autoEnabled);
   const [supported, setSupported] = useState(true);
 
   useEffect(() => {
-    window.app.getAutoUpdatesEnabled().then(setEnabled);
     loadAppConfig().then((config) => setSupported(config.platform.isWindows));
   }, []);
-
-  const onChange = (checked: boolean) => {
-    setEnabled(checked);
-    window.app.setAutoUpdatesEnabled(checked);
-  };
 
   return (
     <Box sx={ROOT_SX}>
@@ -37,9 +32,11 @@ export function UpdatesSection() {
           <Switch
             size="small"
             sx={SWITCH_SX}
-            checked={supported && enabled}
+            checked={supported && autoEnabled}
             disabled={!supported}
-            onChange={(_, checked) => onChange(checked)}
+            onChange={(_, checked) =>
+              updateUpdateSettings({ autoEnabled: checked })
+            }
           />
         }
       />

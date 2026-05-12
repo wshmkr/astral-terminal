@@ -3,6 +3,7 @@ import type {
   ConfigureAgentHooksResult,
   NotificationSettings,
   UninstallAgentHooksResult,
+  UpdateSettings,
 } from "../../shared/types";
 import {
   SIDEBAR_MAX_WIDTH_PX,
@@ -13,6 +14,10 @@ import { commit, getState, notify, setState } from "./core";
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   soundEnabled: false,
   osNotificationsEnabled: false,
+};
+
+export const DEFAULT_UPDATE_SETTINGS: UpdateSettings = {
+  autoEnabled: true,
 };
 
 export function clampSidebarWidth(
@@ -46,6 +51,20 @@ export function updateNotificationSettings(
   setState({
     ...s,
     notificationSettings: { ...current, ...settings },
+  });
+  commit();
+}
+
+export function updateUpdateSettings(settings: Partial<UpdateSettings>): void {
+  const s = getState();
+  const current = s.updateSettings;
+  const changed = (Object.keys(settings) as (keyof UpdateSettings)[]).some(
+    (k) => settings[k] !== current[k],
+  );
+  if (!changed) return;
+  setState({
+    ...s,
+    updateSettings: { ...current, ...settings },
   });
   commit();
 }

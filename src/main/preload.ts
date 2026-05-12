@@ -88,9 +88,4 @@ contextBridge.exposeInMainWorld("app", {
   uninstallAgentHooks: (params: { providerName: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
   getAgentHookStatuses: () => ipcRenderer.invoke(IPC.agentHooks.status),
-
-  getAutoUpdatesEnabled: (): Promise<boolean> =>
-    ipcRenderer.invoke(IPC.updates.getAutoEnabled),
-  setAutoUpdatesEnabled: (enabled: boolean): Promise<void> =>
-    ipcRenderer.invoke(IPC.updates.setAutoEnabled, enabled),
 });
