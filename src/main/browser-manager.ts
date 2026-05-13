@@ -1,11 +1,11 @@
 import {
   type BrowserWindow,
   session,
-  shell,
   type WebContents,
   WebContentsView,
 } from "electron";
 import type { BrowserBounds, BrowserState } from "../shared/types";
+import { attachExternalLinkHandler } from "./external-links";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
@@ -85,17 +85,7 @@ export class BrowserManager {
     this.window.contentView.addChildView(view);
 
     const wc = view.webContents;
-    wc.setWindowOpenHandler(({ url }) => {
-      try {
-        const u = new URL(url);
-        if (u.protocol === "http:" || u.protocol === "https:") {
-          shell.openExternal(url);
-        }
-      } catch (err) {
-        console.warn("[browser] failed to parse window-open url:", url, err);
-      }
-      return { action: "deny" };
-    });
+    attachExternalLinkHandler(wc);
 
     const entry: Entry = {
       view,
