@@ -15,6 +15,7 @@ import type {
   SettingsAction,
   SettingsState,
   UninstallAgentHooksResult,
+  UpdateStatus,
   WslDistro,
 } from "../../shared/types";
 
@@ -117,6 +118,11 @@ export interface AppAPI {
     providerName: string;
     enabled: boolean;
   }) => Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult>;
+
+  readUpdateStatus: () => Promise<UpdateStatus>;
+  requestUpdateCheck: () => Promise<void>;
+  installUpdate: () => Promise<void>;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 }
 
 declare global {

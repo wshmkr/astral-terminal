@@ -25,7 +25,10 @@ import {
   NAV_LIST_SX,
   NAV_SX,
   ROOT_SX,
+  UPDATE_DOT_SX,
+  UPDATE_READY_TEXT_SX,
   VERSION_SX,
+  VERSION_TEXT_SX,
 } from "./app.styles";
 import { setSettingsStoreState, useSettingsState } from "./store";
 
@@ -51,6 +54,13 @@ export function SettingsApp() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    window.app.requestUpdateCheck().catch((err) => {
+      console.error("Update check failed:", err);
+    });
+  }, [visible]);
 
   const appThemeId = state?.appearance.appThemeId ?? "dark";
   const accentColorId = state?.appearance.accentColorId ?? "blue";
@@ -104,13 +114,23 @@ export function SettingsApp() {
                   </ListItemButton>
                 ))}
               </List>
-              <Typography
-                variant="caption"
-                color="text.disabled"
-                sx={VERSION_SX}
-              >
-                v{APP_VERSION}
-              </Typography>
+              <Box sx={VERSION_SX}>
+                {state.updateStatus.state === "downloaded" && (
+                  <Box sx={UPDATE_DOT_SX} />
+                )}
+                <Typography
+                  variant="caption"
+                  color="text.disabled"
+                  sx={VERSION_TEXT_SX}
+                >
+                  v{APP_VERSION}
+                </Typography>
+                {state.updateStatus.state === "downloaded" && (
+                  <Typography sx={UPDATE_READY_TEXT_SX}>
+                    update ready
+                  </Typography>
+                )}
+              </Box>
             </Box>
             <Box sx={CONTENT_SX}>
               {section === "appearance" && <AppearanceSection />}

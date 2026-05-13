@@ -43,6 +43,12 @@ export {
 } from "./preferences";
 
 export {
+  installUpdate,
+  requestUpdateCheck,
+  setUpdateStatus,
+} from "./update-status";
+
+export {
   addSurface,
   closePane,
   closeSurface,

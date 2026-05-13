@@ -1,16 +1,19 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Switch from "@mui/material/Switch";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
-import type { WslDistro } from "../../../shared/types";
+import type { UpdateStatus, WslDistro } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
 import {
   setWslDistro,
   updateUpdateSettings,
   useSettingsStore,
 } from "../../settings-window/store";
+import { formatRelativeTime } from "../../utils/format-time";
 import {
   DIVIDER_SX,
   FIELD_LABEL_SX,
@@ -37,9 +40,107 @@ const UPDATES_DESCRIPTION =
 
 const UNSUPPORTED_DESCRIPTION = "These settings only apply on Windows.";
 
+const STATUS_ROW_SX = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+  mt: 1,
+} as const;
+
+const STATUS_STACK_SX = {
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: 0.25,
+} as const;
+
+const STATUS_TEXT_SX = { fontWeight: 500 } as const;
+const STATUS_SUB_SX = { color: "text.secondary", fontSize: 12 } as const;
+
+function statusLabel(status: UpdateStatus): string {
+  switch (status.state) {
+    case "idle":
+      return "Not checked yet";
+    case "checking":
+      return "Checking for updates…";
+    case "not-available":
+      return "Astral is up to date";
+    case "downloading":
+      return "Downloading update…";
+    case "downloaded":
+      return status.downloadedVersion
+        ? `Update ready: ${status.downloadedVersion}`
+        : "Update ready";
+    case "error":
+      return "Couldn't check for updates";
+  }
+}
+
+function ActionButton({ status }: { status: UpdateStatus }) {
+  if (status.state === "downloaded") {
+    return (
+      <Button
+        size="small"
+        variant="contained"
+        onClick={() => {
+          window.app.installUpdate().catch((err) => {
+            console.error("Install update failed:", err);
+          });
+        }}
+      >
+        Restart & install
+      </Button>
+    );
+  }
+  const busy = status.state === "checking" || status.state === "downloading";
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      disabled={busy}
+      onClick={() => {
+        window.app.requestUpdateCheck().catch((err) => {
+          console.error("Update check failed:", err);
+        });
+      }}
+    >
+      {busy ? "Checking…" : "Check now"}
+    </Button>
+  );
+}
+
+function UpdateStatusRow({ status }: { status: UpdateStatus }) {
+  const subLine =
+    status.lastCheckedAt !== null
+      ? `Last checked: ${formatRelativeTime(status.lastCheckedAt)}`
+      : null;
+  const label = (
+    <Typography variant="body2" sx={STATUS_TEXT_SX}>
+      {statusLabel(status)}
+    </Typography>
+  );
+  return (
+    <Box sx={STATUS_ROW_SX}>
+      <Box sx={STATUS_STACK_SX}>
+        {status.state === "error" && status.errorMessage ? (
+          <Tooltip title={status.errorMessage} placement="top">
+            {label}
+          </Tooltip>
+        ) : (
+          label
+        )}
+        {subLine && <Typography sx={STATUS_SUB_SX}>{subLine}</Typography>}
+      </Box>
+      <ActionButton status={status} />
+    </Box>
+  );
+}
+
 export function AstralSection() {
   const wslDistro = useSettingsStore((s) => s.terminalSettings.wslDistro);
   const autoEnabled = useSettingsStore((s) => s.updateSettings.autoEnabled);
+  const updateStatus = useSettingsStore((s) => s.updateStatus);
   const [supported, setSupported] = useState<boolean | null>(null);
   const [distros, setDistros] = useState<WslDistro[] | null>(null);
 
@@ -158,6 +259,8 @@ export function AstralSection() {
           />
         }
       />
+
+      <UpdateStatusRow status={updateStatus} />
 
       {showSystemWarning && (
         <Alert

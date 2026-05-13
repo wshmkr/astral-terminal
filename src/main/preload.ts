@@ -13,6 +13,7 @@ import type {
   SettingsAction,
   SettingsState,
   UninstallAgentHooksResult,
+  UpdateStatus,
 } from "../shared/types";
 import {
   browserStateChannel,
@@ -177,4 +178,11 @@ contextBridge.exposeInMainWorld("app", {
   onBrowserOpenNewTab: (
     callback: (payload: BrowserOpenNewTabPayload) => void,
   ) => subscribe<[BrowserOpenNewTabPayload]>(IPC.browser.openNewTab, callback),
+
+  readUpdateStatus: (): Promise<UpdateStatus> =>
+    ipcRenderer.invoke(IPC.update.getStatus),
+  requestUpdateCheck: (): Promise<void> => ipcRenderer.invoke(IPC.update.check),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.update.install),
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) =>
+    subscribe<[UpdateStatus]>(IPC.update.status, callback),
 });

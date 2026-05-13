@@ -63,7 +63,27 @@ export const NAV_LIST_SX = {
 export const VERSION_SX = {
   px: 2,
   py: 1,
+  display: "flex",
+  alignItems: "center",
+  gap: 0.75,
+} as const;
+
+export const VERSION_TEXT_SX = {
   fontSize: "10px",
+} as const;
+
+export const UPDATE_DOT_SX = {
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  bgcolor: "primary.main",
+  flexShrink: 0,
+} as const;
+
+export const UPDATE_READY_TEXT_SX = {
+  color: "primary.main",
+  fontSize: "10px",
+  fontWeight: 500,
 } as const;
 
 export const NAV_ITEM_SX = {

@@ -13,6 +13,7 @@ import {
   DEFAULT_TERMINAL_SETTINGS,
   DEFAULT_UPDATE_SETTINGS,
 } from "./preferences";
+import { INITIAL_UPDATE_STATUS } from "./update-status";
 
 const INITIAL_WINDOW_FOCUSED =
   typeof document !== "undefined" ? document.hasFocus() : true;
@@ -50,6 +51,7 @@ async function initState(): Promise<AppState> {
         ...(loaded.terminalSettings ?? {}),
       },
       agentHookStatuses: {},
+      updateStatus: INITIAL_UPDATE_STATUS,
       windowFocused: INITIAL_WINDOW_FOCUSED,
       welcomeOpen: false,
     };
@@ -65,6 +67,7 @@ async function initState(): Promise<AppState> {
     updateSettings: DEFAULT_UPDATE_SETTINGS,
     terminalSettings: DEFAULT_TERMINAL_SETTINGS,
     agentHookStatuses: {},
+    updateStatus: INITIAL_UPDATE_STATUS,
     windowFocused: INITIAL_WINDOW_FOCUSED,
     welcomeOpen: isFirstRun,
   };
