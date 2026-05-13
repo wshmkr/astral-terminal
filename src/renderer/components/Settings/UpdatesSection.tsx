@@ -8,9 +8,8 @@ import { ROOT_SX, SettingRow } from "./shared";
 const SWITCH_SX = { ml: -1 } as const;
 
 const DESCRIPTION =
-  "Download new versions in the background. The update is applied " +
-  "automatically the next time you launch Astral. Changes to this " +
-  "setting take effect on next launch.";
+  "Download new versions in the background and install automatically " +
+  "on the next launch.";
 
 const UNSUPPORTED_DESCRIPTION =
   "Automatic updates are only available on Windows.";
