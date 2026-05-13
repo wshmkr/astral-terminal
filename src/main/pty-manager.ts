@@ -27,9 +27,6 @@ const SERIALIZE_OPTS = {
   excludeAltBuffer: true,
 };
 
-const MAX_SURFACE_ID_LEN = 128;
-const SURFACE_ID_PATTERN = /^[A-Za-z0-9_.-]+$/;
-
 interface StoredBuffer {
   cols: number;
   rows: number;
@@ -98,6 +95,7 @@ interface PtyEntry {
   serializeAddon: SerializeAddon;
   pendingForward: ((data: string) => void) | undefined;
   agentSession: AgentSession | undefined;
+  initialReplay: { cols: number; rows: number; content: string } | null;
 }
 
 export class PtyManager {
@@ -113,15 +111,6 @@ export class PtyManager {
     }
   }
 
-  static isValidSurfaceId(id: unknown): id is string {
-    return (
-      typeof id === "string" &&
-      id.length > 0 &&
-      id.length <= MAX_SURFACE_ID_LEN &&
-      SURFACE_ID_PATTERN.test(id)
-    );
-  }
-
   private bufferFile(surfaceId: string): string {
     return path.join(this.bufferDir, `${surfaceId}.json`);
   }
@@ -130,11 +119,11 @@ export class PtyManager {
     return path.join(this.bufferDir, `${surfaceId}.meta.json`);
   }
 
-  private loadBuffer(surfaceId: string): StoredBuffer | null {
+  private async loadBuffer(surfaceId: string): Promise<StoredBuffer | null> {
     const file = this.bufferFile(surfaceId);
     let raw: string;
     try {
-      raw = fs.readFileSync(file, "utf-8");
+      raw = await fs.promises.readFile(file, "utf-8");
     } catch {
       return null;
     }
@@ -162,11 +151,11 @@ export class PtyManager {
     } catch {}
   }
 
-  private loadAndConsumeAgentSession(
+  private async loadAndConsumeAgentSession(
     surfaceId: string,
-  ): AgentSession | undefined {
+  ): Promise<AgentSession | undefined> {
     try {
-      const raw = fs.readFileSync(this.metaFile(surfaceId), "utf-8");
+      const raw = await fs.promises.readFile(this.metaFile(surfaceId), "utf-8");
       const parsed = JSON.parse(raw) as {
         agentName?: unknown;
         sessionId?: unknown;
@@ -209,17 +198,18 @@ export class PtyManager {
     };
   }
 
-  create(opts: CreatePtyOptions): string {
+  async create(opts: CreatePtyOptions): Promise<string> {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
     const carried = this.evictBySurfaceId(surfaceId);
-    const restoredAgentSession = this.loadAndConsumeAgentSession(surfaceId);
+    const [restoredAgentSession, loadedBuffer] = await Promise.all([
+      this.loadAndConsumeAgentSession(surfaceId),
+      carried ? Promise.resolve(null) : this.loadBuffer(surfaceId),
+    ]);
 
     // Skip scrollback restore when auto-resuming
-    const restored = restoredAgentSession
-      ? null
-      : (carried ?? this.loadBuffer(surfaceId));
+    const restored = restoredAgentSession ? null : (carried ?? loadedBuffer);
 
     let targetCols: number;
     let targetRows: number;
@@ -290,6 +280,10 @@ export class PtyManager {
       serializeAddon,
       pendingForward: callbacks?.onData,
       agentSession: undefined,
+      initialReplay:
+        restored && restored.cols === targetCols && restored.rows === targetRows
+          ? { cols: targetCols, rows: targetRows, content: restored.content }
+          : null,
     };
     this.entries.set(id, entry);
 
@@ -321,7 +315,10 @@ export class PtyManager {
       return true;
     });
 
-    proc.onData((data) => headless.write(data));
+    proc.onData((data) => {
+      entry.initialReplay = null;
+      headless.write(data);
+    });
     proc.onExit(({ exitCode, signal }) => {
       this.teardown(id, { deleteBuffer: true });
       callbacks?.onExit?.(exitCode, signal);
@@ -333,7 +330,8 @@ export class PtyManager {
   beginReplay(id: string): { cols: number; rows: number; content: string } {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
-    const snap = this.snapshot(entry);
+    const snap = entry.initialReplay ?? this.snapshot(entry);
+    entry.initialReplay = null;
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
@@ -395,21 +393,23 @@ export class PtyManager {
     }
   }
 
-  pruneBuffers(validSurfaceIds: Set<string>): void {
+  async pruneBuffers(validSurfaceIds: Set<string>): Promise<void> {
     let entries: string[];
     try {
-      entries = fs.readdirSync(this.bufferDir);
+      entries = await fs.promises.readdir(this.bufferDir);
     } catch {
       return;
     }
-    for (const name of entries) {
+    const stale = entries.filter((name) => {
       let id: string | null = null;
       if (name.endsWith(".meta.json")) id = name.slice(0, -".meta.json".length);
       else if (name.endsWith(".json")) id = name.slice(0, -".json".length);
-      if (!id || validSurfaceIds.has(id)) continue;
-      try {
-        fs.unlinkSync(path.join(this.bufferDir, name));
-      } catch {}
-    }
+      return id !== null && !validSurfaceIds.has(id);
+    });
+    await Promise.all(
+      stale.map((name) =>
+        fs.promises.unlink(path.join(this.bufferDir, name)).catch(() => {}),
+      ),
+    );
   }
 }

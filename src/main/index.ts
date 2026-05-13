@@ -13,7 +13,7 @@ import {
   registerSettingsIpc,
   registerWindowIpc,
 } from "./ipc";
-import { PtyManager } from "./pty-manager";
+import type { PtyManager } from "./pty-manager";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
 
 if (IS_DEV) {
@@ -40,7 +40,19 @@ if (squirrelStartup) {
   app.quit();
 }
 
-let ptyManager: PtyManager;
+let ptyManager: PtyManager | null = null;
+let ptyManagerPromise: Promise<PtyManager> | null = null;
+
+function getPtyManager(): Promise<PtyManager> {
+  ptyManagerPromise ??= (async () => {
+    const { PtyManager } = await import("./pty-manager");
+    ptyManager = new PtyManager(
+      path.join(app.getPath("userData"), "terminal-buffers"),
+    );
+    return ptyManager;
+  })();
+  return ptyManagerPromise;
+}
 
 let cachedConfig: AppConfig | null = null;
 function getConfig(): AppConfig {
@@ -67,10 +79,7 @@ nativeTheme.themeSource = "dark";
 
 app.whenReady().then(() => {
   installCsp();
-  ptyManager = new PtyManager(
-    path.join(app.getPath("userData"), "terminal-buffers"),
-  );
-  registerPtyIpc({ ptyManager, getConfig, getMainWindow });
+  registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
   registerWindowIpc({ getMainWindow });
   registerNotificationIpc({ getMainWindow });
   registerSettingsIpc();
