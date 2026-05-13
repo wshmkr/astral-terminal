@@ -16,15 +16,6 @@ const mode = decodeAppModeArg(process.argv);
 let prefetchedSettings: Promise<PersistedSettings | null> | null =
   ipcRenderer.invoke(IPC.settings.read);
 
-function readSettingsOnce(): Promise<PersistedSettings | null> {
-  if (prefetchedSettings) {
-    const p = prefetchedSettings;
-    prefetchedSettings = null;
-    return p;
-  }
-  return ipcRenderer.invoke(IPC.settings.read);
-}
-
 function subscribe<Args extends unknown[]>(
   channel: string,
   callback: (...args: Args) => void,
@@ -40,7 +31,11 @@ contextBridge.exposeInMainWorld("app", {
 
   readConfig: () => ipcRenderer.invoke(IPC.config.read),
 
-  readSettings: (): Promise<PersistedSettings | null> => readSettingsOnce(),
+  readSettings: (): Promise<PersistedSettings | null> => {
+    const p = prefetchedSettings ?? ipcRenderer.invoke(IPC.settings.read);
+    prefetchedSettings = null;
+    return p;
+  },
   writeSettings: (settings: PersistedSettings): Promise<void> =>
     ipcRenderer.invoke(IPC.settings.write, settings),
 

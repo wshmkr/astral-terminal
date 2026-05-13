@@ -20,9 +20,12 @@ import {
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
 import type { PtyManager } from "./pty-manager";
-import { isValidSurfaceId } from "./pty-manager-shared";
 import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
+
+const SURFACE_ID_PATTERN = /^[A-Za-z0-9_.-]{1,128}$/;
+const isValidSurfaceId = (id: unknown): id is string =>
+  typeof id === "string" && SURFACE_ID_PATTERN.test(id);
 
 interface PtyDeps {
   getPtyManager: () => Promise<PtyManager>;

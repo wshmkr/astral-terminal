@@ -44,17 +44,13 @@ let ptyManager: PtyManager | null = null;
 let ptyManagerPromise: Promise<PtyManager> | null = null;
 
 function getPtyManager(): Promise<PtyManager> {
-  if (ptyManager) return Promise.resolve(ptyManager);
-  if (!ptyManagerPromise) {
-    ptyManagerPromise = (async () => {
-      const { PtyManager } = await import("./pty-manager");
-      const instance = new PtyManager(
-        path.join(app.getPath("userData"), "terminal-buffers"),
-      );
-      ptyManager = instance;
-      return instance;
-    })();
-  }
+  ptyManagerPromise ??= (async () => {
+    const { PtyManager } = await import("./pty-manager");
+    ptyManager = new PtyManager(
+      path.join(app.getPath("userData"), "terminal-buffers"),
+    );
+    return ptyManager;
+  })();
   return ptyManagerPromise;
 }
 

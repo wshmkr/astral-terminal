@@ -22,15 +22,9 @@ import {
 const pathLocks = new Map<string, Promise<unknown>>();
 const execFileAsync = promisify(execFile);
 
-let wslHomeCache: string | null = null;
-
 async function getWslHomePath(): Promise<string> {
-  if (wslHomeCache) return wslHomeCache;
   const isWindows = process.platform === "win32";
-  if (!isWindows) {
-    wslHomeCache = os.homedir();
-    return wslHomeCache;
-  }
+  if (!isWindows) return os.homedir();
   const { stdout } = await execFileAsync("wsl.exe", [
     "sh",
     "-c",
@@ -42,14 +36,15 @@ async function getWslHomePath(): Promise<string> {
   }
   const distro = distroRaw.trim();
   const wslHome = wslHomeRaw.trim();
-  wslHomeCache = `\\\\wsl$\\${distro}${wslHome.replace(/\//g, "\\")}`;
-  return wslHomeCache;
+  return `\\\\wsl$\\${distro}${wslHome.replace(/\//g, "\\")}`;
 }
 
+let wslHomeCache: string | null = null;
+
 async function resolveWslPath(relativePath: string): Promise<string> {
-  const home = await getWslHomePath();
-  const resolved = path.resolve(home, ...relativePath.split("/"));
-  const root = path.resolve(home);
+  if (!wslHomeCache) wslHomeCache = await getWslHomePath();
+  const resolved = path.resolve(wslHomeCache, ...relativePath.split("/"));
+  const root = path.resolve(wslHomeCache);
   const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
   if (resolved !== root && !resolved.startsWith(rootWithSep)) {
     throw new Error(`Refusing path outside WSL home: ${relativePath}`);
