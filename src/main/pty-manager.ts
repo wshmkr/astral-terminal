@@ -98,7 +98,8 @@ interface PtyEntry {
   serializeAddon: SerializeAddon;
   pendingForward: ((data: string) => void) | undefined;
   agentSession: AgentSession | undefined;
-  // First beginReplay should skip redundant serialize()
+  // First beginReplay skips redundant serialize() when the restored content
+  // already matches headless dims (no reflow needed)
   initialReplay: { cols: number; rows: number; content: string } | null;
 }
 
@@ -293,9 +294,10 @@ export class PtyManager {
       serializeAddon,
       pendingForward: callbacks?.onData,
       agentSession: undefined,
-      initialReplay: restored
-        ? { cols: targetCols, rows: targetRows, content: restored.content }
-        : null,
+      initialReplay:
+        restored && restored.cols === targetCols && restored.rows === targetRows
+          ? { cols: targetCols, rows: targetRows, content: restored.content }
+          : null,
     };
     this.entries.set(id, entry);
 
