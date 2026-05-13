@@ -141,13 +141,14 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = window.app.onUpdateStatus(setUpdateStatus);
     window.app
       .readUpdateStatus()
       .then(setUpdateStatus)
       .catch((err) => {
         console.error("Failed to read update status:", err);
       });
-    return window.app.onUpdateStatus(setUpdateStatus);
+    return unsubscribe;
   }, []);
 
   return (

@@ -27,12 +27,12 @@ export function getUpdateStatus(): UpdateStatus {
   return currentStatus;
 }
 
-export function initAutoUpdater(deps: {
-  getMainWindow: () => BrowserWindow | null;
-}): void {
+export function initAutoUpdater(
+  getMainWindowFn: () => BrowserWindow | null,
+): void {
   if (initialized) return;
   initialized = true;
-  getMainWindow = deps.getMainWindow;
+  getMainWindow = getMainWindowFn;
 
   supported = process.platform === "win32" && app.isPackaged;
   if (!supported) return;
@@ -44,11 +44,17 @@ export function initAutoUpdater(deps: {
   });
 
   autoUpdater.on("checking-for-update", () => {
-    setStatus({ ...currentStatus, state: "checking" });
+    setStatus({
+      state: "checking",
+      lastCheckedAt: currentStatus.lastCheckedAt,
+    });
   });
 
   autoUpdater.on("update-available", () => {
-    setStatus({ ...currentStatus, state: "downloading" });
+    setStatus({
+      state: "downloading",
+      lastCheckedAt: currentStatus.lastCheckedAt,
+    });
   });
 
   autoUpdater.on("update-not-available", () => {

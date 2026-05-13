@@ -102,7 +102,7 @@ app.whenReady().then(() => {
   registerSettingsWindowIpc({ getMainWindow });
   registerAgentHookIpc();
   registerUpdateIpc();
-  initAutoUpdater({ getMainWindow });
+  initAutoUpdater(getMainWindow);
   createWindow();
   checkForUpdatesOnStartup();
 
