@@ -27,9 +27,6 @@ const SERIALIZE_OPTS = {
   excludeAltBuffer: true,
 };
 
-const MAX_SURFACE_ID_LEN = 128;
-const SURFACE_ID_PATTERN = /^[A-Za-z0-9_.-]+$/;
-
 interface StoredBuffer {
   cols: number;
   rows: number;
@@ -114,15 +111,6 @@ export class PtyManager {
     } catch (err) {
       console.error("Failed to create terminal-buffers dir:", err);
     }
-  }
-
-  static isValidSurfaceId(id: unknown): id is string {
-    return (
-      typeof id === "string" &&
-      id.length > 0 &&
-      id.length <= MAX_SURFACE_ID_LEN &&
-      SURFACE_ID_PATTERN.test(id)
-    );
   }
 
   private bufferFile(surfaceId: string): string {

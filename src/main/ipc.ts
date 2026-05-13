@@ -19,18 +19,19 @@ import {
   getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
-import { PtyManager } from "./pty-manager";
+import type { PtyManager } from "./pty-manager";
+import { isValidSurfaceId } from "./pty-manager-shared";
 import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
 
 interface PtyDeps {
-  ptyManager: PtyManager;
+  getPtyManager: () => Promise<PtyManager>;
   getConfig: () => AppConfig;
   getMainWindow: () => BrowserWindow | null;
 }
 
 export function registerPtyIpc({
-  ptyManager,
+  getPtyManager,
   getConfig,
   getMainWindow,
 }: PtyDeps): void {
@@ -38,7 +39,7 @@ export function registerPtyIpc({
 
   ipcMain.handle(
     IPC.pty.create,
-    (
+    async (
       _event,
       options: {
         cwd?: string;
@@ -47,10 +48,11 @@ export function registerPtyIpc({
         rows?: number;
       },
     ) => {
-      if (!PtyManager.isValidSurfaceId(options.surfaceId)) {
+      if (!isValidSurfaceId(options.surfaceId)) {
         throw new Error("createPty: invalid surfaceId");
       }
-      return ptyManager.create({
+      const manager = await getPtyManager();
+      return manager.create({
         surfaceId: options.surfaceId,
         cwd: options.cwd,
         cols: options.cols,
@@ -75,34 +77,42 @@ export function registerPtyIpc({
     },
   );
 
-  ipcMain.handle(IPC.pty.replay, (_event, msg: { ptyId: string }) => {
-    return ptyManager.beginReplay(msg.ptyId);
+  ipcMain.handle(IPC.pty.replay, async (_event, msg: { ptyId: string }) => {
+    const manager = await getPtyManager();
+    return manager.beginReplay(msg.ptyId);
   });
 
   ipcMain.handle(
     IPC.pty.pruneBuffers,
-    (_event, msg: { surfaceIds: string[] }) => {
+    async (_event, msg: { surfaceIds: string[] }) => {
       const valid = new Set<string>();
       for (const id of msg.surfaceIds) {
-        if (PtyManager.isValidSurfaceId(id)) valid.add(id);
+        if (isValidSurfaceId(id)) valid.add(id);
       }
-      ptyManager.pruneBuffers(valid);
+      const manager = await getPtyManager();
+      manager.pruneBuffers(valid);
     },
   );
 
   ipcMain.on(IPC.pty.write, (_event, msg: { ptyId: string; data: string }) => {
-    ptyManager.write(msg.ptyId, msg.data);
+    getPtyManager().then((m) => {
+      m.write(msg.ptyId, msg.data);
+    });
   });
 
   ipcMain.on(
     IPC.pty.resize,
     (_event, msg: { ptyId: string; cols: number; rows: number }) => {
-      ptyManager.resize(msg.ptyId, msg.cols, msg.rows);
+      getPtyManager().then((m) => {
+        m.resize(msg.ptyId, msg.cols, msg.rows);
+      });
     },
   );
 
   ipcMain.on(IPC.pty.kill, (_event, msg: { ptyId: string }) => {
-    ptyManager.kill(msg.ptyId);
+    getPtyManager().then((m) => {
+      m.kill(msg.ptyId);
+    });
   });
 }
 
