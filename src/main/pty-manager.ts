@@ -95,8 +95,6 @@ interface PtyEntry {
   serializeAddon: SerializeAddon;
   pendingForward: ((data: string) => void) | undefined;
   agentSession: AgentSession | undefined;
-  // First beginReplay skips redundant serialize() when the restored content
-  // already matches headless dims (no reflow needed)
   initialReplay: { cols: number; rows: number; content: string } | null;
 }
 
@@ -318,7 +316,6 @@ export class PtyManager {
     });
 
     proc.onData((data) => {
-      // Once new pty bytes arrive, the cached initialReplay is stale
       entry.initialReplay = null;
       headless.write(data);
     });

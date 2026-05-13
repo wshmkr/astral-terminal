@@ -144,9 +144,7 @@ export function App() {
   }, [settingsOpen]);
 
   useEffect(() => {
-    const handle = requestIdleCallback(() => refreshAgentHookStatuses(), {
-      timeout: 2000,
-    });
+    const handle = requestIdleCallback(() => refreshAgentHookStatuses());
     return () => cancelIdleCallback(handle);
   }, []);
 
