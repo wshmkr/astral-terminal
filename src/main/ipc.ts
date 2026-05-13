@@ -90,7 +90,7 @@ export function registerPtyIpc({
         if (isValidSurfaceId(id)) valid.add(id);
       }
       const manager = await getPtyManager();
-      manager.pruneBuffers(valid);
+      await manager.pruneBuffers(valid);
     },
   );
 

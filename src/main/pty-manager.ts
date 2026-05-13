@@ -396,21 +396,23 @@ export class PtyManager {
     }
   }
 
-  pruneBuffers(validSurfaceIds: Set<string>): void {
+  async pruneBuffers(validSurfaceIds: Set<string>): Promise<void> {
     let entries: string[];
     try {
-      entries = fs.readdirSync(this.bufferDir);
+      entries = await fs.promises.readdir(this.bufferDir);
     } catch {
       return;
     }
-    for (const name of entries) {
+    const stale = entries.filter((name) => {
       let id: string | null = null;
       if (name.endsWith(".meta.json")) id = name.slice(0, -".meta.json".length);
       else if (name.endsWith(".json")) id = name.slice(0, -".json".length);
-      if (!id || validSurfaceIds.has(id)) continue;
-      try {
-        fs.unlinkSync(path.join(this.bufferDir, name));
-      } catch {}
-    }
+      return id !== null && !validSurfaceIds.has(id);
+    });
+    await Promise.all(
+      stale.map((name) =>
+        fs.promises.unlink(path.join(this.bufferDir, name)).catch(() => {}),
+      ),
+    );
   }
 }
