@@ -11,6 +11,7 @@ export function saveState(state: AppState): void {
     sidebarWidth: state.sidebarWidth,
     appearance: state.appearance,
     notificationSettings: state.notificationSettings,
+    updateSettings: state.updateSettings,
   };
   window.app.writeSettings(persisted).catch((err) => {
     console.error("Failed to save settings:", err);

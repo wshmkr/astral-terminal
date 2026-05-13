@@ -8,7 +8,10 @@ import { DEFAULT_APPEARANCE, normalizeAppearance } from "./appearance";
 import { initializeStore } from "./core";
 import { createDefaultWorkspace, nextWorkspaceName } from "./factories";
 import { loadState } from "./persistence";
-import { DEFAULT_NOTIFICATION_SETTINGS } from "./preferences";
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  DEFAULT_UPDATE_SETTINGS,
+} from "./preferences";
 
 const INITIAL_WINDOW_FOCUSED =
   typeof document !== "undefined" ? document.hasFocus() : true;
@@ -37,6 +40,10 @@ async function initState(): Promise<AppState> {
         ...DEFAULT_NOTIFICATION_SETTINGS,
         ...(loaded.notificationSettings ?? {}),
       },
+      updateSettings: {
+        ...DEFAULT_UPDATE_SETTINGS,
+        ...(loaded.updateSettings ?? {}),
+      },
       agentHookStatuses: {},
       windowFocused: INITIAL_WINDOW_FOCUSED,
       settingsOpen: false,
@@ -51,6 +58,7 @@ async function initState(): Promise<AppState> {
     sidebarWidth: DEFAULT_SIDEBAR_WIDTH_PX,
     appearance: DEFAULT_APPEARANCE,
     notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
+    updateSettings: DEFAULT_UPDATE_SETTINGS,
     agentHookStatuses: {},
     windowFocused: INITIAL_WINDOW_FOCUSED,
     settingsOpen: false,

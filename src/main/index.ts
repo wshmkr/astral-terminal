@@ -3,6 +3,7 @@ import { app, BrowserWindow, nativeTheme, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import type { AppConfig } from "../shared/types";
+import { checkForUpdatesOnStartup } from "./auto-update";
 import { loadConfig } from "./config";
 import { IS_DEV } from "./env";
 import {
@@ -75,6 +76,7 @@ app.whenReady().then(() => {
   registerSettingsIpc();
   registerAgentHookIpc();
   createWindow();
+  checkForUpdatesOnStartup();
 });
 
 app.on("before-quit", () => {

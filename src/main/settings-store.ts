@@ -53,6 +53,8 @@ function isValidPersisted(v: unknown): v is PersistedSettings {
   if (v.appearance !== undefined && !isObject(v.appearance)) return false;
   if (v.notificationSettings !== undefined && !isObject(v.notificationSettings))
     return false;
+  if (v.updateSettings !== undefined && !isObject(v.updateSettings))
+    return false;
   return true;
 }
 
