@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/wshmkr/astral-terminal/compare/v0.3.0...v0.4.0) (2026-05-13)
+
+
+### Features
+
+* auto-updates ([#45](https://github.com/wshmkr/astral-terminal/issues/45)) ([5c8a405](https://github.com/wshmkr/astral-terminal/commit/5c8a405db7c5f5a0ee70e64079dcfb231371e74b))
+
+
+### Bug Fixes
+
+* route hook OSC output through claude's tty by $PPID ([#44](https://github.com/wshmkr/astral-terminal/issues/44)) ([d65fed1](https://github.com/wshmkr/astral-terminal/commit/d65fed114e6efeaaef6166bb18e665c3a853693d))
+
 ## [0.3.0](https://github.com/wshmkr/astral-terminal/compare/v0.2.1...v0.3.0) (2026-05-08)
 
 
