@@ -44,10 +44,15 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
   );
 }
 
+const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
+
 function normalizeUrl(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return "about:blank";
-  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
+  const scheme = trimmed.match(/^([a-z][a-z0-9+.-]*):/i)?.[1];
+  if (scheme) {
+    return ALLOWED_SCHEMES.has(scheme.toLowerCase()) ? trimmed : "about:blank";
+  }
   if (/^[^\s/]+\.[^\s/]+/.test(trimmed)) return `https://${trimmed}`;
   return trimmed;
 }
