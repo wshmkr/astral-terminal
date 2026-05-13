@@ -26,7 +26,6 @@ export class BrowserController {
     this.anchor = opts.anchor;
     this.onState = opts.onState;
 
-    window.app.createBrowser(opts.surfaceId, opts.initialUrl);
     this.unsubscribeState = window.app.onBrowserState(
       opts.surfaceId,
       (state) => {
@@ -34,6 +33,7 @@ export class BrowserController {
         this.onState(state);
       },
     );
+    window.app.createBrowser(opts.surfaceId, opts.initialUrl);
     this.scheduleSync();
     this.resizeObserver = new ResizeObserver(() => this.scheduleSync());
     this.resizeObserver.observe(this.anchor);

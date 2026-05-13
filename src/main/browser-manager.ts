@@ -91,7 +91,9 @@ export class BrowserManager {
         if (u.protocol === "http:" || u.protocol === "https:") {
           shell.openExternal(url);
         }
-      } catch {}
+      } catch (err) {
+        console.warn("[browser] failed to parse window-open url:", url, err);
+      }
       return { action: "deny" };
     });
 
@@ -134,7 +136,6 @@ export class BrowserManager {
     entry.disposed = true;
     this.entries.delete(surfaceId);
     try {
-      entry.view.webContents.removeAllListeners();
       this.window.contentView.removeChildView(entry.view);
       entry.view.webContents.close();
     } catch {}
