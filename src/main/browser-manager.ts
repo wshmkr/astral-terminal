@@ -15,6 +15,7 @@ interface Entry {
   view: WebContentsView;
   state: BrowserState;
   offsets: BrowserAnchorOffsets | null;
+  visible: boolean;
   disposed: boolean;
 }
 
@@ -71,7 +72,7 @@ export class BrowserManager {
   ) {
     const reapplyAll = () => {
       for (const entry of this.entries.values()) {
-        if (!entry.disposed) this.applyBounds(entry);
+        if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
     };
     this.window.on("resize", reapplyAll);
@@ -103,6 +104,7 @@ export class BrowserManager {
       view,
       state: emptyState(initialUrl),
       offsets: null,
+      visible: false,
       disposed: false,
     };
     this.entries.set(surfaceId, entry);
@@ -168,7 +170,12 @@ export class BrowserManager {
   }
 
   setVisible(surfaceId: string, visible: boolean): void {
-    this.entries.get(surfaceId)?.view.setVisible(visible);
+    const entry = this.entries.get(surfaceId);
+    if (!entry) return;
+    const wasVisible = entry.visible;
+    entry.visible = visible;
+    if (visible && !wasVisible) this.applyBounds(entry);
+    entry.view.setVisible(visible);
   }
 
   loadURL(surfaceId: string, url: string): void {
