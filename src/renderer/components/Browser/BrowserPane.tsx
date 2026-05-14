@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Tooltip from "@mui/material/Tooltip";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   VscArrowLeft,
   VscArrowRight,
@@ -10,7 +10,8 @@ import {
   VscRefresh,
 } from "react-icons/vsc";
 import type { BrowserState, BrowserSurface } from "../../../shared/types";
-import { renameSurface, useWorkspaceStore } from "../../store";
+import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
+import { renameSurface } from "../../store";
 import { BrowserController } from "./browser-lifecycle";
 
 interface Props {
@@ -84,56 +85,42 @@ export function BrowserPane({
   isVisible,
 }: Props) {
   const anchorRef = useRef<HTMLDivElement>(null);
-  const controllerRef = useRef<BrowserController | null>(null);
-  // paneId can change when the surface is dragged to another pane; store
-  // callbacks must address the current pane, not the one captured at mount
+  // paneId can change when the surface is dragged to another pane; the rename
+  // closure must address the current pane, not the one captured at mount
   const paneIdRef = useRef(paneId);
   paneIdRef.current = paneId;
-
-  const focusedPaneId = useWorkspaceStore((s) => s.focusedPaneId);
 
   const [state, setState] = useState<BrowserState>(() =>
     defaultState(surface.initialUrl),
   );
   const [urlDraft, setUrlDraft] = useState<string | null>(null);
 
-  useEffect(() => {
-    const anchor = anchorRef.current;
-    if (!anchor) return;
-    const surfaceId = surface.id;
-    const controller = new BrowserController({
-      surfaceId,
-      initialUrl: surface.initialUrl,
-      anchor,
-      onState: (next) => {
-        setState(next);
-        if (next.title) {
-          renameSurface(workspaceId, paneIdRef.current, surfaceId, next.title);
-        }
-      },
-    });
-    controllerRef.current = controller;
-    return () => {
-      controller.dispose();
-      controllerRef.current = null;
-    };
-  }, [surface.id, surface.initialUrl, workspaceId]);
-
-  useEffect(() => {
-    controllerRef.current?.setVisible(isVisible);
-  }, [isVisible]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: paneId change reparents the slot; re-measure to follow
-  useEffect(() => {
-    if (!isVisible) return;
-    requestAnimationFrame(() => controllerRef.current?.syncBoundsNow());
-  }, [isVisible, paneId]);
-
-  useEffect(() => {
-    if (!isVisible) return;
-    if (focusedPaneId !== paneId) return;
-    controllerRef.current?.command("focus");
-  }, [isVisible, focusedPaneId, paneId]);
+  const controllerRef = useSurfaceLifecycle<BrowserController>({
+    paneId,
+    isVisible,
+    mountKey: `${surface.id}|${surface.initialUrl}|${workspaceId}`,
+    create: () => {
+      const anchor = anchorRef.current;
+      if (!anchor) throw new Error("BrowserPane anchor not mounted");
+      const surfaceId = surface.id;
+      return new BrowserController({
+        surfaceId,
+        initialUrl: surface.initialUrl,
+        anchor,
+        onState: (next) => {
+          setState(next);
+          if (next.title) {
+            renameSurface(
+              workspaceId,
+              paneIdRef.current,
+              surfaceId,
+              next.title,
+            );
+          }
+        },
+      });
+    },
+  });
 
   const submitUrl = () => {
     const draft = urlDraft;
