@@ -3,6 +3,7 @@ import type {
   BrowserCommand,
   BrowserState,
 } from "../../../shared/types";
+import type { SurfaceController } from "../../app/surface-lifecycle";
 
 interface ControllerOptions {
   surfaceId: string;
@@ -11,7 +12,7 @@ interface ControllerOptions {
   onState: (state: BrowserState) => void;
 }
 
-export class BrowserController {
+export class BrowserController implements SurfaceController {
   private surfaceId: string;
   private anchor: HTMLElement;
   private onState: (state: BrowserState) => void;
@@ -93,6 +94,14 @@ export class BrowserController {
   command(cmd: BrowserCommand): void {
     if (this.disposed) return;
     window.app.browserCommand(this.surfaceId, cmd);
+  }
+
+  remeasure(): void {
+    this.syncBoundsNow();
+  }
+
+  focus(): void {
+    this.command("focus");
   }
 
   dispose(): void {

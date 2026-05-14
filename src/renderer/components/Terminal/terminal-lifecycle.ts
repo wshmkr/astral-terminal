@@ -7,6 +7,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import { windowsPtyOptions } from "../../../shared/pty-options";
 import type { AppConfig, TerminalTheme } from "../../../shared/types";
+import type { SurfaceController } from "../../app/surface-lifecycle";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
 
@@ -151,7 +152,7 @@ export interface FindMatches {
   resultCount: number;
 }
 
-export class TerminalController {
+export class TerminalController implements SurfaceController {
   readonly term: Terminal;
   private readonly fitAddon: FitAddon;
   private readonly searchAddon: SearchAddon;
@@ -208,6 +209,14 @@ export class TerminalController {
 
   fit(): void {
     this.safeFit();
+  }
+
+  remeasure(): void {
+    this.safeFit();
+  }
+
+  setVisible(visible: boolean): void {
+    if (visible) this.safeFit();
   }
 
   focus(): void {
