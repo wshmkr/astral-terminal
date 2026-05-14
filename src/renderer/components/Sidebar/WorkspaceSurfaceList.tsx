@@ -1,6 +1,6 @@
 import Typography from "@mui/material/Typography";
 import { useMemo } from "react";
-import { isTerminalSurface, type Workspace } from "../../../shared/types";
+import { surfaceSidebarLabel, type Workspace } from "../../../shared/types";
 import {
   setActiveSurface,
   setActiveWorkspace,
@@ -30,10 +30,6 @@ const SURFACE_CAPTION_UNREAD_SX = {
 const EMPTY_PLACEHOLDER_SX = { fontSize: "0.675rem", opacity: 0.7 } as const;
 const NBSP = " ";
 
-function stripUserHostPrefix(name: string): string {
-  return name.replace(/^\S+@\S+:\s*/, "");
-}
-
 interface Props {
   workspace: Workspace;
 }
@@ -43,12 +39,11 @@ export function WorkspaceSurfaceList({ workspace }: Props) {
     const out: Array<{ id: string; paneId: string; name: string }> = [];
     forEachLeaf(workspace.layout, (leaf) => {
       for (const s of leaf.surfaces) {
-        if (isTerminalSurface(s))
-          out.push({
-            id: s.id,
-            paneId: leaf.id,
-            name: stripUserHostPrefix(s.name),
-          });
+        out.push({
+          id: s.id,
+          paneId: leaf.id,
+          name: surfaceSidebarLabel(s),
+        });
       }
     });
     return out;

@@ -20,17 +20,18 @@ export type SplitDirection = "horizontal" | "vertical";
 export const DEFAULT_CWD = "~";
 export const INITIAL_WINDOW_BG = "#282c34";
 
-export interface TerminalSurface {
-  type: "terminal";
+export interface BaseSurface {
   id: string;
   name: string;
+}
+
+export interface TerminalSurface extends BaseSurface {
+  type: "terminal";
   cwd: string;
 }
 
-export interface BrowserSurface {
+export interface BrowserSurface extends BaseSurface {
   type: "browser";
-  id: string;
-  name: string;
   initialUrl: string;
 }
 
@@ -43,6 +44,23 @@ export function isTerminalSurface(s: Surface): s is TerminalSurface {
 
 export function isBrowserSurface(s: Surface): s is BrowserSurface {
   return s.type === "browser";
+}
+
+function stripUserHostPrefix(name: string): string {
+  return name.replace(/^\S+@\S+:\s*/, "");
+}
+
+export function surfaceTabLabel(s: Surface): string {
+  return s.name;
+}
+
+export function surfaceSidebarLabel(s: Surface): string {
+  switch (s.type) {
+    case "terminal":
+      return stripUserHostPrefix(s.name);
+    case "browser":
+      return s.name;
+  }
 }
 
 export interface BrowserState {
