@@ -1,7 +1,8 @@
 import Box from "@mui/material/Box";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TerminalSurface } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
+import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
 import {
   addNotification,
   getState,
@@ -38,7 +39,6 @@ export function TerminalPane({
   isVisible,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const controllerRef = useRef<TerminalController | null>(null);
   const surfaceRef = useRef(surface);
   surfaceRef.current = surface;
   // paneId can change when the surface is dragged to another pane; store
@@ -56,23 +56,28 @@ export function TerminalPane({
   const fontSize = useWorkspaceStore((s) => s.appearance.fontSize);
   const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  const canFocus = useCallback(() => !findOpen, [findOpen]);
 
-    let disposed = false;
-    const surfaceId = surface.id;
-    const { cwd } = surfaceRef.current;
-    const initial = getState().appearance;
-    const initialFont = FONT_BY_ID[initial.fontFamily];
+  const mountKey = `${surface.id}|${workspaceId}`;
 
-    Promise.all([
-      loadAppConfig(),
-      preloadFont(initialFont.stack, initial.fontSize),
-    ]).then(([config]) => {
-      if (disposed) return;
-
-      controllerRef.current = new TerminalController({
+  const controllerRef = useSurfaceLifecycle<TerminalController>({
+    paneId,
+    isVisible,
+    mountKey,
+    canFocus,
+    create: async (signal) => {
+      const container = containerRef.current;
+      if (!container) throw new Error("TerminalPane container not mounted");
+      const surfaceId = surface.id;
+      const { cwd } = surfaceRef.current;
+      const initial = getState().appearance;
+      const initialFont = FONT_BY_ID[initial.fontFamily];
+      const [config] = await Promise.all([
+        loadAppConfig(),
+        preloadFont(initialFont.stack, initial.fontSize),
+      ]);
+      if (signal.aborted) throw new Error("aborted");
+      return new TerminalController({
         container,
         config,
         theme: TERMINAL_THEMES[initial.terminalThemeId],
@@ -104,37 +109,23 @@ export function TerminalPane({
           findInputRef.current?.select();
         },
       });
-    });
+    },
+  });
 
-    return () => {
-      disposed = true;
-      controllerRef.current?.dispose();
-      controllerRef.current = null;
-      setFindOpen(false);
-    };
-  }, [surface.id, workspaceId]);
+  // Close find bar when the controller is recreated for a different surface
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mountKey is the remount trigger we want to react to
+  useEffect(() => () => setFindOpen(false), [mountKey]);
 
   useEffect(() => {
     controllerRef.current?.setTheme(TERMINAL_THEMES[terminalThemeId]);
-  }, [terminalThemeId]);
+  }, [terminalThemeId, controllerRef]);
 
   useEffect(() => {
     const font = FONT_BY_ID[fontFamilyId];
     preloadFont(font.stack, fontSize)
       .catch((err) => console.warn("Font preload failed:", err))
       .finally(() => controllerRef.current?.setFont(font.stack, fontSize));
-  }, [fontFamilyId, fontSize]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: paneId change reparents the slot; xterm needs to re-measure
-  useEffect(() => {
-    if (!isVisible) return;
-    requestAnimationFrame(() => controllerRef.current?.fit());
-  }, [isVisible, paneId]);
-
-  useEffect(() => {
-    if (!isVisible || findOpen) return;
-    requestAnimationFrame(() => controllerRef.current?.focus());
-  }, [isVisible, findOpen]);
+  }, [fontFamilyId, fontSize, controllerRef]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -142,7 +133,7 @@ export function TerminalPane({
     el.style.zoom = String(1 / uiScale);
     if (!isVisible) return;
     requestAnimationFrame(() => controllerRef.current?.fit());
-  }, [uiScale, isVisible]);
+  }, [uiScale, isVisible, controllerRef]);
 
   const closeFind = () => setFindOpen(false);
 
