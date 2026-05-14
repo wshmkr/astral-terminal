@@ -53,11 +53,11 @@ export interface BrowserState {
   canGoForward: boolean;
 }
 
-export interface BrowserBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+export interface BrowserAnchorOffsets {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
 export const DEFAULT_BROWSER_URL = "about:blank";
@@ -242,7 +242,7 @@ export const IPC = {
   browser: {
     create: "browser:create",
     destroy: "browser:destroy",
-    setBounds: "browser:set-bounds",
+    setAnchorOffsets: "browser:set-anchor-offsets",
     setVisible: "browser:set-visible",
     loadURL: "browser:load-url",
     command: "browser:command",

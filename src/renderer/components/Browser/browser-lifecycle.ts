@@ -1,5 +1,5 @@
 import type {
-  BrowserBounds,
+  BrowserAnchorOffsets,
   BrowserCommand,
   BrowserState,
 } from "../../../shared/types";
@@ -18,7 +18,7 @@ export class BrowserController {
   private resizeObserver: ResizeObserver | null = null;
   private unsubscribeState: (() => void) | null = null;
   private rafHandle = 0;
-  private lastBounds: BrowserBounds | null = null;
+  private lastOffsets: BrowserAnchorOffsets | null = null;
   private disposed = false;
 
   constructor(opts: ControllerOptions) {
@@ -59,24 +59,24 @@ export class BrowserController {
   private syncBounds(): void {
     if (this.disposed) return;
     const rect = this.anchor.getBoundingClientRect();
-    const next: BrowserBounds = {
-      x: Math.round(rect.left),
-      y: Math.round(rect.top),
-      width: Math.max(0, Math.round(rect.width)),
-      height: Math.max(0, Math.round(rect.height)),
+    const next: BrowserAnchorOffsets = {
+      left: Math.round(rect.left),
+      top: Math.round(rect.top),
+      right: Math.round(window.innerWidth - rect.right),
+      bottom: Math.round(window.innerHeight - rect.bottom),
     };
-    const prev = this.lastBounds;
+    const prev = this.lastOffsets;
     if (
       prev &&
-      prev.x === next.x &&
-      prev.y === next.y &&
-      prev.width === next.width &&
-      prev.height === next.height
+      prev.left === next.left &&
+      prev.top === next.top &&
+      prev.right === next.right &&
+      prev.bottom === next.bottom
     ) {
       return;
     }
-    this.lastBounds = next;
-    window.app.setBrowserBounds(this.surfaceId, next);
+    this.lastOffsets = next;
+    window.app.setBrowserAnchorOffsets(this.surfaceId, next);
   }
 
   setVisible(visible: boolean): void {

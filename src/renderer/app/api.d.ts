@@ -2,7 +2,7 @@ import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
   AppConfig,
   AppMode,
-  BrowserBounds,
+  BrowserAnchorOffsets,
   BrowserCommand,
   BrowserState,
   ConfigureAgentHooksResult,
@@ -63,7 +63,10 @@ export interface AppAPI {
 
   createBrowser: (surfaceId: string, initialUrl: string) => void;
   destroyBrowser: (surfaceId: string) => void;
-  setBrowserBounds: (surfaceId: string, bounds: BrowserBounds) => void;
+  setBrowserAnchorOffsets: (
+    surfaceId: string,
+    offsets: BrowserAnchorOffsets,
+  ) => void;
   setBrowserVisible: (surfaceId: string, visible: boolean) => void;
   loadBrowserURL: (surfaceId: string, url: string) => void;
   browserCommand: (surfaceId: string, cmd: BrowserCommand) => void;

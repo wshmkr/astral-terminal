@@ -8,7 +8,7 @@ import {
 import { isValidSurfaceId } from "../shared/surface-id";
 import {
   type AppConfig,
-  type BrowserBounds,
+  type BrowserAnchorOffsets,
   type BrowserCommand,
   IPC,
   isBrowserCommand,
@@ -219,9 +219,12 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   });
 
   ipcMain.on(
-    IPC.browser.setBounds,
-    (_event, msg: { surfaceId: string; bounds: BrowserBounds }) => {
-      browserManager.setBounds(ensureSurfaceId(msg.surfaceId), msg.bounds);
+    IPC.browser.setAnchorOffsets,
+    (_event, msg: { surfaceId: string; offsets: BrowserAnchorOffsets }) => {
+      browserManager.setAnchorOffsets(
+        ensureSurfaceId(msg.surfaceId),
+        msg.offsets,
+      );
     },
   );
 

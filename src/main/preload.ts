@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import type {
-  BrowserBounds,
+  BrowserAnchorOffsets,
   BrowserCommand,
   BrowserState,
   NotificationFirePayload,
@@ -103,8 +103,8 @@ contextBridge.exposeInMainWorld("app", {
     ipcRenderer.send(IPC.browser.create, { surfaceId, initialUrl }),
   destroyBrowser: (surfaceId: string) =>
     ipcRenderer.send(IPC.browser.destroy, { surfaceId }),
-  setBrowserBounds: (surfaceId: string, bounds: BrowserBounds) =>
-    ipcRenderer.send(IPC.browser.setBounds, { surfaceId, bounds }),
+  setBrowserAnchorOffsets: (surfaceId: string, offsets: BrowserAnchorOffsets) =>
+    ipcRenderer.send(IPC.browser.setAnchorOffsets, { surfaceId, offsets }),
   setBrowserVisible: (surfaceId: string, visible: boolean) =>
     ipcRenderer.send(IPC.browser.setVisible, { surfaceId, visible }),
   loadBrowserURL: (surfaceId: string, url: string) =>

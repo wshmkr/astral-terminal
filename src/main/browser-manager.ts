@@ -4,7 +4,7 @@ import {
   type WebContents,
   WebContentsView,
 } from "electron";
-import type { BrowserBounds, BrowserState } from "../shared/types";
+import type { BrowserAnchorOffsets, BrowserState } from "../shared/types";
 import { attachExternalLinkHandler } from "./external-links";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
@@ -14,6 +14,7 @@ const BROWSER_PARTITION = "persist:browser-default";
 interface Entry {
   view: WebContentsView;
   state: BrowserState;
+  offsets: BrowserAnchorOffsets | null;
   disposed: boolean;
 }
 
@@ -67,7 +68,18 @@ export class BrowserManager {
   constructor(
     private readonly window: BrowserWindow,
     private readonly callbacks: BrowserManagerCallbacks,
-  ) {}
+  ) {
+    const reapplyAll = () => {
+      for (const entry of this.entries.values()) {
+        if (!entry.disposed) this.applyBounds(entry);
+      }
+    };
+    this.window.on("resize", reapplyAll);
+    this.window.on("maximize", reapplyAll);
+    this.window.on("unmaximize", reapplyAll);
+    this.window.on("enter-full-screen", reapplyAll);
+    this.window.on("leave-full-screen", reapplyAll);
+  }
 
   create(surfaceId: string, initialUrl: string): void {
     if (this.entries.has(surfaceId)) return;
@@ -90,6 +102,7 @@ export class BrowserManager {
     const entry: Entry = {
       view,
       state: emptyState(initialUrl),
+      offsets: null,
       disposed: false,
     };
     this.entries.set(surfaceId, entry);
@@ -135,14 +148,22 @@ export class BrowserManager {
     for (const id of [...this.entries.keys()]) this.destroy(id);
   }
 
-  setBounds(surfaceId: string, bounds: BrowserBounds): void {
+  setAnchorOffsets(surfaceId: string, offsets: BrowserAnchorOffsets): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
+    entry.offsets = offsets;
+    this.applyBounds(entry);
+  }
+
+  private applyBounds(entry: Entry): void {
+    if (!entry.offsets) return;
+    const { width, height } = this.window.getContentBounds();
+    const { left, top, right, bottom } = entry.offsets;
     entry.view.setBounds({
-      x: Math.round(bounds.x),
-      y: Math.round(bounds.y),
-      width: Math.max(0, Math.round(bounds.width)),
-      height: Math.max(0, Math.round(bounds.height)),
+      x: Math.round(left),
+      y: Math.round(top),
+      width: Math.max(0, Math.round(width - left - right)),
+      height: Math.max(0, Math.round(height - top - bottom)),
     });
   }
 
