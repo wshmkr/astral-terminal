@@ -215,7 +215,10 @@ export function App() {
                           containerSize={containerSize}
                         />
                       )}
-                      <WorkspaceSurfaceHost workspace={ws} />
+                      <WorkspaceSurfaceHost
+                        workspace={ws}
+                        isActive={isActive}
+                      />
                     </SurfaceBodyRegistryProvider>
                   </Box>
                 );

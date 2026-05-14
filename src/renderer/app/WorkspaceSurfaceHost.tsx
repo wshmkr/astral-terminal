@@ -10,7 +10,7 @@ import { useSurfaceBody } from "./SurfaceBodyRegistry";
 interface SurfaceLocation {
   surface: Surface;
   paneId: string;
-  isVisible: boolean;
+  isActiveInPane: boolean;
 }
 
 function collectSurfaces(node: PaneNode): SurfaceLocation[] {
@@ -20,7 +20,7 @@ function collectSurfaces(node: PaneNode): SurfaceLocation[] {
       result.push({
         surface,
         paneId: leaf.id,
-        isVisible: leaf.activeSurfaceId === surface.id,
+        isActiveInPane: leaf.activeSurfaceId === surface.id,
       });
     }
   });
@@ -72,12 +72,17 @@ function createSlot(): HTMLDivElement {
   return el;
 }
 
+interface SurfacePortalProps extends SurfaceViewProps {
+  isActiveInPane: boolean;
+}
+
 function SurfacePortal({
   workspaceId,
   surface,
   paneId,
+  isActiveInPane,
   isVisible,
-}: SurfaceViewProps) {
+}: SurfacePortalProps) {
   const [slot] = useState(createSlot);
   const surfaceBody = useSurfaceBody(paneId);
   const { setNodeRef: setDropRef } = useDroppable({
@@ -94,8 +99,8 @@ function SurfacePortal({
   }, [surfaceBody, slot]);
 
   useLayoutEffect(() => {
-    applySlotStyles(slot, isVisible);
-  }, [isVisible, slot]);
+    applySlotStyles(slot, isActiveInPane);
+  }, [isActiveInPane, slot]);
 
   useLayoutEffect(() => {
     setDropRef(slot);
@@ -117,9 +122,10 @@ function SurfacePortal({
 
 interface Props {
   workspace: Workspace;
+  isActive: boolean;
 }
 
-export function WorkspaceSurfaceHost({ workspace }: Props) {
+export function WorkspaceSurfaceHost({ workspace, isActive }: Props) {
   const items = useMemo(
     () => collectSurfaces(workspace.layout),
     [workspace.layout],
@@ -127,13 +133,14 @@ export function WorkspaceSurfaceHost({ workspace }: Props) {
 
   return (
     <>
-      {items.map(({ surface, paneId, isVisible }) => (
+      {items.map(({ surface, paneId, isActiveInPane }) => (
         <SurfacePortal
           key={surface.id}
           workspaceId={workspace.id}
           surface={surface}
           paneId={paneId}
-          isVisible={isVisible}
+          isActiveInPane={isActiveInPane}
+          isVisible={isActiveInPane && isActive}
         />
       ))}
     </>
