@@ -1,12 +1,12 @@
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
-import Tooltip from "@mui/material/Tooltip";
 import { useRef, useState } from "react";
 import {
   VscArrowLeft,
   VscArrowRight,
   VscChromeClose,
+  VscLinkExternal,
   VscRefresh,
 } from "react-icons/vsc";
 import {
@@ -16,6 +16,7 @@ import {
 } from "../../../shared/types";
 import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
 import {
+  closeSurface,
   renameSurface,
   setBrowserSurfaceUrl,
   useWorkspaceStore,
@@ -117,39 +118,39 @@ export function BrowserPane({
           },
         ]}
       >
-        <Tooltip title="Back">
-          <span>
-            <IconButton
-              size="small"
-              disabled={!state.canGoBack}
-              onClick={() => controllerRef.current?.command("goBack")}
-              sx={NAV_BUTTON_SX}
-            >
-              <VscArrowLeft size={16} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title="Forward">
-          <span>
-            <IconButton
-              size="small"
-              disabled={!state.canGoForward}
-              onClick={() => controllerRef.current?.command("goForward")}
-              sx={NAV_BUTTON_SX}
-            >
-              <VscArrowRight size={16} />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Tooltip title={state.isLoading ? "Stop" : "Reload"}>
-          <IconButton size="small" onClick={reloadOrStop} sx={NAV_BUTTON_SX}>
-            {state.isLoading ? (
-              <VscChromeClose size={16} />
-            ) : (
-              <VscRefresh size={16} />
-            )}
-          </IconButton>
-        </Tooltip>
+        <IconButton
+          size="small"
+          aria-label="Back"
+          title="Back"
+          disabled={!state.canGoBack}
+          onClick={() => controllerRef.current?.command("goBack")}
+          sx={NAV_BUTTON_SX}
+        >
+          <VscArrowLeft size={16} />
+        </IconButton>
+        <IconButton
+          size="small"
+          aria-label="Forward"
+          title="Forward"
+          disabled={!state.canGoForward}
+          onClick={() => controllerRef.current?.command("goForward")}
+          sx={NAV_BUTTON_SX}
+        >
+          <VscArrowRight size={16} />
+        </IconButton>
+        <IconButton
+          size="small"
+          aria-label={state.isLoading ? "Stop" : "Reload"}
+          title={state.isLoading ? "Stop" : "Reload"}
+          onClick={reloadOrStop}
+          sx={NAV_BUTTON_SX}
+        >
+          {state.isLoading ? (
+            <VscChromeClose size={16} />
+          ) : (
+            <VscRefresh size={16} />
+          )}
+        </IconButton>
         <InputBase
           value={urlDraft ?? state.url}
           onChange={(e) => setUrlDraft(e.target.value)}
@@ -171,6 +172,19 @@ export function BrowserPane({
           spellCheck={false}
           sx={URL_INPUT_SX}
         />
+        <IconButton
+          size="small"
+          aria-label="Open in external browser"
+          title="Open in external browser"
+          disabled={!state.url}
+          onClick={() => {
+            window.app.openExternal(state.url);
+            closeSurface(paneIdRef.current, surface.id);
+          }}
+          sx={NAV_BUTTON_SX}
+        >
+          <VscLinkExternal size={16} />
+        </IconButton>
       </Box>
       <Box ref={anchorRef} sx={ANCHOR_SX} />
     </Box>
