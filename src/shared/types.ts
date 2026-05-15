@@ -263,6 +263,10 @@ export const IPC = {
     uninstall: "agent-hooks:uninstall",
     status: "agent-hooks:status",
   },
+  shell: {
+    openExternal: "shell:open-external",
+    showLinkMenu: "shell:show-link-menu",
+  },
   browser: {
     create: "browser:create",
     destroy: "browser:destroy",

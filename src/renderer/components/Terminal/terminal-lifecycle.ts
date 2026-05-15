@@ -8,6 +8,12 @@ import { Terminal } from "@xterm/xterm";
 import { windowsPtyOptions } from "../../../shared/pty-options";
 import type { AppConfig, TerminalTheme } from "../../../shared/types";
 import type { SurfaceController } from "../../app/surface-lifecycle";
+import {
+  addSurface,
+  findPaneBySurfaceId,
+  getState,
+  setActiveWorkspace,
+} from "../../store";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
 
@@ -47,6 +53,32 @@ interface TerminalAddons {
   searchAddon: SearchAddon;
 }
 
+function openTerminalLink(
+  sourceSurfaceId: string,
+  event: MouseEvent,
+  uri: string,
+) {
+  if (event.button === 2) return;
+  if (event.shiftKey) {
+    window.app.openExternal(uri);
+    return;
+  }
+  const location = findPaneBySurfaceId(sourceSurfaceId);
+  if (!location) {
+    window.app.openExternal(uri);
+    return;
+  }
+  if (getState().activeWorkspaceId !== location.workspaceId) {
+    setActiveWorkspace(location.workspaceId);
+  }
+  const background = event.ctrlKey || event.metaKey || event.button === 1;
+  addSurface(location.paneId, "browser", { url: uri, activate: !background });
+}
+
+interface LinkHoverState {
+  uri: string | null;
+}
+
 function createTerminal(
   container: HTMLElement,
   opts: {
@@ -54,6 +86,8 @@ function createTerminal(
     theme: TerminalTheme;
     fontFamily: string;
     fontSize: number;
+    surfaceId: string;
+    linkHover: LinkHoverState;
   },
 ): TerminalAddons {
   container.style.backgroundColor = opts.theme.background;
@@ -74,7 +108,21 @@ function createTerminal(
   const searchAddon = new SearchAddon();
   term.loadAddon(fitAddon);
   term.loadAddon(searchAddon);
-  term.loadAddon(new WebLinksAddon());
+  term.loadAddon(
+    new WebLinksAddon(
+      (event, uri) => {
+        openTerminalLink(opts.surfaceId, event, uri);
+      },
+      {
+        hover: (_event, uri) => {
+          opts.linkHover.uri = uri;
+        },
+        leave: () => {
+          opts.linkHover.uri = null;
+        },
+      },
+    ),
+  );
 
   return { term, fitAddon, searchAddon };
 }
@@ -83,6 +131,7 @@ function attachClipboardHandlers(
   term: Terminal,
   container: HTMLElement,
   onRequestFind: () => void,
+  opts: { surfaceId: string; linkHover: LinkHoverState },
 ): () => void {
   const pasteFromClipboard = () => {
     navigator.clipboard
@@ -119,6 +168,13 @@ function attachClipboardHandlers(
 
   const onContextMenu = (e: MouseEvent) => {
     e.preventDefault();
+    if (opts.linkHover.uri) {
+      window.app.showLinkMenu({
+        url: opts.linkHover.uri,
+        sourceSurfaceId: opts.surfaceId,
+      });
+      return;
+    }
     const sel = term.getSelection();
     if (sel) {
       navigator.clipboard.writeText(sel);
@@ -172,11 +228,14 @@ export class TerminalController implements SurfaceController {
   private pendingOpen = false;
 
   constructor(private readonly opts: TerminalControllerOptions) {
+    const linkHover: LinkHoverState = { uri: null };
     const { term, fitAddon, searchAddon } = createTerminal(opts.container, {
       config: opts.config,
       theme: opts.theme,
       fontFamily: opts.fontFamily,
       fontSize: opts.fontSize,
+      surfaceId: opts.surfaceId,
+      linkHover,
     });
     this.term = term;
     this.fitAddon = fitAddon;
@@ -191,7 +250,10 @@ export class TerminalController implements SurfaceController {
     }
 
     this.cleanupFns.push(
-      attachClipboardHandlers(term, opts.container, opts.onRequestFind),
+      attachClipboardHandlers(term, opts.container, opts.onRequestFind, {
+        surfaceId: opts.surfaceId,
+        linkHover,
+      }),
       attachDropHandlers(opts.container, term, () => opts.getLiveSurface().cwd),
     );
 

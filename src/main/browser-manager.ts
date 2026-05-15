@@ -1,7 +1,5 @@
 import {
   type BrowserWindow,
-  clipboard,
-  Menu,
   session,
   type WebContents,
   WebContentsView,
@@ -15,6 +13,7 @@ import {
 import {
   attachExternalLinkHandler,
   openInSystemBrowser,
+  showLinkContextMenu,
 } from "./external-links";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
@@ -133,29 +132,11 @@ export class BrowserManager {
     });
 
     wc.on("context-menu", (_event, params) => {
-      const linkURL = params.linkURL;
-      if (!linkURL) return;
-      const menu = Menu.buildFromTemplate([
-        {
-          label: "Open link in new tab",
-          click: () =>
-            this.callbacks.onOpenNewTab({
-              sourceSurfaceId: surfaceId,
-              url: linkURL,
-              background: false,
-            }),
-        },
-        {
-          label: "Open link in external browser",
-          click: () => openInSystemBrowser(linkURL),
-        },
-        { type: "separator" },
-        {
-          label: "Copy link address",
-          click: () => clipboard.writeText(linkURL),
-        },
-      ]);
-      menu.popup({ window: this.window });
+      if (!params.linkURL) return;
+      showLinkContextMenu(this.window, {
+        url: params.linkURL,
+        sourceSurfaceId: surfaceId,
+      });
     });
 
     const update = (patch: Partial<BrowserState>) => {

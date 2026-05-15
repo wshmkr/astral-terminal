@@ -54,6 +54,8 @@ export interface AppAPI {
       surfaceId: string;
     }) => void,
   ) => () => void;
+  openExternal: (url: string) => void;
+  showLinkMenu: (payload: { url: string; sourceSurfaceId: string }) => void;
   setUiZoom: (factor: number) => void;
   windowMinimize: () => void;
   windowMaximize: () => void;
