@@ -15,7 +15,8 @@ import {
   defaultBrowserState,
 } from "../../../shared/types";
 import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
-import { renameSurface } from "../../store";
+import { renameSurface, useWorkspaceStore } from "../../store";
+import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { BrowserController } from "./browser-lifecycle";
 
 interface Props {
@@ -38,7 +39,6 @@ const TOOLBAR_SX = {
   gap: 0.5,
   px: 0.75,
   py: 0.5,
-  bgcolor: "background.paper",
   borderBottom: "1px solid",
   borderColor: "divider",
   flex: "0 0 auto",
@@ -89,6 +89,10 @@ export function BrowserPane({
   );
   const [urlDraft, setUrlDraft] = useState<string | null>(null);
 
+  const terminalTheme = useWorkspaceStore(
+    (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
+  );
+
   const controllerRef = useSurfaceLifecycle<BrowserController>({
     paneId,
     isVisible,
@@ -131,7 +135,15 @@ export function BrowserPane({
 
   return (
     <Box sx={ROOT_SX}>
-      <Box sx={TOOLBAR_SX}>
+      <Box
+        sx={[
+          TOOLBAR_SX,
+          {
+            bgcolor: terminalTheme.background,
+            color: terminalTheme.foreground,
+          },
+        ]}
+      >
         <Tooltip title="Back">
           <span>
             <IconButton
