@@ -50,10 +50,6 @@ function stripUserHostPrefix(name: string): string {
   return name.replace(/^\S+@\S+:\s*/, "");
 }
 
-export function surfaceTabLabel(s: Surface): string {
-  return s.name;
-}
-
 export function surfaceSidebarLabel(s: Surface): string {
   switch (s.type) {
     case "terminal":
@@ -79,6 +75,16 @@ export interface BrowserAnchorOffsets {
 }
 
 export const DEFAULT_BROWSER_URL = "about:blank";
+
+export function defaultBrowserState(url: string): BrowserState {
+  return {
+    url,
+    title: "",
+    isLoading: false,
+    canGoBack: false,
+    canGoForward: false,
+  };
+}
 
 export interface LeafPane {
   kind: "leaf";
@@ -267,23 +273,18 @@ export const IPC = {
   },
 } as const;
 
-export type BrowserCommand =
-  | "goBack"
-  | "goForward"
-  | "reload"
-  | "stop"
-  | "focus";
-
-const BROWSER_COMMAND_TABLE: Record<BrowserCommand, true> = {
-  goBack: true,
-  goForward: true,
-  reload: true,
-  stop: true,
-  focus: true,
-};
+const BROWSER_COMMANDS = [
+  "goBack",
+  "goForward",
+  "reload",
+  "stop",
+  "focus",
+] as const;
+export type BrowserCommand = (typeof BROWSER_COMMANDS)[number];
+const BROWSER_COMMAND_SET: ReadonlySet<string> = new Set(BROWSER_COMMANDS);
 
 export function isBrowserCommand(x: unknown): x is BrowserCommand {
-  return typeof x === "string" && x in BROWSER_COMMAND_TABLE;
+  return typeof x === "string" && BROWSER_COMMAND_SET.has(x);
 }
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;

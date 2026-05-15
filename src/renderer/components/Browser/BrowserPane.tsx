@@ -9,7 +9,11 @@ import {
   VscChromeClose,
   VscRefresh,
 } from "react-icons/vsc";
-import type { BrowserState, BrowserSurface } from "../../../shared/types";
+import {
+  type BrowserState,
+  type BrowserSurface,
+  defaultBrowserState,
+} from "../../../shared/types";
 import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
 import { renameSurface } from "../../store";
 import { BrowserController } from "./browser-lifecycle";
@@ -68,16 +72,6 @@ const ANCHOR_SX = {
   minHeight: 0,
 } as const;
 
-function defaultState(initialUrl: string): BrowserState {
-  return {
-    url: initialUrl,
-    title: "",
-    isLoading: false,
-    canGoBack: false,
-    canGoForward: false,
-  };
-}
-
 export function BrowserPane({
   workspaceId,
   paneId,
@@ -91,7 +85,7 @@ export function BrowserPane({
   paneIdRef.current = paneId;
 
   const [state, setState] = useState<BrowserState>(() =>
-    defaultState(surface.initialUrl),
+    defaultBrowserState(surface.initialUrl),
   );
   const [urlDraft, setUrlDraft] = useState<string | null>(null);
 

@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { VscClose } from "react-icons/vsc";
-import { type Surface, surfaceTabLabel } from "../../../shared/types";
+import type { Surface } from "../../../shared/types";
 import {
   TAB_CLOSE_SX,
   TAB_TITLE_SX,
@@ -71,7 +71,7 @@ export function TabContent({
     <>
       {hasUnread && <Box sx={TAB_UNREAD_DOT_SX} />}
       <Typography variant="body2" noWrap sx={TAB_TITLE_SX}>
-        {surfaceTabLabel(surface)}
+        {surface.name}
       </Typography>
       {onClose && (
         <Box

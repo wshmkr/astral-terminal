@@ -23,6 +23,8 @@ export function useSurfaceLifecycle<C extends SurfaceController>(
   const controllerRef = useRef<C | null>(null);
   const createRef = useRef(create);
   createRef.current = create;
+  const isVisibleRef = useRef(isVisible);
+  isVisibleRef.current = isVisible;
   const focusedPaneId = useWorkspaceStore((s) => s.focusedPaneId);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: create is read via ref to keep mountKey the sole remount trigger
@@ -35,6 +37,8 @@ export function useSurfaceLifecycle<C extends SurfaceController>(
           return;
         }
         controllerRef.current = controller;
+        // setVisible effect ran during commit with a null ref; replay current value
+        controller.setVisible(isVisibleRef.current);
       })
       .catch(() => {});
     return () => {

@@ -4,7 +4,11 @@ import {
   type WebContents,
   WebContentsView,
 } from "electron";
-import type { BrowserAnchorOffsets, BrowserState } from "../shared/types";
+import {
+  type BrowserAnchorOffsets,
+  type BrowserState,
+  defaultBrowserState,
+} from "../shared/types";
 import { attachExternalLinkHandler } from "./external-links";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
@@ -17,16 +21,6 @@ interface Entry {
   offsets: BrowserAnchorOffsets | null;
   visible: boolean;
   disposed: boolean;
-}
-
-function emptyState(url: string): BrowserState {
-  return {
-    url,
-    title: "",
-    isLoading: false,
-    canGoBack: false,
-    canGoForward: false,
-  };
 }
 
 function readNavState(
@@ -102,7 +96,7 @@ export class BrowserManager {
 
     const entry: Entry = {
       view,
-      state: emptyState(initialUrl),
+      state: defaultBrowserState(initialUrl),
       offsets: null,
       visible: false,
       disposed: false,
