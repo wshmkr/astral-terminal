@@ -55,6 +55,7 @@ export {
   resizeSplit,
   setActiveSurface,
   setActiveWorkspace,
+  setBrowserSurfaceUrl,
   setFocusedPane,
   splitPane,
   updateTerminalSurface,

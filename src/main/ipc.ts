@@ -209,8 +209,8 @@ function ensureSurfaceId(value: unknown): string {
 export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   ipcMain.on(
     IPC.browser.create,
-    (_event, msg: { surfaceId: string; initialUrl: string }) => {
-      browserManager.create(ensureSurfaceId(msg.surfaceId), msg.initialUrl);
+    (_event, msg: { surfaceId: string; url: string }) => {
+      browserManager.create(ensureSurfaceId(msg.surfaceId), msg.url);
     },
   );
 

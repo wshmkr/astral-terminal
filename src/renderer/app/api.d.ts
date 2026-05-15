@@ -61,7 +61,7 @@ export interface AppAPI {
     callback: (maximized: boolean) => void,
   ) => () => void;
 
-  createBrowser: (surfaceId: string, initialUrl: string) => void;
+  createBrowser: (surfaceId: string, url: string) => void;
   destroyBrowser: (surfaceId: string) => void;
   setBrowserAnchorOffsets: (
     surfaceId: string,

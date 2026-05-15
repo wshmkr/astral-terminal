@@ -76,7 +76,7 @@ export class BrowserManager {
     this.window.on("leave-full-screen", reapplyAll);
   }
 
-  create(surfaceId: string, initialUrl: string): void {
+  create(surfaceId: string, url: string): void {
     if (this.entries.has(surfaceId)) return;
 
     const view = new WebContentsView({
@@ -96,7 +96,7 @@ export class BrowserManager {
 
     const entry: Entry = {
       view,
-      state: defaultBrowserState(initialUrl),
+      state: defaultBrowserState(url),
       offsets: null,
       visible: false,
       disposed: false,
@@ -124,7 +124,7 @@ export class BrowserManager {
     });
     wc.on("page-title-updated", (_event, title) => update({ title }));
 
-    wc.loadURL(normalizeUrl(initialUrl)).catch((err) => {
+    wc.loadURL(normalizeUrl(url)).catch((err) => {
       console.error("[browser] initial loadURL failed:", err);
     });
   }

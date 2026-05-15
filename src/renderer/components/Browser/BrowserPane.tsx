@@ -15,7 +15,11 @@ import {
   defaultBrowserState,
 } from "../../../shared/types";
 import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
-import { renameSurface, useWorkspaceStore } from "../../store";
+import {
+  renameSurface,
+  setBrowserSurfaceUrl,
+  useWorkspaceStore,
+} from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { BrowserController } from "./browser-lifecycle";
 
@@ -85,7 +89,7 @@ export function BrowserPane({
   paneIdRef.current = paneId;
 
   const [state, setState] = useState<BrowserState>(() =>
-    defaultBrowserState(surface.initialUrl),
+    defaultBrowserState(surface.url),
   );
   const [urlDraft, setUrlDraft] = useState<string | null>(null);
 
@@ -96,14 +100,14 @@ export function BrowserPane({
   const controllerRef = useSurfaceLifecycle<BrowserController>({
     paneId,
     isVisible,
-    mountKey: `${surface.id}|${surface.initialUrl}|${workspaceId}`,
+    mountKey: `${surface.id}|${workspaceId}`,
     create: () => {
       const anchor = anchorRef.current;
       if (!anchor) throw new Error("BrowserPane anchor not mounted");
       const surfaceId = surface.id;
       return new BrowserController({
         surfaceId,
-        initialUrl: surface.initialUrl,
+        url: surface.url,
         anchor,
         onState: (next) => {
           setState(next);
@@ -113,6 +117,14 @@ export function BrowserPane({
               paneIdRef.current,
               surfaceId,
               `🌐︎ ${next.title}`,
+            );
+          }
+          if (next.url && next.url !== "about:blank") {
+            setBrowserSurfaceUrl(
+              workspaceId,
+              paneIdRef.current,
+              surfaceId,
+              next.url,
             );
           }
         },

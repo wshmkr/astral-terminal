@@ -99,8 +99,8 @@ contextBridge.exposeInMainWorld("app", {
     ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
   getAgentHookStatuses: () => ipcRenderer.invoke(IPC.agentHooks.status),
 
-  createBrowser: (surfaceId: string, initialUrl: string) =>
-    ipcRenderer.send(IPC.browser.create, { surfaceId, initialUrl }),
+  createBrowser: (surfaceId: string, url: string) =>
+    ipcRenderer.send(IPC.browser.create, { surfaceId, url }),
   destroyBrowser: (surfaceId: string) =>
     ipcRenderer.send(IPC.browser.destroy, { surfaceId }),
   setBrowserAnchorOffsets: (surfaceId: string, offsets: BrowserAnchorOffsets) =>

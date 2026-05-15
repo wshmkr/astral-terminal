@@ -7,7 +7,7 @@ import type { SurfaceController } from "../../app/surface-lifecycle";
 
 interface ControllerOptions {
   surfaceId: string;
-  initialUrl: string;
+  url: string;
   anchor: HTMLElement;
   onState: (state: BrowserState) => void;
 }
@@ -34,7 +34,7 @@ export class BrowserController implements SurfaceController {
         this.onState(state);
       },
     );
-    window.app.createBrowser(opts.surfaceId, opts.initialUrl);
+    window.app.createBrowser(opts.surfaceId, opts.url);
     this.scheduleSync();
     this.resizeObserver = new ResizeObserver(() => this.scheduleSync());
     this.resizeObserver.observe(this.anchor);

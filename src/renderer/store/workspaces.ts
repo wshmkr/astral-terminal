@@ -226,6 +226,27 @@ export function renameSurface(
   if (changed) commit();
 }
 
+export function setBrowserSurfaceUrl(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+  url: string,
+): void {
+  const changed = updateLeaf(workspaceId, paneId, (leaf) => {
+    const existing = leaf.surfaces.find((s) => s.id === surfaceId);
+    if (!existing || existing.type !== "browser" || existing.url === url) {
+      return leaf;
+    }
+    return {
+      ...leaf,
+      surfaces: leaf.surfaces.map((s) =>
+        s.id === surfaceId && s.type === "browser" ? { ...s, url } : s,
+      ),
+    };
+  });
+  if (changed) scheduleSave();
+}
+
 export function closeWorkspace(id: string): void {
   removeWorkspace(id);
   commit();

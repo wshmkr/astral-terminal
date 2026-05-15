@@ -20,12 +20,12 @@ export function createTerminalSurface(cwd?: string): Surface {
   };
 }
 
-export function createBrowserSurface(initialUrl?: string): Surface {
+export function createBrowserSurface(url?: string): Surface {
   return {
     type: "browser",
     id: generateId(),
     name: "🌐︎ New Tab",
-    initialUrl: initialUrl || DEFAULT_BROWSER_URL,
+    url: url || DEFAULT_BROWSER_URL,
   };
 }
 

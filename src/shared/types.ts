@@ -32,7 +32,7 @@ export interface TerminalSurface extends BaseSurface {
 
 export interface BrowserSurface extends BaseSurface {
   type: "browser";
-  initialUrl: string;
+  url: string;
 }
 
 export type Surface = TerminalSurface | BrowserSurface;
