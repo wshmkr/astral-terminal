@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import type {
   BrowserAnchorOffsets,
   BrowserCommand,
+  BrowserOpenNewTabPayload,
   BrowserState,
   NotificationFirePayload,
   PersistedSettings,
@@ -115,4 +116,7 @@ contextBridge.exposeInMainWorld("app", {
     surfaceId: string,
     callback: (state: BrowserState) => void,
   ) => subscribe<[BrowserState]>(browserStateChannel(surfaceId), callback),
+  onBrowserOpenNewTab: (
+    callback: (payload: BrowserOpenNewTabPayload) => void,
+  ) => subscribe<[BrowserOpenNewTabPayload]>(IPC.browser.openNewTab, callback),
 });

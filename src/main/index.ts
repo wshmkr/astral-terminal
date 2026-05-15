@@ -2,7 +2,7 @@ import path from "node:path";
 import { app, BrowserWindow, nativeTheme, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
-import { type AppConfig, browserStateChannel } from "../shared/types";
+import { type AppConfig, browserStateChannel, IPC } from "../shared/types";
 import { checkForUpdatesOnStartup } from "./auto-update";
 import { BrowserManager } from "./browser-manager";
 import { loadConfig } from "./config";
@@ -98,6 +98,9 @@ app.whenReady().then(() => {
           browserStateChannel(surfaceId),
           state,
         );
+      },
+      onOpenNewTab: (payload) => {
+        getMainWindow()?.webContents.send(IPC.browser.openNewTab, payload);
       },
     });
     registerBrowserIpc({ browserManager });

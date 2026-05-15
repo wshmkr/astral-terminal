@@ -1,19 +1,24 @@
-import { shell, type WebContents } from "electron";
+import { type HandlerDetails, shell, type WebContents } from "electron";
 
-function openExternalIfHttp(url: string): void {
+function parseHttpUrl(url: string): URL | null {
   try {
     const u = new URL(url);
-    if (u.protocol === "http:" || u.protocol === "https:") {
-      shell.openExternal(url);
-    }
-  } catch (err) {
-    console.warn("[external-links] failed to parse url:", url, err);
+    return u.protocol === "http:" || u.protocol === "https:" ? u : null;
+  } catch {
+    return null;
   }
 }
 
-export function attachExternalLinkHandler(webContents: WebContents): void {
-  webContents.setWindowOpenHandler(({ url }) => {
-    openExternalIfHttp(url);
+export function attachExternalLinkHandler(
+  webContents: WebContents,
+  onPopup: (url: string, disposition: HandlerDetails["disposition"]) => void,
+): void {
+  webContents.setWindowOpenHandler(({ url, disposition }) => {
+    if (parseHttpUrl(url)) onPopup(url, disposition);
     return { action: "deny" };
   });
+}
+
+export function openInSystemBrowser(url: string): void {
+  if (parseHttpUrl(url)) shell.openExternal(url);
 }
