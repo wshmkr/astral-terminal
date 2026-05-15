@@ -4,6 +4,7 @@ import type {
   AppMode,
   BrowserAnchorOffsets,
   BrowserCommand,
+  BrowserOpenNewTabPayload,
   BrowserState,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
@@ -73,6 +74,9 @@ export interface AppAPI {
   onBrowserState: (
     surfaceId: string,
     callback: (state: BrowserState) => void,
+  ) => () => void;
+  onBrowserOpenNewTab: (
+    callback: (payload: BrowserOpenNewTabPayload) => void,
   ) => () => void;
 }
 

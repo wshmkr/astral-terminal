@@ -6,6 +6,7 @@ import { agentProviders } from "../shared/agent-hooks";
 import { AppDndContext } from "./app/AppDndContext";
 import { SurfaceBodyRegistryProvider } from "./app/SurfaceBodyRegistry";
 import { WorkspaceSurfaceHost } from "./app/WorkspaceSurfaceHost";
+import { installBrowserPopupListener } from "./components/Browser/popup-listener";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
@@ -114,6 +115,10 @@ export function App() {
         setActiveSurface(paneId, surfaceId);
       },
     );
+  }, []);
+
+  useEffect(() => {
+    return installBrowserPopupListener();
   }, []);
 
   useEffect(() => {

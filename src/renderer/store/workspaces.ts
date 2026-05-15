@@ -11,6 +11,7 @@ import {
 import {
   findFirstLeaf,
   findLeafPane,
+  forEachLeaf,
   getActiveSurface,
   mapNode,
   pruneNode,
@@ -265,21 +266,44 @@ export function renameWorkspace(id: string, name: string): void {
 export function addSurface(
   paneId: string,
   kind: SurfaceKind = "terminal",
-): void {
+  options?: { url?: string; activate?: boolean },
+): string | null {
   const ws = getActiveWorkspace();
-  if (!ws) return;
+  if (!ws) return null;
+  const activate = options?.activate ?? true;
+  let newSurfaceId: string | null = null;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const active = getActiveSurface(leaf);
     const cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
     const surface =
-      kind === "browser" ? createBrowserSurface() : createTerminalSurface(cwd);
+      kind === "browser"
+        ? createBrowserSurface(options?.url)
+        : createTerminalSurface(cwd);
+    newSurfaceId = surface.id;
     return {
       ...leaf,
       surfaces: [...leaf.surfaces, surface],
-      activeSurfaceId: surface.id,
+      activeSurfaceId: activate ? surface.id : leaf.activeSurfaceId,
     };
   });
   if (changed) commit();
+  return newSurfaceId;
+}
+
+export function findPaneBySurfaceId(
+  surfaceId: string,
+): { workspaceId: string; paneId: string } | null {
+  for (const ws of getState().workspaces) {
+    let match: { workspaceId: string; paneId: string } | null = null;
+    forEachLeaf(ws.layout, (leaf) => {
+      if (match) return;
+      if (leaf.surfaces.some((s) => s.id === surfaceId)) {
+        match = { workspaceId: ws.id, paneId: leaf.id };
+      }
+    });
+    if (match) return match;
+  }
+  return null;
 }
 
 export function closeSurface(paneId: string, surfaceId: string): void {
