@@ -9,10 +9,10 @@ function isObject(v: unknown): v is Record<string, unknown> {
 
 function isValidSurface(v: unknown): v is Surface {
   if (!isObject(v)) return false;
-  if (v.type !== "terminal") return false;
   if (typeof v.id !== "string" || typeof v.name !== "string") return false;
-  if (typeof v.cwd !== "string") return false;
-  return true;
+  if (v.type === "terminal") return typeof v.cwd === "string";
+  if (v.type === "browser") return typeof v.url === "string";
+  return false;
 }
 
 function isValidPaneNode(v: unknown): v is PaneNode {

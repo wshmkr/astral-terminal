@@ -4,6 +4,7 @@ import {
   type LeafPane,
   type PaneNode,
   type SplitDirection,
+  type SurfaceKind,
   type TerminalSurface,
   type Workspace,
 } from "../../shared/types";
@@ -25,6 +26,7 @@ import {
   setState,
 } from "./core";
 import {
+  createBrowserSurface,
   createDefaultWorkspace,
   createLeafPane,
   createTerminalSurface,
@@ -171,7 +173,11 @@ export function splitPane(
 
   const targetLeaf = findLeafPane(ws.layout, targetPaneId);
   const activeSurface = targetLeaf ? getActiveSurface(targetLeaf) : undefined;
-  const newLeaf = createLeafPane(activeSurface?.cwd);
+  const cwd =
+    activeSurface && isTerminalSurface(activeSurface)
+      ? activeSurface.cwd
+      : undefined;
+  const newLeaf = createLeafPane(cwd);
   const newLayout = mapNode(ws.layout, targetPaneId, (node) => ({
     kind: "split" as const,
     id: generateId(),
@@ -220,6 +226,27 @@ export function renameSurface(
   if (changed) commit();
 }
 
+export function setBrowserSurfaceUrl(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+  url: string,
+): void {
+  const changed = updateLeaf(workspaceId, paneId, (leaf) => {
+    const existing = leaf.surfaces.find((s) => s.id === surfaceId);
+    if (!existing || existing.type !== "browser" || existing.url === url) {
+      return leaf;
+    }
+    return {
+      ...leaf,
+      surfaces: leaf.surfaces.map((s) =>
+        s.id === surfaceId && s.type === "browser" ? { ...s, url } : s,
+      ),
+    };
+  });
+  if (changed) scheduleSave();
+}
+
 export function closeWorkspace(id: string): void {
   removeWorkspace(id);
   commit();
@@ -235,11 +262,17 @@ export function renameWorkspace(id: string, name: string): void {
   commit();
 }
 
-export function addSurface(paneId: string): void {
+export function addSurface(
+  paneId: string,
+  kind: SurfaceKind = "terminal",
+): void {
   const ws = getActiveWorkspace();
   if (!ws) return;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
-    const surface = createTerminalSurface(getActiveSurface(leaf)?.cwd);
+    const active = getActiveSurface(leaf);
+    const cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
+    const surface =
+      kind === "browser" ? createBrowserSurface() : createTerminalSurface(cwd);
     return {
       ...leaf,
       surfaces: [...leaf.surfaces, surface],

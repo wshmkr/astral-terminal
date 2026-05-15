@@ -2,6 +2,9 @@ import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
   AppConfig,
   AppMode,
+  BrowserAnchorOffsets,
+  BrowserCommand,
+  BrowserState,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
   PersistedSettings,
@@ -56,6 +59,20 @@ export interface AppAPI {
   windowClose: () => void;
   onWindowMaximizedChange: (
     callback: (maximized: boolean) => void,
+  ) => () => void;
+
+  createBrowser: (surfaceId: string, url: string) => void;
+  destroyBrowser: (surfaceId: string) => void;
+  setBrowserAnchorOffsets: (
+    surfaceId: string,
+    offsets: BrowserAnchorOffsets,
+  ) => void;
+  setBrowserVisible: (surfaceId: string, visible: boolean) => void;
+  loadBrowserURL: (surfaceId: string, url: string) => void;
+  browserCommand: (surfaceId: string, cmd: BrowserCommand) => void;
+  onBrowserState: (
+    surfaceId: string,
+    callback: (state: BrowserState) => void,
   ) => () => void;
 }
 

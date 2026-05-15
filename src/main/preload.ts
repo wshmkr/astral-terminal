@@ -1,9 +1,13 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import type {
+  BrowserAnchorOffsets,
+  BrowserCommand,
+  BrowserState,
   NotificationFirePayload,
   PersistedSettings,
 } from "../shared/types";
 import {
+  browserStateChannel,
   decodeAppModeArg,
   IPC,
   ptyCwdChannel,
@@ -94,4 +98,21 @@ contextBridge.exposeInMainWorld("app", {
   uninstallAgentHooks: (params: { providerName: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.uninstall, params),
   getAgentHookStatuses: () => ipcRenderer.invoke(IPC.agentHooks.status),
+
+  createBrowser: (surfaceId: string, url: string) =>
+    ipcRenderer.send(IPC.browser.create, { surfaceId, url }),
+  destroyBrowser: (surfaceId: string) =>
+    ipcRenderer.send(IPC.browser.destroy, { surfaceId }),
+  setBrowserAnchorOffsets: (surfaceId: string, offsets: BrowserAnchorOffsets) =>
+    ipcRenderer.send(IPC.browser.setAnchorOffsets, { surfaceId, offsets }),
+  setBrowserVisible: (surfaceId: string, visible: boolean) =>
+    ipcRenderer.send(IPC.browser.setVisible, { surfaceId, visible }),
+  loadBrowserURL: (surfaceId: string, url: string) =>
+    ipcRenderer.send(IPC.browser.loadURL, { surfaceId, url }),
+  browserCommand: (surfaceId: string, cmd: BrowserCommand) =>
+    ipcRenderer.send(IPC.browser.command, { surfaceId, cmd }),
+  onBrowserState: (
+    surfaceId: string,
+    callback: (state: BrowserState) => void,
+  ) => subscribe<[BrowserState]>(browserStateChannel(surfaceId), callback),
 });

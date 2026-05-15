@@ -20,17 +20,70 @@ export type SplitDirection = "horizontal" | "vertical";
 export const DEFAULT_CWD = "~";
 export const INITIAL_WINDOW_BG = "#282c34";
 
-export interface TerminalSurface {
-  type: "terminal";
+export interface BaseSurface {
   id: string;
   name: string;
+}
+
+export interface TerminalSurface extends BaseSurface {
+  type: "terminal";
   cwd: string;
 }
 
-export type Surface = TerminalSurface;
+export interface BrowserSurface extends BaseSurface {
+  type: "browser";
+  url: string;
+}
+
+export type Surface = TerminalSurface | BrowserSurface;
+export type SurfaceKind = Surface["type"];
 
 export function isTerminalSurface(s: Surface): s is TerminalSurface {
   return s.type === "terminal";
+}
+
+export function isBrowserSurface(s: Surface): s is BrowserSurface {
+  return s.type === "browser";
+}
+
+function stripUserHostPrefix(name: string): string {
+  return name.replace(/^\S+@\S+:\s*/, "");
+}
+
+export function surfaceSidebarLabel(s: Surface): string {
+  switch (s.type) {
+    case "terminal":
+      return stripUserHostPrefix(s.name);
+    case "browser":
+      return s.name;
+  }
+}
+
+export interface BrowserState {
+  url: string;
+  title: string;
+  isLoading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}
+
+export interface BrowserAnchorOffsets {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+export const DEFAULT_BROWSER_URL = "about:blank";
+
+export function defaultBrowserState(url: string): BrowserState {
+  return {
+    url,
+    title: "",
+    isLoading: false,
+    canGoBack: false,
+    canGoForward: false,
+  };
 }
 
 export interface LeafPane {
@@ -210,8 +263,32 @@ export const IPC = {
     uninstall: "agent-hooks:uninstall",
     status: "agent-hooks:status",
   },
+  browser: {
+    create: "browser:create",
+    destroy: "browser:destroy",
+    setAnchorOffsets: "browser:set-anchor-offsets",
+    setVisible: "browser:set-visible",
+    loadURL: "browser:load-url",
+    command: "browser:command",
+  },
 } as const;
+
+const BROWSER_COMMANDS = [
+  "goBack",
+  "goForward",
+  "reload",
+  "stop",
+  "focus",
+] as const;
+export type BrowserCommand = (typeof BROWSER_COMMANDS)[number];
+const BROWSER_COMMAND_SET: ReadonlySet<string> = new Set(BROWSER_COMMANDS);
+
+export function isBrowserCommand(x: unknown): x is BrowserCommand {
+  return typeof x === "string" && BROWSER_COMMAND_SET.has(x);
+}
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;
 export const ptyExitChannel = (ptyId: string) => `pty:exit:${ptyId}`;
 export const ptyCwdChannel = (ptyId: string) => `pty:cwd:${ptyId}`;
+export const browserStateChannel = (surfaceId: string) =>
+  `browser:state:${surfaceId}`;
