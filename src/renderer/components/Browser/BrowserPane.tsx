@@ -108,7 +108,7 @@ export function BrowserPane({
               workspaceId,
               paneIdRef.current,
               surfaceId,
-              next.title,
+              `🌐︎ ${next.title}`,
             );
           }
         },

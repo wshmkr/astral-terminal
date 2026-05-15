@@ -24,7 +24,7 @@ export function createBrowserSurface(initialUrl?: string): Surface {
   return {
     type: "browser",
     id: generateId(),
-    name: "New Tab",
+    name: "🌐︎ New Tab",
     initialUrl: initialUrl || DEFAULT_BROWSER_URL,
   };
 }
