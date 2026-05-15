@@ -187,7 +187,7 @@ function NewTabButton({ paneId }: { paneId: string }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   return (
     <>
-      <Tooltip title="New Terminal Tab">
+      <Tooltip title="New Tab">
         <IconButton
           size="small"
           onClick={() => addSurface(paneId, "terminal")}
@@ -214,7 +214,7 @@ function NewTabButton({ paneId }: { paneId: string }) {
           <ListItemIcon>
             <VscTerminal size={16} />
           </ListItemIcon>
-          <ListItemText>New Terminal Tab</ListItemText>
+          <ListItemText>Terminal</ListItemText>
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -225,7 +225,7 @@ function NewTabButton({ paneId }: { paneId: string }) {
           <ListItemIcon>
             <VscGlobe size={16} />
           </ListItemIcon>
-          <ListItemText>New Browser Tab</ListItemText>
+          <ListItemText>Browser</ListItemText>
         </MenuItem>
       </Menu>
     </>
