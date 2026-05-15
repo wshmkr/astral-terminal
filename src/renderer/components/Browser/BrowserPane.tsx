@@ -21,6 +21,13 @@ import {
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
+import {
+  ANCHOR_SX,
+  NAV_BUTTON_SX,
+  ROOT_SX,
+  TOOLBAR_SX,
+  URL_INPUT_SX,
+} from "./BrowserPane.styles";
 import { BrowserController } from "./browser-lifecycle";
 
 interface Props {
@@ -29,52 +36,6 @@ interface Props {
   surface: BrowserSurface;
   isVisible: boolean;
 }
-
-const ROOT_SX = {
-  width: "100%",
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-} as const;
-
-const TOOLBAR_SX = {
-  display: "flex",
-  alignItems: "center",
-  gap: 0.5,
-  px: 0.75,
-  py: 0.5,
-  borderBottom: "1px solid",
-  borderColor: "divider",
-  flex: "0 0 auto",
-} as const;
-
-const NAV_BUTTON_SX = {
-  width: 28,
-  height: 28,
-  borderRadius: 1,
-} as const;
-
-const URL_INPUT_SX = {
-  flex: 1,
-  bgcolor: "action.hover",
-  borderRadius: 1.5,
-  px: 1.25,
-  py: 0.25,
-  fontSize: 13,
-  color: "text.primary",
-  "& input": {
-    p: 0,
-    height: 24,
-  },
-  "&:focus-within": {
-    bgcolor: "action.selected",
-  },
-} as const;
-
-const ANCHOR_SX = {
-  flex: 1,
-  minHeight: 0,
-} as const;
 
 export function BrowserPane({
   workspaceId,
