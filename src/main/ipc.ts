@@ -24,6 +24,7 @@ import {
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
 import type { BrowserManager } from "./browser-manager";
+import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
@@ -139,6 +140,28 @@ export function registerWindowIpc({ getMainWindow }: WindowDeps): void {
   ipcMain.on(IPC.window.close, () => {
     getMainWindow()?.close();
   });
+
+  ipcMain.on(IPC.shell.openExternal, (_event, msg: { url: string }) => {
+    if (typeof msg?.url === "string") openInSystemBrowser(msg.url);
+  });
+
+  ipcMain.on(
+    IPC.shell.showLinkMenu,
+    (_event, msg: { url: string; sourceSurfaceId: string }) => {
+      const win = getMainWindow();
+      if (!win) return;
+      if (
+        typeof msg?.url !== "string" ||
+        !isValidSurfaceId(msg.sourceSurfaceId)
+      ) {
+        return;
+      }
+      showLinkContextMenu(win, {
+        url: msg.url,
+        sourceSurfaceId: msg.sourceSurfaceId,
+      });
+    },
+  );
 }
 
 export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
