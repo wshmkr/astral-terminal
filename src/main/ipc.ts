@@ -14,10 +14,13 @@ import {
   IPC,
   isBrowserCommand,
   type NotificationFirePayload,
+  type NotificationPanelAction,
+  type NotificationPanelItem,
   type PersistedSettings,
   ptyCwdChannel,
   ptyDataChannel,
   ptyExitChannel,
+  type ScreenRect,
   type TerminalThemeId,
 } from "../shared/types";
 import {
@@ -27,6 +30,11 @@ import {
 } from "./agent-hooks/installer";
 import type { BrowserManager } from "./browser-manager";
 import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
+import {
+  hideNotificationPanel,
+  openNotificationPanel,
+  setNotificationPanelItems,
+} from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
 import { focusMainWindow } from "./window";
@@ -182,6 +190,33 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
     });
     notif.show();
   });
+
+  ipcMain.on(
+    IPC.notification.openPanel,
+    (_event, msg: { anchor: ScreenRect; items: NotificationPanelItem[] }) => {
+      const win = getMainWindow();
+      if (!win) return;
+      openNotificationPanel(win, msg.anchor, msg.items);
+    },
+  );
+
+  ipcMain.on(
+    IPC.notification.setPanelItems,
+    (_event, msg: { items: NotificationPanelItem[] }) => {
+      setNotificationPanelItems(msg.items);
+    },
+  );
+
+  ipcMain.on(IPC.notification.closePanel, () => {
+    hideNotificationPanel();
+  });
+
+  ipcMain.on(
+    IPC.notification.panelAction,
+    (_event, action: NotificationPanelAction) => {
+      getMainWindow()?.webContents.send(IPC.notification.panelAction, action);
+    },
+  );
 }
 
 export function applyTerminalThemeNative(

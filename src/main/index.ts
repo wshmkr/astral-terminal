@@ -16,6 +16,7 @@ import {
   registerSettingsIpc,
   registerWindowIpc,
 } from "./ipc";
+import { destroyNotificationWindow } from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings } from "./settings-store";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
@@ -112,6 +113,7 @@ app.whenReady().then(() => {
 app.on("before-quit", () => {
   ptyManager?.saveAndKillAll();
   browserManager?.destroyAll();
+  destroyNotificationWindow();
 });
 
 app.on("window-all-closed", () => {

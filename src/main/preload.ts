@@ -5,7 +5,10 @@ import type {
   BrowserOpenNewTabPayload,
   BrowserState,
   NotificationFirePayload,
+  NotificationPanelAction,
+  NotificationPanelItem,
   PersistedSettings,
+  ScreenRect,
 } from "../shared/types";
 import {
   browserStateChannel,
@@ -96,6 +99,30 @@ contextBridge.exposeInMainWorld("app", {
   ) =>
     subscribe<[{ workspaceId: string; paneId: string; surfaceId: string }]>(
       IPC.notification.click,
+      callback,
+    ),
+
+  openNotificationPanel: (anchor: ScreenRect, items: NotificationPanelItem[]) =>
+    ipcRenderer.send(IPC.notification.openPanel, { anchor, items }),
+  setNotificationPanelItems: (items: NotificationPanelItem[]) =>
+    ipcRenderer.send(IPC.notification.setPanelItems, { items }),
+  closeNotificationPanel: () => ipcRenderer.send(IPC.notification.closePanel),
+  onNotificationPanelClosed: (callback: () => void) =>
+    subscribe<[]>(IPC.notification.panelClosed, callback),
+  onNotificationPanelItems: (
+    callback: (items: NotificationPanelItem[]) => void,
+  ) =>
+    subscribe<[NotificationPanelItem[]]>(
+      IPC.notification.panelItemsChanged,
+      callback,
+    ),
+  sendNotificationPanelAction: (action: NotificationPanelAction) =>
+    ipcRenderer.send(IPC.notification.panelAction, action),
+  onNotificationPanelAction: (
+    callback: (action: NotificationPanelAction) => void,
+  ) =>
+    subscribe<[NotificationPanelAction]>(
+      IPC.notification.panelAction,
       callback,
     ),
 

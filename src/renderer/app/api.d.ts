@@ -8,7 +8,10 @@ import type {
   BrowserState,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
+  NotificationPanelAction,
+  NotificationPanelItem,
   PersistedSettings,
+  ScreenRect,
   UninstallAgentHooksResult,
 } from "../../shared/types";
 
@@ -79,6 +82,21 @@ export interface AppAPI {
   ) => () => void;
   onBrowserOpenNewTab: (
     callback: (payload: BrowserOpenNewTabPayload) => void,
+  ) => () => void;
+
+  openNotificationPanel: (
+    anchor: ScreenRect,
+    items: NotificationPanelItem[],
+  ) => void;
+  setNotificationPanelItems: (items: NotificationPanelItem[]) => void;
+  closeNotificationPanel: () => void;
+  onNotificationPanelClosed: (callback: () => void) => () => void;
+  onNotificationPanelItems: (
+    callback: (items: NotificationPanelItem[]) => void,
+  ) => () => void;
+  sendNotificationPanelAction: (action: NotificationPanelAction) => void;
+  onNotificationPanelAction: (
+    callback: (action: NotificationPanelAction) => void,
   ) => () => void;
 }
 
