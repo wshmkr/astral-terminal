@@ -47,6 +47,7 @@ export {
   closeSurface,
   closeWorkspace,
   createWorkspace,
+  findPaneBySurfaceId,
   moveSurfaceToPane,
   renameSurface,
   renameWorkspace,

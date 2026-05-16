@@ -263,6 +263,10 @@ export const IPC = {
     uninstall: "agent-hooks:uninstall",
     status: "agent-hooks:status",
   },
+  shell: {
+    openExternal: "shell:open-external",
+    showLinkMenu: "shell:show-link-menu",
+  },
   browser: {
     create: "browser:create",
     destroy: "browser:destroy",
@@ -270,8 +274,15 @@ export const IPC = {
     setVisible: "browser:set-visible",
     loadURL: "browser:load-url",
     command: "browser:command",
+    openNewTab: "browser:open-new-tab",
   },
 } as const;
+
+export interface BrowserOpenNewTabPayload {
+  sourceSurfaceId: string;
+  url: string;
+  background: boolean;
+}
 
 const BROWSER_COMMANDS = [
   "goBack",

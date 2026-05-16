@@ -6,10 +6,15 @@ import {
 } from "electron";
 import {
   type BrowserAnchorOffsets,
+  type BrowserOpenNewTabPayload,
   type BrowserState,
   defaultBrowserState,
 } from "../shared/types";
-import { attachExternalLinkHandler } from "./external-links";
+import {
+  attachExternalLinkHandler,
+  openInSystemBrowser,
+  showLinkContextMenu,
+} from "./external-links";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
@@ -21,6 +26,7 @@ interface Entry {
   offsets: BrowserAnchorOffsets | null;
   visible: boolean;
   disposed: boolean;
+  shiftHeld: boolean;
 }
 
 function readNavState(
@@ -55,6 +61,7 @@ function normalizeUrl(raw: string): string {
 
 export interface BrowserManagerCallbacks {
   onState: (surfaceId: string, state: BrowserState) => void;
+  onOpenNewTab: (payload: BrowserOpenNewTabPayload) => void;
 }
 
 export class BrowserManager {
@@ -92,16 +99,48 @@ export class BrowserManager {
     this.window.contentView.addChildView(view);
 
     const wc = view.webContents;
-    attachExternalLinkHandler(wc);
-
     const entry: Entry = {
       view,
       state: defaultBrowserState(url),
       offsets: null,
       visible: false,
       disposed: false,
+      shiftHeld: false,
     };
     this.entries.set(surfaceId, entry);
+
+    attachExternalLinkHandler(wc, (url, disposition) => {
+      if (entry.shiftHeld) {
+        openInSystemBrowser(url);
+        return;
+      }
+      this.callbacks.onOpenNewTab({
+        sourceSurfaceId: surfaceId,
+        url,
+        background: disposition === "background-tab",
+      });
+    });
+
+    wc.on("before-input-event", (_event, input) => {
+      entry.shiftHeld = input.shift;
+    });
+    wc.on("blur", () => {
+      entry.shiftHeld = false;
+    });
+
+    wc.on("will-navigate", (event, url) => {
+      if (!entry.shiftHeld) return;
+      event.preventDefault();
+      openInSystemBrowser(url);
+    });
+
+    wc.on("context-menu", (_event, params) => {
+      if (!params.linkURL) return;
+      showLinkContextMenu(this.window, {
+        url: params.linkURL,
+        sourceSurfaceId: surfaceId,
+      });
+    });
 
     const update = (patch: Partial<BrowserState>) => {
       if (entry.disposed) return;

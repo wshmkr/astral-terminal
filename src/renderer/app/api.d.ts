@@ -4,6 +4,7 @@ import type {
   AppMode,
   BrowserAnchorOffsets,
   BrowserCommand,
+  BrowserOpenNewTabPayload,
   BrowserState,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
@@ -53,6 +54,8 @@ export interface AppAPI {
       surfaceId: string;
     }) => void,
   ) => () => void;
+  openExternal: (url: string) => void;
+  showLinkMenu: (payload: { url: string; sourceSurfaceId: string }) => void;
   setUiZoom: (factor: number) => void;
   windowMinimize: () => void;
   windowMaximize: () => void;
@@ -73,6 +76,9 @@ export interface AppAPI {
   onBrowserState: (
     surfaceId: string,
     callback: (state: BrowserState) => void,
+  ) => () => void;
+  onBrowserOpenNewTab: (
+    callback: (payload: BrowserOpenNewTabPayload) => void,
   ) => () => void;
 }
 
