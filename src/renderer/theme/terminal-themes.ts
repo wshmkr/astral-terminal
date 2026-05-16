@@ -1,6 +1,7 @@
 import type { TerminalTheme, TerminalThemeId } from "../../shared/types";
 
 export const ONE_HALF_DARK: TerminalTheme = {
+  colorScheme: "dark",
   background: "#282c34",
   foreground: "#dcdfe4",
   cursor: "#a3b8ef",
@@ -27,6 +28,7 @@ export const ONE_HALF_DARK: TerminalTheme = {
 };
 
 export const ONE_HALF_LIGHT: TerminalTheme = {
+  colorScheme: "light",
   background: "#fafafa",
   foreground: "#383c47",
   cursor: "#bfd7ff",

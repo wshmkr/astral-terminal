@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, nativeTheme, session } from "electron";
+import { app, BrowserWindow, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import { type AppConfig, browserStateChannel, IPC } from "../shared/types";
@@ -8,6 +8,7 @@ import { BrowserManager } from "./browser-manager";
 import { loadConfig } from "./config";
 import { IS_DEV } from "./env";
 import {
+  applyTerminalThemeNative,
   registerAgentHookIpc,
   registerBrowserIpc,
   registerNotificationIpc,
@@ -16,6 +17,7 @@ import {
   registerWindowIpc,
 } from "./ipc";
 import type { PtyManager } from "./pty-manager";
+import { loadSettings } from "./settings-store";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
 
 if (IS_DEV) {
@@ -78,7 +80,7 @@ function installCsp() {
   });
 }
 
-nativeTheme.themeSource = "dark";
+applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
 
 app.whenReady().then(() => {
   installCsp();

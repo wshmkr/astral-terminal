@@ -60,11 +60,15 @@ export class BrowserController implements SurfaceController {
   private syncBounds(): void {
     if (this.disposed) return;
     const rect = this.anchor.getBoundingClientRect();
+    const left = Math.round(rect.left);
+    const top = Math.round(rect.top);
+    const right = Math.round(rect.right);
+    const bottom = Math.round(rect.bottom);
     const next: BrowserAnchorOffsets = {
-      left: Math.round(rect.left),
-      top: Math.round(rect.top),
-      right: Math.round(window.innerWidth - rect.right),
-      bottom: Math.round(window.innerHeight - rect.bottom),
+      left,
+      top,
+      right: window.innerWidth - right,
+      bottom: window.innerHeight - bottom,
     };
     const prev = this.lastOffsets;
     if (

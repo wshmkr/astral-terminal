@@ -1,5 +1,6 @@
 import type { BrowserWindow } from "electron";
-import { ipcMain, Notification } from "electron";
+import { ipcMain, Notification, nativeTheme } from "electron";
+import { TERMINAL_THEMES } from "../renderer/theme/terminal-themes";
 import {
   type AgentHookStatus,
   type AgentName,
@@ -17,6 +18,7 @@ import {
   ptyCwdChannel,
   ptyDataChannel,
   ptyExitChannel,
+  type TerminalThemeId,
 } from "../shared/types";
 import {
   configureAgentHooks,
@@ -182,10 +184,21 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
   });
 }
 
+export function applyTerminalThemeNative(
+  id: TerminalThemeId | undefined,
+): void {
+  const theme = id ? TERMINAL_THEMES[id] : undefined;
+  nativeTheme.themeSource = theme?.colorScheme ?? "dark";
+}
+
 export function registerSettingsIpc(): void {
   ipcMain.handle(IPC.settings.read, () => loadSettings());
-  ipcMain.handle(IPC.settings.write, (_event, settings: PersistedSettings) =>
-    saveSettings(settings),
+  ipcMain.handle(
+    IPC.settings.write,
+    async (_event, settings: PersistedSettings) => {
+      await saveSettings(settings);
+      applyTerminalThemeNative(settings.appearance?.terminalThemeId);
+    },
   );
 }
 

@@ -6,11 +6,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
 import Tooltip from "@mui/material/Tooltip";
 import {
   memo,
@@ -204,29 +202,39 @@ function NewTabButton({ paneId }: { paneId: string }) {
         open={anchor !== null}
         anchorEl={anchor}
         onClose={() => setAnchor(null)}
+        slotProps={{
+          list: {
+            sx: { p: 0.5, display: "flex", flexDirection: "row", gap: 0.5 },
+          },
+        }}
       >
-        <MenuItem
-          onClick={() => {
-            addSurface(paneId, "terminal");
-            setAnchor(null);
-          }}
-        >
-          <ListItemIcon>
-            <VscTerminal size={16} />
-          </ListItemIcon>
-          <ListItemText>Terminal</ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            addSurface(paneId, "browser");
-            setAnchor(null);
-          }}
-        >
-          <ListItemIcon>
-            <VscGlobe size={16} />
-          </ListItemIcon>
-          <ListItemText>Browser</ListItemText>
-        </MenuItem>
+        <Tooltip title="Terminal" placement="top">
+          <IconButton
+            size="small"
+            onClick={() => {
+              addSurface(paneId, "terminal");
+              setAnchor(null);
+            }}
+          >
+            <VscTerminal size={18} />
+          </IconButton>
+        </Tooltip>
+        <Divider
+          orientation="vertical"
+          flexItem
+          sx={{ borderColor: "text.disabled" }}
+        />
+        <Tooltip title="Browser" placement="top">
+          <IconButton
+            size="small"
+            onClick={() => {
+              addSurface(paneId, "browser");
+              setAnchor(null);
+            }}
+          >
+            <VscGlobe size={18} />
+          </IconButton>
+        </Tooltip>
       </Menu>
     </>
   );
