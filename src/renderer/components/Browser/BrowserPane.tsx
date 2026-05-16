@@ -176,7 +176,7 @@ export function BrowserPane({
           size="small"
           aria-label="Open in external browser"
           title="Open in external browser"
-          disabled={!state.url}
+          disabled={!state.url || state.url === "about:blank"}
           onClick={() => {
             window.app.openExternal(state.url);
             closeSurface(paneIdRef.current, surface.id);
