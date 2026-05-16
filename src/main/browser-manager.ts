@@ -124,6 +124,9 @@ export class BrowserManager {
     wc.on("before-input-event", (_event, input) => {
       entry.shiftHeld = input.shift;
     });
+    wc.on("blur", () => {
+      entry.shiftHeld = false;
+    });
 
     wc.on("will-navigate", (event, url) => {
       if (!entry.shiftHeld) return;
