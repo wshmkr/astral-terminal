@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   VscArrowLeft,
   VscArrowRight,
@@ -24,10 +24,10 @@ import {
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import {
   ANCHOR_SX,
-  NAV_BUTTON_SX,
+  navButtonSx,
   ROOT_SX,
   TOOLBAR_SX,
-  URL_INPUT_SX,
+  urlInputSx,
 } from "./BrowserPane.styles";
 import { BrowserController } from "./browser-lifecycle";
 
@@ -58,6 +58,9 @@ export function BrowserPane({
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
+  const fg = terminalTheme.foreground;
+  const navButtonStyle = useMemo(() => navButtonSx(fg), [fg]);
+  const urlInputStyle = useMemo(() => urlInputSx(fg), [fg]);
 
   const controllerRef = useSurfaceLifecycle<BrowserController>({
     paneId,
@@ -124,7 +127,7 @@ export function BrowserPane({
           title="Back"
           disabled={!state.canGoBack}
           onClick={() => controllerRef.current?.command("goBack")}
-          sx={NAV_BUTTON_SX}
+          sx={navButtonStyle}
         >
           <VscArrowLeft size={16} />
         </IconButton>
@@ -134,7 +137,7 @@ export function BrowserPane({
           title="Forward"
           disabled={!state.canGoForward}
           onClick={() => controllerRef.current?.command("goForward")}
-          sx={NAV_BUTTON_SX}
+          sx={navButtonStyle}
         >
           <VscArrowRight size={16} />
         </IconButton>
@@ -143,7 +146,7 @@ export function BrowserPane({
           aria-label={state.isLoading ? "Stop" : "Reload"}
           title={state.isLoading ? "Stop" : "Reload"}
           onClick={reloadOrStop}
-          sx={NAV_BUTTON_SX}
+          sx={navButtonStyle}
         >
           {state.isLoading ? (
             <VscChromeClose size={16} />
@@ -170,7 +173,7 @@ export function BrowserPane({
             }
           }}
           spellCheck={false}
-          sx={URL_INPUT_SX}
+          sx={urlInputStyle}
         />
         <IconButton
           size="small"
@@ -181,7 +184,7 @@ export function BrowserPane({
             window.app.openExternal(state.url);
             closeSurface(paneIdRef.current, surface.id);
           }}
-          sx={NAV_BUTTON_SX}
+          sx={navButtonStyle}
         >
           <VscLinkExternal size={16} />
         </IconButton>
