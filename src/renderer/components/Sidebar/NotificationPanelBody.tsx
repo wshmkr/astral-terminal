@@ -25,7 +25,7 @@ const HEADER_SX = {
   pr: 1,
   py: 1,
   borderBottom: "1px solid",
-  borderColor: "custom.subtleDivider",
+  borderColor: "divider",
   flexShrink: 0,
   userSelect: "none",
 } as const;
@@ -61,8 +61,10 @@ const ROW_SX = {
   p: "12px 16px",
   cursor: "pointer",
   userSelect: "none",
-  borderColor: "custom.subtleDivider",
-  "&:not(:last-child)": { borderBottom: "1px solid" },
+  "&:not(:last-child)": {
+    borderBottom: "1px solid",
+    borderColor: "divider",
+  },
   "&:hover": { bgcolor: "action.hover" },
   "&:hover .notif-dismiss": { opacity: 1 },
 } as const;
