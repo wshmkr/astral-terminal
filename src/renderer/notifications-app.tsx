@@ -58,6 +58,9 @@ export function NotificationsApp() {
         onClearAll={() => {
           window.app.sendNotificationPanelAction({ kind: "clearAll" });
         }}
+        onClose={() => {
+          window.app.closeNotificationPanel();
+        }}
       />
     </ThemeProvider>
   );

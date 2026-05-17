@@ -21,12 +21,17 @@ const HEADER_SX = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  pl: 1.5,
-  pr: 1,
-  py: 1,
+  p: 1,
   borderBottom: "1px solid",
   borderColor: "custom.subtleDivider",
   flexShrink: 0,
+  userSelect: "none",
+} as const;
+
+const HEADER_ACTIONS_SX = {
+  display: "flex",
+  alignItems: "center",
+  gap: 0.5,
 } as const;
 
 const CLEAR_ALL_SX = {
@@ -45,7 +50,7 @@ const LIST_SX = {
   ...CUSTOM_SCROLLBAR_SX,
 } as const;
 
-const EMPTY_SX = { textAlign: "center", py: 4 } as const;
+const EMPTY_SX = { textAlign: "center", py: 4, userSelect: "none" } as const;
 
 const ROW_SX = {
   display: "flex",
@@ -89,6 +94,7 @@ interface Props {
   onSelect: (item: NotificationPanelItem) => void;
   onDismiss: (item: NotificationPanelItem) => void;
   onClearAll: () => void;
+  onClose: () => void;
 }
 
 export function NotificationPanelBody({
@@ -96,6 +102,7 @@ export function NotificationPanelBody({
   onSelect,
   onDismiss,
   onClearAll,
+  onClose,
 }: Props) {
   return (
     <Box sx={ROOT_SX}>
@@ -103,11 +110,16 @@ export function NotificationPanelBody({
         <Typography variant="subtitle2" color="text.primary">
           Notifications
         </Typography>
-        {items.length > 0 && (
-          <Button size="small" onClick={onClearAll} sx={CLEAR_ALL_SX}>
-            Clear All
-          </Button>
-        )}
+        <Box sx={HEADER_ACTIONS_SX}>
+          {items.length > 0 && (
+            <Button size="small" onClick={onClearAll} sx={CLEAR_ALL_SX}>
+              Clear All
+            </Button>
+          )}
+          <CloseButton size="small" onClick={onClose}>
+            <VscClose size={18} />
+          </CloseButton>
+        </Box>
       </Box>
       <Box sx={LIST_SX}>
         {items.length === 0 ? (
