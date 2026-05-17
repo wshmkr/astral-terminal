@@ -30,8 +30,6 @@ const BADGE_SX = {
   },
 } as const;
 
-const REOPEN_GUARD_MS = 200;
-
 function toPanelItem(n: Notification): NotificationPanelItem {
   const { title, body } = formatNotificationDisplay(n);
   return {
@@ -55,7 +53,7 @@ function buildItems(workspaces: Workspace[]): NotificationPanelItem[] {
 
 export function NotificationPanel() {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const lastClosedAtRef = useRef(0);
+  const wasOpenAtMouseDownRef = useRef(false);
   const [open, setOpen] = useState(false);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const workspacesRef = useRef(workspaces);
@@ -78,7 +76,6 @@ export function NotificationPanel() {
   useEffect(
     () =>
       window.app.onNotificationPanelClosed(() => {
-        lastClosedAtRef.current = Date.now();
         setOpen(false);
       }),
     [],
@@ -104,10 +101,13 @@ export function NotificationPanel() {
     [],
   );
 
+  const handleMouseDown = useCallback(() => {
+    wasOpenAtMouseDownRef.current = open;
+  }, [open]);
+
   const handleClick = useCallback(() => {
-    if (Date.now() - lastClosedAtRef.current < REOPEN_GUARD_MS) return;
-    if (open) {
-      window.app.closeNotificationPanel();
+    if (wasOpenAtMouseDownRef.current) {
+      wasOpenAtMouseDownRef.current = false;
       return;
     }
     const btn = buttonRef.current;
@@ -120,11 +120,16 @@ export function NotificationPanel() {
       width: rect.width,
       height: rect.height,
     });
-  }, [open]);
+  }, []);
 
   return (
     <Tooltip title={open ? "" : "Notifications"}>
-      <IconButton ref={buttonRef} onClick={handleClick} sx={BELL_BUTTON_SX}>
+      <IconButton
+        ref={buttonRef}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
+        sx={BELL_BUTTON_SX}
+      >
         <Badge badgeContent={totalUnread} color="primary" sx={BADGE_SX}>
           <VscBell size={16} />
         </Badge>

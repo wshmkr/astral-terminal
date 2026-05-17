@@ -12,7 +12,6 @@ const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 
 const PANEL_WIDTH = 320;
 const PANEL_HEIGHT = 400;
-const PANEL_GAP = 0;
 
 let notifWindow: BrowserWindow | null = null;
 let notifReady = false;
@@ -32,9 +31,7 @@ function placeAndShow(parent: BrowserWindow, anchor: ScreenRect): void {
   const parentBounds = parent.getContentBounds();
   const zoom = parent.webContents.getZoomFactor();
   const x = Math.round(parentBounds.x + anchor.x * zoom);
-  const y = Math.round(
-    parentBounds.y + (anchor.y + anchor.height) * zoom + PANEL_GAP,
-  );
+  const y = Math.round(parentBounds.y + (anchor.y + anchor.height) * zoom);
   const width = Math.round(PANEL_WIDTH * zoom);
   const height = Math.round(PANEL_HEIGHT * zoom);
   notifWindow.webContents.setZoomFactor(zoom);
