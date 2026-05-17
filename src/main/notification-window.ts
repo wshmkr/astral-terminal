@@ -30,9 +30,15 @@ function pushItems(): void {
 function placeAndShow(parent: BrowserWindow, anchor: ScreenRect): void {
   if (!notifWindow || notifWindow.isDestroyed()) return;
   const parentBounds = parent.getContentBounds();
-  const x = Math.round(parentBounds.x + anchor.x);
-  const y = Math.round(parentBounds.y + anchor.y + anchor.height + PANEL_GAP);
-  notifWindow.setBounds({ x, y, width: PANEL_WIDTH, height: PANEL_HEIGHT });
+  const zoom = parent.webContents.getZoomFactor();
+  const x = Math.round(parentBounds.x + anchor.x * zoom);
+  const y = Math.round(
+    parentBounds.y + (anchor.y + anchor.height) * zoom + PANEL_GAP,
+  );
+  const width = Math.round(PANEL_WIDTH * zoom);
+  const height = Math.round(PANEL_HEIGHT * zoom);
+  notifWindow.webContents.setZoomFactor(zoom);
+  notifWindow.setBounds({ x, y, width, height });
   notifWindow.show();
   notifWindow.focus();
 }
