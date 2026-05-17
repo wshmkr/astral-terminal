@@ -68,9 +68,32 @@ export const LIGHT_PALETTE: AppPalette = {
   },
 };
 
+export const BLACK_PALETTE: AppPalette = {
+  bgDefault: "#000000",
+  bgPaper: "#0a0a0a",
+  textPrimary: "#f2f2f2",
+  textSecondary: "#cccccc",
+  textDisabled: "#777777",
+  divider: "#1a1a1a",
+  primary: "#0078d4",
+  error: "#c42b1c",
+  actionHover: "rgba(255,255,255,0.06)",
+  actionSelected: "rgba(255,255,255,0.10)",
+  custom: {
+    subtleDivider: "rgba(255,255,255,0.08)",
+    resizeHandleIdle: "rgba(255,255,255,0.04)",
+    resizeHandleHover: "rgba(255,255,255,0.18)",
+    scrollbarThumb: "rgb(60,60,60)",
+    scrollbarThumbHover: "rgb(90,90,90)",
+    titlebarFocused: "#000000",
+    titlebarButtonHover: "rgba(255,255,255,0.08)",
+  },
+};
+
 export const APP_PALETTES: Record<AppThemeId, AppPalette> = {
   dark: DARK_PALETTE,
   light: LIGHT_PALETTE,
+  black: BLACK_PALETTE,
 };
 
 export function withAccent(palette: AppPalette, accentHex: string): AppPalette {
@@ -80,4 +103,5 @@ export function withAccent(palette: AppPalette, accentHex: string): AppPalette {
 export const APP_THEME_OPTIONS: Array<{ value: AppThemeId; label: string }> = [
   { value: "dark", label: "Dark" },
   { value: "light", label: "Light" },
+  { value: "black", label: "Black" },
 ];

@@ -25,6 +25,7 @@ import {
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
+import { resolveColorScheme } from "./theme";
 
 function refreshAgentHookStatuses() {
   window.app
@@ -64,7 +65,7 @@ export function App() {
   const { setMode } = useColorScheme();
 
   useEffect(() => {
-    setMode(appThemeId);
+    setMode(resolveColorScheme(appThemeId));
   }, [appThemeId, setMode]);
 
   useEffect(() => {

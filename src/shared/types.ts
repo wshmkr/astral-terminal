@@ -157,8 +157,14 @@ export interface UpdateSettings {
   autoEnabled: boolean;
 }
 
-export type AppThemeId = "dark" | "light";
-export type TerminalThemeId = "one-half-dark" | "one-half-light";
+export type AppThemeId = "dark" | "light" | "black";
+export type TerminalThemeId =
+  | "one-half-dark"
+  | "one-half-light"
+  | "dracula"
+  | "alucard"
+  | "github-dark"
+  | "github-light";
 export type FontFamilyId =
   | "jetbrains-mono"
   | "cascadia-code"
