@@ -12,7 +12,7 @@ const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 
 const PANEL_WIDTH = 320;
 const PANEL_HEIGHT = 400;
-const PANEL_GAP = 4;
+const PANEL_GAP = 0;
 
 let notifWindow: BrowserWindow | null = null;
 let notifReady = false;

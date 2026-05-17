@@ -40,10 +40,7 @@ function ThemedApp() {
 }
 
 function mountNotificationsApp(rootEl: HTMLElement) {
-  document.documentElement.style.background = "transparent";
-  document.body.style.background = "transparent";
   rootEl.style.height = "100vh";
-  rootEl.style.background = "transparent";
   createRoot(rootEl).render(<NotificationsApp />);
 }
 
