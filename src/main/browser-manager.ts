@@ -56,7 +56,7 @@ function normalizeUrl(raw: string): string {
     return ALLOWED_SCHEMES.has(scheme.toLowerCase()) ? trimmed : "about:blank";
   }
   if (/^[^\s/]+\.[^\s/]+/.test(trimmed)) return `https://${trimmed}`;
-  return trimmed;
+  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
 }
 
 export interface BrowserManagerCallbacks {
