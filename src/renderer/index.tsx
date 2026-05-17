@@ -3,6 +3,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { NotificationsApp } from "./notifications-app";
 import {
   bootStore,
   getState,
@@ -38,15 +39,28 @@ function ThemedApp() {
   );
 }
 
-bootStore()
-  .then(() => {
-    window.app.setUiZoom(getState().appearance.uiScale);
-    const rootEl = document.getElementById("root");
-    if (!rootEl) throw new Error("Root element #root not found");
-    const root = createRoot(rootEl);
-    root.render(<ThemedApp />);
-  })
-  .catch((err) => {
-    console.error("Boot failed:", err);
-    document.body.textContent = "Failed to start. See console for details.";
-  });
+function mountNotificationsApp(rootEl: HTMLElement) {
+  rootEl.style.height = "100vh";
+  createRoot(rootEl).render(<NotificationsApp />);
+}
+
+function mountMainApp(rootEl: HTMLElement) {
+  bootStore()
+    .then(() => {
+      window.app.setUiZoom(getState().appearance.uiScale);
+      createRoot(rootEl).render(<ThemedApp />);
+    })
+    .catch((err) => {
+      console.error("Boot failed:", err);
+      document.body.textContent = "Failed to start. See console for details.";
+    });
+}
+
+const rootEl = document.getElementById("root");
+if (!rootEl) throw new Error("Root element #root not found");
+
+if (window.location.hash === "#notifications") {
+  mountNotificationsApp(rootEl);
+} else {
+  mountMainApp(rootEl);
+}

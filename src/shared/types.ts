@@ -191,6 +191,35 @@ export interface NotificationFirePayload {
   body?: string;
 }
 
+export interface NotificationPanelItem {
+  id: string;
+  workspaceId: string;
+  paneId: string;
+  surfaceId: string;
+  read: boolean;
+  timestamp: number;
+  title: string;
+  body: string;
+}
+
+export interface ScreenRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export type NotificationPanelAction =
+  | {
+      kind: "select";
+      workspaceId: string;
+      paneId: string;
+      surfaceId: string;
+      notifId: string;
+    }
+  | { kind: "dismiss"; workspaceId: string; notifId: string }
+  | { kind: "clearAll" };
+
 export interface AppConfig {
   platform: {
     isWindows: boolean;
@@ -245,6 +274,12 @@ export const IPC = {
   notification: {
     fire: "notification:fire",
     click: "notification:click",
+    openPanel: "notification:open-panel",
+    closePanel: "notification:close-panel",
+    setPanelItems: "notification:set-panel-items",
+    panelItemsChanged: "notification:panel-items-changed",
+    panelAction: "notification:panel-action",
+    panelClosed: "notification:panel-closed",
   },
   window: {
     minimize: "window:minimize",
