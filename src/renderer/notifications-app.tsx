@@ -29,6 +29,14 @@ export function NotificationsApp() {
     [],
   );
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") window.app.closeNotificationPanel();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const theme = useMemo(
     () => buildTheme(resolveAccentHex(appearance.accentColorId)),
     [appearance.accentColorId],
