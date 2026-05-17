@@ -124,7 +124,7 @@ export function NotificationPanel() {
   }, [open, workspaces]);
 
   return (
-    <Tooltip title="Notifications">
+    <Tooltip title={open ? "" : "Notifications"}>
       <IconButton ref={buttonRef} onClick={handleClick} sx={BELL_BUTTON_SX}>
         <Badge badgeContent={totalUnread} color="primary" sx={BADGE_SX}>
           <VscBell size={16} />
