@@ -94,6 +94,11 @@ function createNotificationWindow(parent: BrowserWindow): BrowserWindow {
   return win;
 }
 
+export function initNotificationWindow(parent: BrowserWindow): void {
+  if (notifWindow && !notifWindow.isDestroyed()) return;
+  notifWindow = createNotificationWindow(parent);
+}
+
 export function openNotificationPanel(
   parent: BrowserWindow,
   anchor: ScreenRect,

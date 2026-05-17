@@ -16,7 +16,10 @@ import {
   registerSettingsIpc,
   registerWindowIpc,
 } from "./ipc";
-import { destroyNotificationWindow } from "./notification-window";
+import {
+  destroyNotificationWindow,
+  initNotificationWindow,
+} from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings } from "./settings-store";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
@@ -95,6 +98,7 @@ app.whenReady().then(() => {
 
   const win = getMainWindow();
   if (win) {
+    initNotificationWindow(win);
     browserManager = new BrowserManager(win, {
       onState: (surfaceId, state) => {
         getMainWindow()?.webContents.send(
