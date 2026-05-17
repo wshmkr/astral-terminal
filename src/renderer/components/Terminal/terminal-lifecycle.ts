@@ -14,6 +14,7 @@ import {
   getState,
   setActiveWorkspace,
 } from "../../store";
+import type { FindController, FindMatches } from "../Find/FindBar";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
 
@@ -203,12 +204,7 @@ export interface TerminalControllerOptions {
   onRequestFind: () => void;
 }
 
-export interface FindMatches {
-  resultIndex: number;
-  resultCount: number;
-}
-
-export class TerminalController implements SurfaceController {
+export class TerminalController implements SurfaceController, FindController {
   readonly term: Terminal;
   private readonly fitAddon: FitAddon;
   private readonly searchAddon: SearchAddon;

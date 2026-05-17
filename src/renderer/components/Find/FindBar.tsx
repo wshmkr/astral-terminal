@@ -11,22 +11,29 @@ import {
   VscClose,
 } from "react-icons/vsc";
 import { CloseButton } from "../ui/CloseButton";
-import type { FindMatches, TerminalController } from "./terminal-lifecycle";
+
+export interface FindMatches {
+  resultIndex: number;
+  resultCount: number;
+}
+
+export interface FindController {
+  findNext(query: string, caseSensitive: boolean): void;
+  findPrevious(query: string, caseSensitive: boolean): void;
+  clearFind(): void;
+  onFindResults(cb: (m: FindMatches | undefined) => void): () => void;
+}
 
 const ICON_SIZE = 16;
 
 interface Props {
-  controller: TerminalController;
+  controller: FindController;
   onClose: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  variant?: "overlay" | "embedded";
 }
 
-const BAR_SX = {
-  position: "absolute",
-  top: 8,
-  right: 16,
-  maxWidth: "calc(100% - 32px)",
-  zIndex: 10,
+const BAR_BASE_SX = {
   display: "flex",
   alignItems: "center",
   gap: 0.5,
@@ -38,6 +45,25 @@ const BAR_SX = {
   border: 1,
   borderColor: "divider",
   minWidth: 0,
+} as const;
+
+const BAR_OVERLAY_SX = {
+  ...BAR_BASE_SX,
+  position: "absolute",
+  top: 8,
+  right: 16,
+  maxWidth: "calc(100% - 32px)",
+  zIndex: 10,
+} as const;
+
+const BAR_EMBEDDED_SX = {
+  ...BAR_BASE_SX,
+  width: "100%",
+  height: "100%",
+  boxSizing: "border-box",
+  borderRadius: 0,
+  boxShadow: "none",
+  borderWidth: 0,
 } as const;
 
 const INPUT_SX = {
@@ -77,7 +103,12 @@ function getCountLabel(
   return `${matches.resultIndex + 1} / ${matches.resultCount}`;
 }
 
-export function FindBar({ controller, onClose, inputRef }: Props) {
+export function FindBar({
+  controller,
+  onClose,
+  inputRef,
+  variant = "overlay",
+}: Props) {
   const [query, setQuery] = useState("");
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [matches, setMatches] = useState<FindMatches | undefined>(undefined);
@@ -125,7 +156,7 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
 
   return (
     <Box
-      sx={BAR_SX}
+      sx={variant === "embedded" ? BAR_EMBEDDED_SX : BAR_OVERLAY_SX}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
