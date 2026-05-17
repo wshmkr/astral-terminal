@@ -193,10 +193,10 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
 
   ipcMain.on(
     IPC.notification.openPanel,
-    (_event, msg: { anchor: ScreenRect; items: NotificationPanelItem[] }) => {
+    (_event, msg: { anchor: ScreenRect }) => {
       const win = getMainWindow();
       if (!win) return;
-      openNotificationPanel(win, msg.anchor, msg.items);
+      openNotificationPanel(win, msg.anchor);
     },
   );
 

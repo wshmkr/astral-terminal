@@ -108,15 +108,12 @@ export function initNotificationWindow(parent: BrowserWindow): void {
 export function openNotificationPanel(
   parent: BrowserWindow,
   anchor: ScreenRect,
-  items: NotificationPanelItem[],
 ): void {
-  pendingItems = items;
   notifWindow ??= createNotificationWindow(parent);
   if (!notifReady) {
     pendingShow = { parent, anchor };
     return;
   }
-  pushItems();
   placeAndShow(parent, anchor);
 }
 

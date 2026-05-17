@@ -84,10 +84,7 @@ export interface AppAPI {
     callback: (payload: BrowserOpenNewTabPayload) => void,
   ) => () => void;
 
-  openNotificationPanel: (
-    anchor: ScreenRect,
-    items: NotificationPanelItem[],
-  ) => void;
+  openNotificationPanel: (anchor: ScreenRect) => void;
   setNotificationPanelItems: (items: NotificationPanelItem[]) => void;
   closeNotificationPanel: () => void;
   onNotificationPanelClosed: (callback: () => void) => () => void;

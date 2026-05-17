@@ -58,6 +58,8 @@ export function NotificationPanel() {
   const lastClosedAtRef = useRef(0);
   const [open, setOpen] = useState(false);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
+  const workspacesRef = useRef(workspaces);
+  workspacesRef.current = workspaces;
 
   const totalUnread = useMemo(
     () => workspaces.reduce((n, w) => n + unreadCount(w), 0),
@@ -93,13 +95,13 @@ export function NotificationPanel() {
         } else if (action.kind === "dismiss") {
           dismissNotification(action.workspaceId, action.notifId);
         } else {
-          workspaces.forEach((w) => {
+          workspacesRef.current.forEach((w) => {
             clearNotifications(w.id);
           });
           window.app.closeNotificationPanel();
         }
       }),
-    [workspaces],
+    [],
   );
 
   const handleClick = useCallback(() => {
@@ -112,16 +114,13 @@ export function NotificationPanel() {
     if (!btn) return;
     const rect = btn.getBoundingClientRect();
     setOpen(true);
-    window.app.openNotificationPanel(
-      {
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height,
-      },
-      buildItems(workspaces),
-    );
-  }, [open, workspaces]);
+    window.app.openNotificationPanel({
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+    });
+  }, [open]);
 
   return (
     <Tooltip title={open ? "" : "Notifications"}>
