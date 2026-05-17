@@ -10,7 +10,7 @@ import { APP_MODE, IS_DEV } from "./env";
 
 const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 
-const PANEL_WIDTH = 360;
+const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 44;
 const RIGHT_INSET = 16;
 const TOP_INSET = 8;

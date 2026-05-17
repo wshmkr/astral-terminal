@@ -57,7 +57,7 @@ class BrowserFindController implements FindController {
       text: query,
       forward,
       matchCase: caseSensitive,
-      findNext: sameSearch,
+      findNext: !sameSearch,
     };
     this.lastQuery = query;
     this.lastCaseSensitive = caseSensitive;
@@ -79,7 +79,6 @@ class BrowserFindController implements FindController {
 const ROOT_STYLE: React.CSSProperties = {
   width: "100vw",
   height: "100vh",
-  containerType: "inline-size",
 };
 
 export function BrowserFindApp() {
