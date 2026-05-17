@@ -55,6 +55,7 @@ export const ONE_HALF_LIGHT: TerminalTheme = {
 };
 
 export const DRACULA: TerminalTheme = {
+  colorScheme: "dark",
   background: "#282a36",
   foreground: "#f8f8f2",
   cursor: "#f8f8f2",
@@ -81,6 +82,7 @@ export const DRACULA: TerminalTheme = {
 };
 
 export const ALUCARD: TerminalTheme = {
+  colorScheme: "light",
   background: "#fffbeb",
   foreground: "#1f1f1f",
   cursor: "#1f1f1f",
@@ -107,6 +109,7 @@ export const ALUCARD: TerminalTheme = {
 };
 
 export const GITHUB_DARK: TerminalTheme = {
+  colorScheme: "dark",
   background: "#0d1117",
   foreground: "#c9d1d9",
   cursor: "#c9d1d9",
@@ -133,6 +136,7 @@ export const GITHUB_DARK: TerminalTheme = {
 };
 
 export const GITHUB_LIGHT: TerminalTheme = {
+  colorScheme: "light",
   background: "#ffffff",
   foreground: "#24292f",
   cursor: "#24292f",

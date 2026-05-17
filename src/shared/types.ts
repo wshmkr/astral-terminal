@@ -122,7 +122,7 @@ export interface Workspace {
 }
 
 export interface TerminalTheme {
-  colorScheme: AppThemeId;
+  colorScheme: "dark" | "light";
   background: string;
   foreground: string;
   cursor: string;
