@@ -66,6 +66,7 @@ export interface AppAPI {
   onWindowMaximizedChange: (
     callback: (maximized: boolean) => void,
   ) => () => void;
+  onWindowFocusChange: (callback: (focused: boolean) => void) => () => void;
 
   createBrowser: (surfaceId: string, url: string) => void;
   destroyBrowser: (surfaceId: string) => void;
