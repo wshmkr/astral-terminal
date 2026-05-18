@@ -157,6 +157,18 @@ export interface UpdateSettings {
   autoEnabled: boolean;
 }
 
+export interface TerminalSettings {
+  // null = use Windows default distro
+  wslDistro: string | null;
+}
+
+export interface WslDistro {
+  name: string;
+  isDefault: boolean;
+  isSystem: boolean;
+  version: number | null;
+}
+
 export type AppThemeId = "dark" | "light" | "black";
 export type TerminalThemeId =
   | "one-half-dark"
@@ -230,6 +242,7 @@ export interface SettingsState {
   appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
   updateSettings: UpdateSettings;
+  terminalSettings: TerminalSettings;
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
 }
 
@@ -242,6 +255,7 @@ export type SettingsActionMap = {
   setUiScale: (n: number) => void;
   updateNotificationSettings: (patch: Partial<NotificationSettings>) => void;
   updateUpdateSettings: (patch: Partial<UpdateSettings>) => void;
+  setWslDistro: (distro: string | null) => void;
   setAgentHookStatus: (name: AgentName, status: AgentHookStatus) => void;
 };
 
@@ -276,6 +290,7 @@ export interface PersistedSettings {
   appearance?: AppearanceSettings;
   notificationSettings?: NotificationSettings;
   updateSettings?: UpdateSettings;
+  terminalSettings?: TerminalSettings;
 }
 
 export interface AppState {
@@ -286,6 +301,7 @@ export interface AppState {
   appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
   updateSettings: UpdateSettings;
+  terminalSettings: TerminalSettings;
 
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
@@ -341,6 +357,9 @@ export const IPC = {
   shell: {
     openExternal: "shell:open-external",
     showLinkMenu: "shell:show-link-menu",
+  },
+  wsl: {
+    listDistros: "wsl:list-distros",
   },
   browser: {
     create: "browser:create",

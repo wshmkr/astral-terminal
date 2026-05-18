@@ -10,6 +10,7 @@ import { createDefaultWorkspace, nextWorkspaceName } from "./factories";
 import { loadState } from "./persistence";
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
+  DEFAULT_TERMINAL_SETTINGS,
   DEFAULT_UPDATE_SETTINGS,
 } from "./preferences";
 
@@ -44,6 +45,10 @@ async function initState(): Promise<AppState> {
         ...DEFAULT_UPDATE_SETTINGS,
         ...(loaded.updateSettings ?? {}),
       },
+      terminalSettings: {
+        ...DEFAULT_TERMINAL_SETTINGS,
+        ...(loaded.terminalSettings ?? {}),
+      },
       agentHookStatuses: {},
       windowFocused: INITIAL_WINDOW_FOCUSED,
       welcomeOpen: false,
@@ -58,6 +63,7 @@ async function initState(): Promise<AppState> {
     appearance: DEFAULT_APPEARANCE,
     notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
     updateSettings: DEFAULT_UPDATE_SETTINGS,
+    terminalSettings: DEFAULT_TERMINAL_SETTINGS,
     agentHookStatuses: {},
     windowFocused: INITIAL_WINDOW_FOCUSED,
     welcomeOpen: isFirstRun,

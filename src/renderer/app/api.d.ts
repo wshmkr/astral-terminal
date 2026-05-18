@@ -15,6 +15,7 @@ import type {
   SettingsAction,
   SettingsState,
   UninstallAgentHooksResult,
+  WslDistro,
 } from "../../shared/types";
 
 export interface AppAPI {
@@ -27,7 +28,9 @@ export interface AppAPI {
     surfaceId: string;
     cols?: number;
     rows?: number;
+    wslDistro?: string | null;
   }) => Promise<string>;
+  listWslDistros: () => Promise<WslDistro[]>;
   writePty: (ptyId: string, data: string) => void;
   resizePty: (ptyId: string, cols: number, rows: number) => void;
   killPty: (ptyId: string) => void;

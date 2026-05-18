@@ -83,6 +83,11 @@ export const FIELD_LABEL_SX = {
   fontWeight: 500,
 } as const;
 
+const FIELD_LABEL_ERROR_SX = {
+  ...FIELD_LABEL_SX,
+  color: "error.main",
+} as const;
+
 const SELECT_SX = {
   "& .MuiSelect-select": { py: 0.5 },
 } as const;
@@ -101,6 +106,7 @@ interface LabeledSelectProps<T extends string | number> {
   options: ReadonlyArray<LabeledSelectOption<T>>;
   onChange: (value: T) => void;
   maxWidth?: number;
+  error?: boolean;
 }
 
 export function LabeledSelect<T extends string | number>({
@@ -109,13 +115,17 @@ export function LabeledSelect<T extends string | number>({
   options,
   onChange,
   maxWidth,
+  error,
 }: LabeledSelectProps<T>) {
   return (
     <Box sx={FIELD_SX}>
-      <Typography sx={FIELD_LABEL_SX}>{label}</Typography>
+      <Typography sx={error ? FIELD_LABEL_ERROR_SX : FIELD_LABEL_SX}>
+        {label}
+      </Typography>
       <Select
         size="small"
         value={value}
+        error={error}
         onChange={(e) => onChange(e.target.value as T)}
         sx={maxWidth ? { ...SELECT_SX, maxWidth } : SELECT_SX}
       >
