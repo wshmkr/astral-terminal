@@ -46,6 +46,12 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
   );
 }
 
+const DIM_HTML =
+  "data:text/html;charset=utf-8," +
+  encodeURIComponent(
+    "<style>html,body{margin:0;height:100%;background:rgba(0,0,0,0.5)}</style>",
+  );
+
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
 
 function normalizeUrl(raw: string): string {
@@ -66,21 +72,46 @@ export interface BrowserManagerCallbacks {
 
 export class BrowserManager {
   private entries = new Map<string, Entry>();
+  private inputBlocked = false;
+  private readonly dimView: WebContentsView;
 
   constructor(
     private readonly window: BrowserWindow,
     private readonly callbacks: BrowserManagerCallbacks,
   ) {
+    this.dimView = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+    this.dimView.setBackgroundColor("#00000000");
+    this.dimView.setVisible(false);
+    this.dimView.webContents.loadURL(DIM_HTML).catch(() => {});
+    this.window.contentView.addChildView(this.dimView);
+
     const reapplyAll = () => {
       for (const entry of this.entries.values()) {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
+      if (this.dimView.getVisible()) this.applyDimBounds();
     };
     this.window.on("resize", reapplyAll);
     this.window.on("maximize", reapplyAll);
     this.window.on("unmaximize", reapplyAll);
     this.window.on("enter-full-screen", reapplyAll);
     this.window.on("leave-full-screen", reapplyAll);
+  }
+
+  private applyDimBounds(): void {
+    const { width, height } = this.window.getContentBounds();
+    this.dimView.setBounds({ x: 0, y: 0, width, height });
+  }
+
+  private bringDimToTop(): void {
+    this.window.contentView.removeChildView(this.dimView);
+    this.window.contentView.addChildView(this.dimView);
   }
 
   create(surfaceId: string, url: string): void {
@@ -97,6 +128,7 @@ export class BrowserManager {
     view.setVisible(false);
     view.setBackgroundColor("#00000000");
     this.window.contentView.addChildView(view);
+    this.bringDimToTop();
 
     const wc = view.webContents;
     const entry: Entry = {
@@ -209,6 +241,18 @@ export class BrowserManager {
     entry.visible = visible;
     if (visible && !wasVisible) this.applyBounds(entry);
     entry.view.setVisible(visible);
+  }
+
+  setInputBlocked(blocked: boolean): void {
+    if (this.inputBlocked === blocked) return;
+    this.inputBlocked = blocked;
+    if (blocked) {
+      this.applyDimBounds();
+      this.bringDimToTop();
+      this.dimView.setVisible(true);
+    } else {
+      this.dimView.setVisible(false);
+    }
   }
 
   loadURL(surfaceId: string, url: string): void {

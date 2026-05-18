@@ -7,10 +7,22 @@ const PANEL_HEIGHT = 520;
 const PARENT_PADDING_X = 48;
 const PARENT_PADDING_Y = 80;
 
+type VisibilityListener = (visible: boolean) => void;
+
 let settingsWindow: BrowserWindow | null = null;
 let settingsReady = false;
 let pendingState: SettingsState | null = null;
 let pendingShow = false;
+const visibilityListeners = new Set<VisibilityListener>();
+
+export function onSettingsVisibilityChange(cb: VisibilityListener): () => void {
+  visibilityListeners.add(cb);
+  return () => visibilityListeners.delete(cb);
+}
+
+function emitVisibility(visible: boolean): void {
+  for (const cb of visibilityListeners) cb(visible);
+}
 
 function pushState(): void {
   if (
@@ -43,6 +55,7 @@ function placeAndShow(parent: BrowserWindow): void {
   settingsWindow.show();
   settingsWindow.focus();
   pushState();
+  emitVisibility(true);
 }
 
 export function applySettingsUiScale(
@@ -106,6 +119,7 @@ export function hideSettingsWindow(): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
   if (!settingsWindow.isVisible()) return;
   settingsWindow.hide();
+  emitVisibility(false);
 }
 
 export function setSettingsState(state: SettingsState): void {
