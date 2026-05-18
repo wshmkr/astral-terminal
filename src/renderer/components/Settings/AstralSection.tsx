@@ -29,14 +29,6 @@ const SWITCH_SX = { ml: -1 } as const;
 
 const SYSTEM_DISTRO_SX = { color: "text.disabled" } as const;
 
-const ALERT_SX = {
-  py: 0,
-  textWrap: "balance",
-  alignItems: "center",
-  "& .MuiAlert-message": { py: 0.5, fontSize: 12, lineHeight: 1.4 },
-  "& .MuiAlert-icon": { mr: 1, py: 0.5 },
-} as const;
-
 const DEFAULT_VALUE = "__default__";
 
 const UPDATES_DESCRIPTION =
@@ -134,12 +126,6 @@ export function AstralSection() {
         maxWidth={320}
         error={showSystemWarning}
       />
-      {showSystemWarning && (
-        <Alert severity="error" variant="outlined" sx={ALERT_SX}>
-          {effectiveDistro?.name} is a system distro for containers and is not
-          meant as an interactive shell.
-        </Alert>
-      )}
       {distros.length === 0 ? (
         <Typography sx={HELP_SX}>
           No WSL distros detected. Install one with{" "}
@@ -172,6 +158,17 @@ export function AstralSection() {
           />
         }
       />
+
+      {showSystemWarning && (
+        <Alert
+          severity="error"
+          variant="outlined"
+          sx={{ textWrap: "balance", alignItems: "center", mt: "auto" }}
+        >
+          {effectiveDistro?.name} is a system distro for containers and is not
+          meant as an interactive shell.
+        </Alert>
+      )}
     </Box>
   );
 }

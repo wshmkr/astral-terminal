@@ -32,7 +32,7 @@ type SectionId = "appearance" | "notifications" | "astral";
 const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
-  { id: "astral", label: "Astral" },
+  { id: "astral", label: "Astral Terminal" },
 ];
 
 export function SettingsApp() {
