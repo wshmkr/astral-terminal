@@ -174,11 +174,12 @@ export const TERMINAL_THEMES: Record<TerminalThemeId, TerminalTheme> = {
 export const TERMINAL_THEME_OPTIONS: Array<{
   value: TerminalThemeId;
   label: string;
+  groupStart?: boolean;
 }> = [
   { value: "one-half-dark", label: "One Half Dark" },
   { value: "one-half-light", label: "One Half Light" },
-  { value: "github-dark", label: "GitHub Dark" },
+  { value: "github-dark", label: "GitHub Dark", groupStart: true },
   { value: "github-light", label: "GitHub Light" },
-  { value: "dracula", label: "Dracula" },
+  { value: "dracula", label: "Dracula", groupStart: true },
   { value: "alucard", label: "Alucard" },
 ];
