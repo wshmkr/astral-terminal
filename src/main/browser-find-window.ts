@@ -14,8 +14,8 @@ const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 // browser:resize-find-window — generous so the bar lays out at its natural width
 const PANEL_WIDTH = 480;
 const PANEL_HEIGHT = 48;
-const RIGHT_INSET = 16;
-const TOP_INSET = 8;
+const RIGHT_INSET = 8;
+const TOP_INSET = 4;
 
 let findWindow: BrowserWindow | null = null;
 let ready = false;
@@ -123,6 +123,9 @@ function createFindWindow(parent: BrowserWindow): BrowserWindow {
 export function initBrowserFindWindow(parent: BrowserWindow): void {
   if (findWindow && !findWindow.isDestroyed()) return;
   findWindow = createFindWindow(parent);
+  parent.on("move", () => {
+    if (findWindow?.isVisible()) applyBounds();
+  });
 }
 
 export function openBrowserFindWindow(
