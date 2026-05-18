@@ -3,7 +3,7 @@ import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { cloneElement, useEffect, useLayoutEffect, useState } from "react";
 import {
   VscArrowDown,
   VscArrowUp,
@@ -167,7 +167,7 @@ export function FindBar({
         sx={INPUT_SX}
       />
       <Typography sx={COUNT_SX}>{countLabel}</Typography>
-      <Tooltip title="Match case">
+      <Hint title="Match case" variant={variant}>
         <IconButton
           size="small"
           onClick={() => setCaseSensitive((v) => !v)}
@@ -176,8 +176,8 @@ export function FindBar({
         >
           <VscCaseSensitive size={ICON_SIZE} />
         </IconButton>
-      </Tooltip>
-      <Tooltip title="Previous (Shift+Enter)">
+      </Hint>
+      <Hint title="Previous (Shift+Enter)" variant={variant}>
         <IconButton
           size="small"
           onClick={findPrev}
@@ -186,8 +186,8 @@ export function FindBar({
         >
           <VscArrowUp size={ICON_SIZE} />
         </IconButton>
-      </Tooltip>
-      <Tooltip title="Next (Enter)">
+      </Hint>
+      <Hint title="Next (Enter)" variant={variant}>
         <IconButton
           size="small"
           onClick={findNext}
@@ -196,8 +196,8 @@ export function FindBar({
         >
           <VscArrowDown size={ICON_SIZE} />
         </IconButton>
-      </Tooltip>
-      <Tooltip title="Close (Esc)">
+      </Hint>
+      <Hint title="Close (Esc)" variant={variant}>
         <CloseButton
           size="small"
           onClick={onClose}
@@ -206,7 +206,22 @@ export function FindBar({
         >
           <VscClose size={ICON_SIZE} />
         </CloseButton>
-      </Tooltip>
+      </Hint>
     </Box>
   );
+}
+
+function Hint({
+  title,
+  variant,
+  children,
+}: {
+  title: string;
+  variant: "overlay" | "embedded";
+  children: React.ReactElement<{ title?: string }>;
+}) {
+  if (variant === "embedded") {
+    return cloneElement(children, { title });
+  }
+  return <Tooltip title={title}>{children}</Tooltip>;
 }
