@@ -1,4 +1,8 @@
-import type { AppState, SettingsAction, SettingsState } from "../shared/types";
+import type {
+  AppState,
+  SettingsAction,
+  SettingsState,
+} from "../../shared/types";
 import {
   getState,
   setAccentColor,
@@ -11,7 +15,7 @@ import {
   subscribeWorkspaceStore,
   updateNotificationSettings,
   updateUpdateSettings,
-} from "./store";
+} from "../store";
 
 function deriveSettingsState(s: AppState): SettingsState {
   return {
@@ -54,7 +58,7 @@ function applyAction(action: SettingsAction): void {
   }
 }
 
-export function startSettingsBridge(): void {
+export function startSettingsHost(): void {
   let last = deriveSettingsState(getState());
   window.app.publishSettingsState(last);
 

@@ -19,8 +19,8 @@ import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {
   setAgentHook,
   updateNotificationSettings,
-  useWorkspaceStore,
-} from "./settings-store-shim";
+  useSettingsStore,
+} from "../../settings-window/store";
 import { DIVIDER_SX, ROOT_SX, SettingRow, SUBHEAD_SX } from "./shared";
 
 const SWITCH_SX = { ml: -1 } as const;
@@ -79,8 +79,8 @@ export function NoHooksAlert({ sx }: { sx?: SxProps<Theme> }) {
 }
 
 export function NotificationsSection() {
-  const settings = useWorkspaceStore((s) => s.notificationSettings);
-  const hookStatuses = useWorkspaceStore((s) => s.agentHookStatuses);
+  const settings = useSettingsStore((s) => s.notificationSettings);
+  const hookStatuses = useSettingsStore((s) => s.agentHookStatuses);
   const { toggle, pending, errors } = useAgentHookToggle(setAgentHook);
 
   const noHooksEnabled = agentProviders.every(

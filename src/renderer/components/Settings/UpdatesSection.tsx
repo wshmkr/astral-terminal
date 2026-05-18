@@ -2,7 +2,10 @@ import Box from "@mui/material/Box";
 import Switch from "@mui/material/Switch";
 import { useEffect, useState } from "react";
 import { loadAppConfig } from "../../app/config-loader";
-import { updateUpdateSettings, useWorkspaceStore } from "./settings-store-shim";
+import {
+  updateUpdateSettings,
+  useSettingsStore,
+} from "../../settings-window/store";
 import { ROOT_SX, SettingRow } from "./shared";
 
 const SWITCH_SX = { ml: -1 } as const;
@@ -15,7 +18,7 @@ const UNSUPPORTED_DESCRIPTION =
   "Automatic updates are only available on Windows.";
 
 export function UpdatesSection() {
-  const autoEnabled = useWorkspaceStore((s) => s.updateSettings.autoEnabled);
+  const autoEnabled = useSettingsStore((s) => s.updateSettings.autoEnabled);
   const [supported, setSupported] = useState(true);
 
   useEffect(() => {

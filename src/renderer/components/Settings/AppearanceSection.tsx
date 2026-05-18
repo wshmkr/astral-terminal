@@ -3,6 +3,15 @@ import Divider from "@mui/material/Divider";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
+  setAccentColor,
+  setAppTheme,
+  setFontFamily,
+  setFontSize,
+  setTerminalTheme,
+  setUiScale,
+  useSettingsStore,
+} from "../../settings-window/store";
+import {
   FONT_OPTIONS,
   MAX_FONT_SIZE,
   MIN_FONT_SIZE,
@@ -11,15 +20,6 @@ import {
 import { APP_THEME_OPTIONS } from "../../theme/palettes";
 import { TERMINAL_THEME_OPTIONS } from "../../theme/terminal-themes";
 import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";
-import {
-  setAccentColor,
-  setAppTheme,
-  setFontFamily,
-  setFontSize,
-  setTerminalTheme,
-  setUiScale,
-  useWorkspaceStore,
-} from "./settings-store-shim";
 import {
   DIVIDER_SX,
   FIELD_LABEL_SX,
@@ -39,7 +39,7 @@ const FONT_OPTS = FONT_OPTIONS.map((o) => ({
 }));
 
 export function AppearanceSection() {
-  const appearance = useWorkspaceStore((s) => s.appearance);
+  const appearance = useSettingsStore((s) => s.appearance);
 
   return (
     <Box sx={ROOT_SX}>

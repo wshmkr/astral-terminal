@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { AgentName } from "../../../shared/agent-hooks";
+import type { AgentName } from "../../shared/agent-hooks";
 import type {
   AccentColorId,
   AppThemeId,
@@ -11,7 +11,7 @@ import type {
   TerminalThemeId,
   UninstallAgentHooksResult,
   UpdateSettings,
-} from "../../../shared/types";
+} from "../../shared/types";
 
 let state: SettingsState | null = null;
 const listeners = new Set<() => void>();
@@ -34,11 +34,7 @@ export function setSettingsStoreState(next: SettingsState): void {
   notify();
 }
 
-export function getSettingsStoreState(): SettingsState | null {
-  return state;
-}
-
-export function useWorkspaceStore<T>(selector: (s: SettingsState) => T): T {
+export function useSettingsStore<T>(selector: (s: SettingsState) => T): T {
   return useSyncExternalStore(subscribeStore, () => {
     if (!state) {
       throw new Error(

@@ -8,15 +8,15 @@ import { styled, ThemeProvider } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
-import { APP_VERSION } from "../shared/meta";
-import type { AccentColorId, SettingsState } from "../shared/types";
-import { AppearanceSection } from "./components/Settings/AppearanceSection";
-import { NotificationsSection } from "./components/Settings/NotificationsSection";
-import { setSettingsStoreState } from "./components/Settings/settings-store-shim";
-import { UpdatesSection } from "./components/Settings/UpdatesSection";
-import { resolveAccentHex } from "./theme/accent-colors";
-import { buildTheme } from "./theme/index";
-import { CUSTOM_SCROLLBAR_SX } from "./theme/scrollbar";
+import { APP_VERSION } from "../../shared/meta";
+import type { AccentColorId, SettingsState } from "../../shared/types";
+import { AppearanceSection } from "../components/Settings/AppearanceSection";
+import { NotificationsSection } from "../components/Settings/NotificationsSection";
+import { UpdatesSection } from "../components/Settings/UpdatesSection";
+import { resolveAccentHex } from "../theme/accent-colors";
+import { buildTheme } from "../theme/index";
+import { CUSTOM_SCROLLBAR_SX } from "../theme/scrollbar";
+import { setSettingsStoreState } from "./store";
 
 const HEADER_HEIGHT = 40;
 

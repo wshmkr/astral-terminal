@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { NotificationsApp } from "./notifications-app";
-import { SettingsApp } from "./settings-app";
-import { startSettingsBridge } from "./settings-bridge";
+import { SettingsApp } from "./settings-window/app";
+import { startSettingsHost } from "./settings-window/host";
 import {
   bootStore,
   getState,
@@ -55,7 +55,7 @@ function mountMainApp(rootEl: HTMLElement) {
   bootStore()
     .then(() => {
       window.app.setUiZoom(getState().appearance.uiScale);
-      startSettingsBridge();
+      startSettingsHost();
       createRoot(rootEl).render(<ThemedApp />);
     })
     .catch((err) => {
