@@ -12,6 +12,8 @@ const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 
 const PANEL_WIDTH = 760;
 const PANEL_HEIGHT = 520;
+const PARENT_PADDING_X = 48;
+const PARENT_PADDING_Y = 80;
 
 let settingsWindow: BrowserWindow | null = null;
 let settingsReady = false;
@@ -32,8 +34,10 @@ function pushState(): void {
 function applyZoom(parent: BrowserWindow, zoom: number): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
   const parentBounds = parent.getContentBounds();
-  const width = Math.round(PANEL_WIDTH * zoom);
-  const height = Math.round(PANEL_HEIGHT * zoom);
+  const maxWidth = Math.max(200, parentBounds.width - PARENT_PADDING_X);
+  const maxHeight = Math.max(200, parentBounds.height - PARENT_PADDING_Y);
+  const width = Math.min(Math.round(PANEL_WIDTH * zoom), maxWidth);
+  const height = Math.min(Math.round(PANEL_HEIGHT * zoom), maxHeight);
   const x = Math.round(parentBounds.x + (parentBounds.width - width) / 2);
   const y = Math.round(parentBounds.y + (parentBounds.height - height) / 2);
   settingsWindow.webContents.setZoomFactor(zoom);
@@ -98,7 +102,11 @@ function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
   });
 
   win.on("blur", () => {
-    hideSettingsWindow();
+    setTimeout(() => {
+      if (!settingsWindow || settingsWindow.isDestroyed()) return;
+      if (!settingsWindow.isVisible()) return;
+      if (parent.isFocused()) hideSettingsWindow();
+    }, 0);
   });
 
   win.on("closed", () => {
