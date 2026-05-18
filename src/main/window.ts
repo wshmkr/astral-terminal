@@ -100,9 +100,6 @@ export function createWindow(): void {
     mainWindow?.webContents.send(IPC.window.maximizedChanged, false);
   });
 
-  // Tracking focus at the BrowserWindow level (rather than via DOM focus/blur
-  // in the renderer) keeps the titlebar lit when a child WebContentsView
-  // (e.g. the browser surface) takes keyboard focus
   mainWindow.on("focus", () => {
     mainWindow?.webContents.send(IPC.window.focusChanged, true);
   });
