@@ -46,10 +46,15 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
   );
 }
 
+const DIM_FADE_MS = 200;
 const DIM_HTML =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
-    "<style>html,body{margin:0;height:100%;background:rgba(0,0,0,0.5)}</style>",
+    `<style>
+      html,body { margin:0; height:100%; background:transparent; }
+      body { opacity:0; transition:opacity ${DIM_FADE_MS}ms ease-out; background:rgba(0,0,0,0.5); }
+      body.show { opacity:1; }
+    </style>`,
   );
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
@@ -73,6 +78,7 @@ export interface BrowserManagerCallbacks {
 export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
+  private dimVisible = false;
 
   constructor(
     private readonly window: BrowserWindow,
@@ -82,7 +88,7 @@ export class BrowserManager {
       for (const entry of this.entries.values()) {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
-      if (this.dimView?.getVisible()) this.applyDimBounds();
+      if (this.dimVisible) this.applyDimBounds();
     };
     this.window.on("resize", reapplyAll);
     this.window.on("maximize", reapplyAll);
@@ -136,7 +142,7 @@ export class BrowserManager {
     view.setVisible(false);
     view.setBackgroundColor("#00000000");
     this.window.contentView.addChildView(view);
-    if (this.dimView?.getVisible()) this.bringDimToTop();
+    if (this.dimVisible) this.bringDimToTop();
 
     const wc = view.webContents;
     const entry: Entry = {
@@ -252,15 +258,29 @@ export class BrowserManager {
   }
 
   setDimmed(dimmed: boolean): void {
-    if (!dimmed) {
-      this.dimView?.setVisible(false);
-      return;
+    if (this.dimVisible === dimmed) return;
+    this.dimVisible = dimmed;
+    if (dimmed) {
+      const view = this.ensureDimView();
+      this.applyDimBounds();
+      this.bringDimToTop();
+      view.setVisible(true);
+      view.webContents
+        .executeJavaScript(
+          "requestAnimationFrame(() => document.body.classList.add('show'))",
+          true,
+        )
+        .catch(() => {});
+    } else {
+      const view = this.dimView;
+      if (!view) return;
+      view.webContents
+        .executeJavaScript("document.body.classList.remove('show')", true)
+        .catch(() => {});
+      setTimeout(() => {
+        if (!this.dimVisible) view.setVisible(false);
+      }, DIM_FADE_MS);
     }
-    const view = this.ensureDimView();
-    if (view.getVisible()) return;
-    this.applyDimBounds();
-    this.bringDimToTop();
-    view.setVisible(true);
   }
 
   loadURL(surfaceId: string, url: string): void {

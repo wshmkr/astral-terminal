@@ -6,6 +6,7 @@ const PANEL_WIDTH = 760;
 const PANEL_HEIGHT = 520;
 const PARENT_PADDING_X = 48;
 const PARENT_PADDING_Y = 80;
+const FADE_MS = 200;
 
 type VisibilityListener = (visible: boolean) => void;
 
@@ -13,7 +14,25 @@ let settingsWindow: BrowserWindow | null = null;
 let settingsReady = false;
 let pendingState: SettingsState | null = null;
 let pendingShow = false;
+let fadeToken = 0;
 const visibilityListeners = new Set<VisibilityListener>();
+
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
+
+function fadeOpacity(win: BrowserWindow, from: number, to: number): void {
+  const myToken = ++fadeToken;
+  const start = Date.now();
+  win.setOpacity(from);
+  const tick = () => {
+    if (myToken !== fadeToken || win.isDestroyed()) return;
+    const t = Math.min(1, (Date.now() - start) / FADE_MS);
+    win.setOpacity(from + (to - from) * easeOutCubic(t));
+    if (t < 1) setTimeout(tick, 16);
+  };
+  tick();
+}
 
 export function onSettingsVisibilityChange(cb: VisibilityListener): () => void {
   visibilityListeners.add(cb);
@@ -52,10 +71,12 @@ function applyZoom(parent: BrowserWindow, zoom: number): void {
 function placeAndShow(parent: BrowserWindow): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
   applyZoom(parent, parent.webContents.getZoomFactor());
+  settingsWindow.setOpacity(0);
   settingsWindow.show();
   settingsWindow.focus();
   pushState();
   emitVisibility(true);
+  fadeOpacity(settingsWindow, 0, 1);
 }
 
 export function applySettingsUiScale(
@@ -118,8 +139,15 @@ export function openSettingsWindow(parent: BrowserWindow): void {
 export function hideSettingsWindow(): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
   if (!settingsWindow.isVisible()) return;
-  settingsWindow.hide();
+  const win = settingsWindow;
   emitVisibility(false);
+  fadeOpacity(win, win.getOpacity(), 0);
+  const myToken = fadeToken;
+  setTimeout(() => {
+    if (myToken !== fadeToken || win.isDestroyed()) return;
+    win.hide();
+    win.setOpacity(1);
+  }, FADE_MS);
 }
 
 export function setSettingsState(state: SettingsState): void {
