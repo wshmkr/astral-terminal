@@ -8,7 +8,6 @@ import {
   destroyBrowserFindWindow,
   hideBrowserFindWindow,
   initBrowserFindWindow,
-  isBrowserFindWindowTargeting,
   openBrowserFindWindow,
   sendBrowserFindResult,
   updateBrowserFindAnchor,
@@ -134,13 +133,8 @@ app.whenReady().then(() => {
       onFindResult: (surfaceId, result) => {
         sendBrowserFindResult(surfaceId, result);
       },
-      onSurfaceDestroyed: (surfaceId) => {
-        if (isBrowserFindWindowTargeting(surfaceId)) hideBrowserFindWindow();
-      },
-      onSurfaceVisibilityChanged: (surfaceId, visible) => {
-        if (!visible && isBrowserFindWindowTargeting(surfaceId)) {
-          hideBrowserFindWindow();
-        }
+      onSurfaceHidden: (surfaceId) => {
+        hideBrowserFindWindow(surfaceId);
       },
       onSurfaceAnchorChanged: (surfaceId, anchor) => {
         updateBrowserFindAnchor(surfaceId, anchor);

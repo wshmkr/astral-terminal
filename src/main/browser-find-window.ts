@@ -20,14 +20,10 @@ const HORIZONTAL_BUFFER = 32;
 
 let findWindow: BrowserWindow | null = null;
 let ready = false;
+let pendingShow = false;
 let currentSurfaceId: string | null = null;
 let currentParent: BrowserWindow | null = null;
 let currentAnchor: ScreenRect | null = null;
-let pendingShow: {
-  parent: BrowserWindow;
-  anchor: ScreenRect;
-  surfaceId: string;
-} | null = null;
 
 function applyBounds(): void {
   if (!findWindow || findWindow.isDestroyed()) return;
@@ -47,22 +43,15 @@ function applyBounds(): void {
   findWindow.setContentBounds({ x, y, width, height });
 }
 
-function placeAndShow(
-  parent: BrowserWindow,
-  anchor: ScreenRect,
-  surfaceId: string,
-): void {
+function placeAndShow(): void {
   if (!findWindow || findWindow.isDestroyed()) return;
-  currentParent = parent;
-  currentAnchor = anchor;
+  if (!currentSurfaceId) return;
   applyBounds();
-  const targetChanged = currentSurfaceId !== surfaceId;
-  currentSurfaceId = surfaceId;
   findWindow.show();
   findWindow.focus();
-  if (targetChanged) {
-    findWindow.webContents.send(IPC.browser.findTargetChanged, { surfaceId });
-  }
+  findWindow.webContents.send(IPC.browser.findTargetChanged, {
+    surfaceId: currentSurfaceId,
+  });
 }
 
 function createFindWindow(parent: BrowserWindow): BrowserWindow {
@@ -101,12 +90,8 @@ function createFindWindow(parent: BrowserWindow): BrowserWindow {
   win.once("ready-to-show", () => {
     ready = true;
     if (pendingShow) {
-      placeAndShow(
-        pendingShow.parent,
-        pendingShow.anchor,
-        pendingShow.surfaceId,
-      );
-      pendingShow = null;
+      pendingShow = false;
+      placeAndShow();
     }
   });
 
@@ -114,8 +99,8 @@ function createFindWindow(parent: BrowserWindow): BrowserWindow {
     if (findWindow === win) {
       findWindow = null;
       ready = false;
+      pendingShow = false;
       currentSurfaceId = null;
-      pendingShow = null;
     }
   });
 
@@ -136,11 +121,14 @@ export function openBrowserFindWindow(
   surfaceId: string,
 ): void {
   findWindow ??= createFindWindow(parent);
+  currentParent = parent;
+  currentAnchor = anchor;
+  currentSurfaceId = surfaceId;
   if (!ready) {
-    pendingShow = { parent, anchor, surfaceId };
+    pendingShow = true;
     return;
   }
-  placeAndShow(parent, anchor, surfaceId);
+  placeAndShow();
 }
 
 export function sendBrowserFindResult(
@@ -152,10 +140,14 @@ export function sendBrowserFindResult(
   findWindow.webContents.send(IPC.browser.findResultChanged, result);
 }
 
-export function hideBrowserFindWindow(): string | null {
+export function hideBrowserFindWindow(onlyIfTargeting?: string): string | null {
   if (!findWindow || findWindow.isDestroyed()) return null;
+  if (onlyIfTargeting != null && currentSurfaceId !== onlyIfTargeting) {
+    return null;
+  }
   const previousSurfaceId = currentSurfaceId;
   currentSurfaceId = null;
+  pendingShow = false;
   if (findWindow.isVisible()) findWindow.hide();
   return previousSurfaceId;
 }
@@ -166,11 +158,7 @@ export function updateBrowserFindAnchor(
 ): void {
   if (currentSurfaceId !== surfaceId) return;
   currentAnchor = anchor;
-  applyBounds();
-}
-
-export function isBrowserFindWindowTargeting(surfaceId: string): boolean {
-  return currentSurfaceId === surfaceId;
+  if (findWindow?.isVisible()) applyBounds();
 }
 
 export function destroyBrowserFindWindow(): void {
@@ -179,6 +167,6 @@ export function destroyBrowserFindWindow(): void {
   }
   findWindow = null;
   ready = false;
+  pendingShow = false;
   currentSurfaceId = null;
-  pendingShow = null;
 }

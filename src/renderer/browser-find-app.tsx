@@ -120,14 +120,18 @@ export function BrowserFindApp() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const controller = useMemo<BrowserFindController | null>(
-    () => (surfaceId == null ? null : new BrowserFindController(surfaceId)),
-    [surfaceId],
+  const [controller, setController] = useState<BrowserFindController | null>(
+    null,
   );
-
   useEffect(() => {
-    return () => controller?.dispose();
-  }, [controller]);
+    if (surfaceId == null) return;
+    const c = new BrowserFindController(surfaceId);
+    setController(c);
+    return () => {
+      c.dispose();
+      setController(null);
+    };
+  }, [surfaceId]);
 
   const theme = useMemo(
     () => buildTheme(resolveAccentHex(appearance.accentColorId), appearance.appThemeId),

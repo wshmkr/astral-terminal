@@ -80,9 +80,20 @@ export interface BrowserManagerCallbacks {
   onOpenNewTab: (payload: BrowserOpenNewTabPayload) => void;
   onFindRequested: (surfaceId: string, anchor: ScreenRect) => void;
   onFindResult: (surfaceId: string, result: BrowserFindResult) => void;
-  onSurfaceDestroyed: (surfaceId: string) => void;
-  onSurfaceVisibilityChanged: (surfaceId: string, visible: boolean) => void;
+  onSurfaceHidden: (surfaceId: string) => void;
   onSurfaceAnchorChanged: (surfaceId: string, anchor: ScreenRect) => void;
+}
+
+function offsetsEqual(
+  a: BrowserAnchorOffsets,
+  b: BrowserAnchorOffsets,
+): boolean {
+  return (
+    a.left === b.left &&
+    a.top === b.top &&
+    a.right === b.right &&
+    a.bottom === b.bottom
+  );
 }
 
 export class BrowserManager {
@@ -266,7 +277,7 @@ export class BrowserManager {
       this.window.contentView.removeChildView(entry.view);
       entry.view.webContents.close();
     } catch {}
-    this.callbacks.onSurfaceDestroyed(surfaceId);
+    this.callbacks.onSurfaceHidden(surfaceId);
   }
 
   destroyAll(): void {
@@ -276,6 +287,7 @@ export class BrowserManager {
   setAnchorOffsets(surfaceId: string, offsets: BrowserAnchorOffsets): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
+    if (entry.offsets && offsetsEqual(entry.offsets, offsets)) return;
     entry.offsets = offsets;
     this.applyBounds(entry);
     this.callbacks.onSurfaceAnchorChanged(surfaceId, this.computeAnchor(entry));
@@ -283,26 +295,18 @@ export class BrowserManager {
 
   private applyBounds(entry: Entry): void {
     if (!entry.offsets) return;
-    const { width, height } = this.window.getContentBounds();
-    const { left, top, right, bottom } = entry.offsets;
-    entry.view.setBounds({
-      x: Math.round(left),
-      y: Math.round(top),
-      width: Math.max(0, Math.round(width - left - right)),
-      height: Math.max(0, Math.round(height - top - bottom)),
-    });
+    entry.view.setBounds(this.contentRect(entry.offsets));
   }
 
   setVisible(surfaceId: string, visible: boolean): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
     const wasVisible = entry.visible;
+    if (wasVisible === visible) return;
     entry.visible = visible;
-    if (visible && !wasVisible) this.applyBounds(entry);
+    if (visible) this.applyBounds(entry);
     entry.view.setVisible(visible);
-    if (wasVisible !== visible) {
-      this.callbacks.onSurfaceVisibilityChanged(surfaceId, visible);
-    }
+    if (!visible) this.callbacks.onSurfaceHidden(surfaceId);
   }
 
   setDimmed(dimmed: boolean): void {
@@ -378,8 +382,12 @@ export class BrowserManager {
       const { width, height } = this.window.getContentBounds();
       return { x: 0, y: 0, width, height };
     }
+    return this.contentRect(entry.offsets);
+  }
+
+  private contentRect(offsets: BrowserAnchorOffsets): ScreenRect {
     const { width, height } = this.window.getContentBounds();
-    const { left, top, right, bottom } = entry.offsets;
+    const { left, top, right, bottom } = offsets;
     return {
       x: Math.round(left),
       y: Math.round(top),
