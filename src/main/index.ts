@@ -11,6 +11,7 @@ import {
   isBrowserFindWindowTargeting,
   openBrowserFindWindow,
   sendBrowserFindResult,
+  updateBrowserFindAnchor,
 } from "./browser-find-window";
 import { BrowserManager } from "./browser-manager";
 import { loadConfig } from "./config";
@@ -135,6 +136,14 @@ app.whenReady().then(() => {
       },
       onSurfaceDestroyed: (surfaceId) => {
         if (isBrowserFindWindowTargeting(surfaceId)) hideBrowserFindWindow();
+      },
+      onSurfaceVisibilityChanged: (surfaceId, visible) => {
+        if (!visible && isBrowserFindWindowTargeting(surfaceId)) {
+          hideBrowserFindWindow();
+        }
+      },
+      onSurfaceAnchorChanged: (surfaceId, anchor) => {
+        updateBrowserFindAnchor(surfaceId, anchor);
       },
     });
     registerBrowserIpc({ browserManager });

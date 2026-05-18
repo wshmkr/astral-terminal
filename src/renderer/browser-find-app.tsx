@@ -143,8 +143,9 @@ export function BrowserFindApp() {
     <ThemeProvider theme={theme} defaultMode={resolveColorScheme(appearance.appThemeId)}>
       <CssBaseline />
       <div ref={barWrapRef} style={ROOT_STYLE}>
-        {controller && (
+        {controller && surfaceId && (
           <FindBar
+            key={surfaceId}
             controller={controller}
             inputRef={inputRef}
             onClose={() => window.app.closeBrowserFindWindow()}

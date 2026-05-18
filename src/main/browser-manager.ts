@@ -81,6 +81,8 @@ export interface BrowserManagerCallbacks {
   onFindRequested: (surfaceId: string, anchor: ScreenRect) => void;
   onFindResult: (surfaceId: string, result: BrowserFindResult) => void;
   onSurfaceDestroyed: (surfaceId: string) => void;
+  onSurfaceVisibilityChanged: (surfaceId: string, visible: boolean) => void;
+  onSurfaceAnchorChanged: (surfaceId: string, anchor: ScreenRect) => void;
 }
 
 export class BrowserManager {
@@ -276,6 +278,7 @@ export class BrowserManager {
     if (!entry) return;
     entry.offsets = offsets;
     this.applyBounds(entry);
+    this.callbacks.onSurfaceAnchorChanged(surfaceId, this.computeAnchor(entry));
   }
 
   private applyBounds(entry: Entry): void {
@@ -297,6 +300,9 @@ export class BrowserManager {
     entry.visible = visible;
     if (visible && !wasVisible) this.applyBounds(entry);
     entry.view.setVisible(visible);
+    if (wasVisible !== visible) {
+      this.callbacks.onSurfaceVisibilityChanged(surfaceId, visible);
+    }
   }
 
   setDimmed(dimmed: boolean): void {

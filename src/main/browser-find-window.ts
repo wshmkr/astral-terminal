@@ -161,6 +161,15 @@ export function resizeBrowserFindWindow(width: number, height: number): void {
   applyBounds();
 }
 
+export function updateBrowserFindAnchor(
+  surfaceId: string,
+  anchor: ScreenRect,
+): void {
+  if (currentSurfaceId !== surfaceId) return;
+  currentAnchor = anchor;
+  applyBounds();
+}
+
 export function isBrowserFindWindowTargeting(surfaceId: string): boolean {
   return currentSurfaceId === surfaceId;
 }
