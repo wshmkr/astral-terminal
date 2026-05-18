@@ -21,6 +21,8 @@ import {
   ptyDataChannel,
   ptyExitChannel,
   type ScreenRect,
+  type SettingsAction,
+  type SettingsState,
   type TerminalThemeId,
 } from "../shared/types";
 import {
@@ -37,6 +39,12 @@ import {
 } from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
+import {
+  applySettingsUiScale,
+  hideSettingsWindow,
+  openSettingsWindow,
+  setSettingsState,
+} from "./settings-window";
 import { focusMainWindow } from "./window";
 
 interface PtyDeps {
@@ -233,6 +241,64 @@ export function registerSettingsIpc(): void {
     async (_event, settings: PersistedSettings) => {
       await saveSettings(settings);
       applyTerminalThemeNative(settings.appearance?.terminalThemeId);
+    },
+  );
+}
+
+export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
+  function dispatchToMainRenderer(action: SettingsAction): void {
+    getMainWindow()?.webContents.send(IPC.settings.actionApply, action);
+  }
+
+  ipcMain.on(IPC.settings.open, async () => {
+    const win = getMainWindow();
+    if (!win) return;
+    openSettingsWindow(win);
+    const statuses = await Promise.all(
+      agentProviders.map(async (p) => ({
+        name: p.name,
+        status: await getAgentHookStatus(p.name),
+      })),
+    );
+    for (const { name, status } of statuses) {
+      dispatchToMainRenderer({
+        kind: "setAgentHookStatus",
+        args: [name, status],
+      });
+    }
+  });
+
+  ipcMain.on(IPC.settings.close, () => {
+    hideSettingsWindow();
+  });
+
+  ipcMain.on(IPC.settings.statePublish, (_event, state: SettingsState) => {
+    setSettingsState(state);
+  });
+
+  ipcMain.on(IPC.settings.action, (_event, action: SettingsAction) => {
+    const win = getMainWindow();
+    if (!win) return;
+    dispatchToMainRenderer(action);
+    if (action.kind === "setUiScale") applySettingsUiScale(win, action.args[0]);
+  });
+
+  ipcMain.handle(
+    IPC.settings.invokeAgentHook,
+    async (
+      _event,
+      { providerName, enabled }: { providerName: string; enabled: boolean },
+    ) => {
+      const result = enabled
+        ? await configureAgentHooks(providerName)
+        : await uninstallAgentHooks(providerName);
+      if (result.status !== "error") {
+        dispatchToMainRenderer({
+          kind: "setAgentHookStatus",
+          args: [providerName as AgentName, enabled ? "installed" : "missing"],
+        });
+      }
+      return result;
     },
   );
 }

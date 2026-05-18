@@ -1,0 +1,114 @@
+import Box from "@mui/material/Box";
+import CssBaseline from "@mui/material/CssBaseline";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import { ThemeProvider } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
+import { useEffect, useMemo, useState } from "react";
+import { VscChromeClose } from "react-icons/vsc";
+import { APP_VERSION } from "../../shared/meta";
+import { AppearanceSection } from "../components/Settings/AppearanceSection";
+import { NotificationsSection } from "../components/Settings/NotificationsSection";
+import { UpdatesSection } from "../components/Settings/UpdatesSection";
+import { TitleBarButton } from "../components/ui/TitleBarButton";
+import { resolveAccentHex } from "../theme/accent-colors";
+import { buildTheme } from "../theme/index";
+import {
+  BODY_SX,
+  CONTENT_SX,
+  HEADER_SX,
+  HEADER_TITLE_SX,
+  NAV_ITEM_SX,
+  NAV_LIST_SX,
+  NAV_SX,
+  ROOT_SX,
+  VERSION_SX,
+} from "./app.styles";
+import { setSettingsStoreState, useSettingsState } from "./store";
+
+type SectionId = "appearance" | "notifications" | "updates";
+
+const SECTIONS: Array<{ id: SectionId; label: string }> = [
+  { id: "appearance", label: "Appearance" },
+  { id: "notifications", label: "Notifications" },
+  { id: "updates", label: "Updates" },
+];
+
+export function SettingsApp() {
+  const state = useSettingsState();
+
+  useEffect(() => window.app.onSettingsStateChanged(setSettingsStoreState), []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") window.app.closeSettingsWindow();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const appThemeId = state?.appearance.appThemeId ?? "dark";
+  const accentColorId = state?.appearance.accentColorId ?? "blue";
+
+  const theme = useMemo(
+    () => buildTheme(resolveAccentHex(accentColorId)),
+    [accentColorId],
+  );
+
+  const [section, setSection] = useState<SectionId>("appearance");
+
+  return (
+    <ThemeProvider theme={theme} defaultMode={appThemeId}>
+      <CssBaseline />
+      <Box sx={ROOT_SX}>
+        <Box sx={HEADER_SX}>
+          <Typography variant="caption" sx={HEADER_TITLE_SX}>
+            Settings
+          </Typography>
+          <TitleBarButton
+            $dimmed={false}
+            $isClose
+            onClick={() => window.app.closeSettingsWindow()}
+            aria-label="Close settings"
+          >
+            <VscChromeClose size={16} />
+          </TitleBarButton>
+        </Box>
+        {state && (
+          <Box sx={BODY_SX}>
+            <Box sx={NAV_SX}>
+              <List sx={NAV_LIST_SX} disablePadding>
+                {SECTIONS.map((s) => (
+                  <ListItemButton
+                    key={s.id}
+                    sx={NAV_ITEM_SX}
+                    selected={section === s.id}
+                    onClick={() => setSection(s.id)}
+                  >
+                    <ListItemText
+                      primary={s.label}
+                      slotProps={{ primary: { variant: "body2" } }}
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+              <Typography
+                variant="caption"
+                color="text.disabled"
+                sx={VERSION_SX}
+              >
+                v{APP_VERSION}
+              </Typography>
+            </Box>
+            <Box sx={CONTENT_SX}>
+              {section === "appearance" && <AppearanceSection />}
+              {section === "notifications" && <NotificationsSection />}
+              {section === "updates" && <UpdatesSection />}
+            </Box>
+          </Box>
+        )}
+      </Box>
+    </ThemeProvider>
+  );
+}

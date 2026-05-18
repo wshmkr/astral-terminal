@@ -220,6 +220,32 @@ export type NotificationPanelAction =
   | { kind: "dismiss"; workspaceId: string; notifId: string }
   | { kind: "clearAll" };
 
+export interface SettingsState {
+  appearance: AppearanceSettings;
+  notificationSettings: NotificationSettings;
+  updateSettings: UpdateSettings;
+  agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
+}
+
+export type SettingsActionMap = {
+  setAppTheme: (id: AppThemeId) => void;
+  setTerminalTheme: (id: TerminalThemeId) => void;
+  setAccentColor: (id: AccentColorId) => void;
+  setFontFamily: (id: FontFamilyId) => void;
+  setFontSize: (n: number) => void;
+  setUiScale: (n: number) => void;
+  updateNotificationSettings: (patch: Partial<NotificationSettings>) => void;
+  updateUpdateSettings: (patch: Partial<UpdateSettings>) => void;
+  setAgentHookStatus: (name: AgentName, status: AgentHookStatus) => void;
+};
+
+export type SettingsAction = {
+  [K in keyof SettingsActionMap]: {
+    kind: K;
+    args: Parameters<SettingsActionMap[K]>;
+  };
+}[keyof SettingsActionMap];
+
 export interface AppConfig {
   platform: {
     isWindows: boolean;
@@ -258,7 +284,6 @@ export interface AppState {
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
   windowFocused: boolean;
-  settingsOpen: boolean;
   welcomeOpen: boolean;
 }
 
@@ -294,6 +319,13 @@ export const IPC = {
   settings: {
     read: "settings:read",
     write: "settings:write",
+    open: "settings:open",
+    close: "settings:close",
+    stateChanged: "settings:state-changed",
+    statePublish: "settings:state-publish",
+    action: "settings:action",
+    actionApply: "settings:action-apply",
+    invokeAgentHook: "settings:invoke-agent-hook",
   },
   agentHooks: {
     configure: "agent-hooks:configure",

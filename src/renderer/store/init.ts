@@ -46,7 +46,6 @@ async function initState(): Promise<AppState> {
       },
       agentHookStatuses: {},
       windowFocused: INITIAL_WINDOW_FOCUSED,
-      settingsOpen: false,
       welcomeOpen: false,
     };
   }
@@ -61,7 +60,6 @@ async function initState(): Promise<AppState> {
     updateSettings: DEFAULT_UPDATE_SETTINGS,
     agentHookStatuses: {},
     windowFocused: INITIAL_WINDOW_FOCUSED,
-    settingsOpen: false,
     welcomeOpen: isFirstRun,
   };
 }

@@ -12,7 +12,6 @@ import { useDrag } from "../../hooks/useDrag";
 import {
   clampSidebarWidth,
   createWorkspace,
-  setSettingsOpen,
   setSidebarWidth,
   useWorkspaceStore,
 } from "../../store";
@@ -161,7 +160,7 @@ function SidebarImpl() {
             <Tooltip title="Settings">
               <IconButton
                 sx={SETTINGS_BUTTON_SX}
-                onClick={() => setSettingsOpen(true)}
+                onClick={() => window.app.openSettingsWindow()}
               >
                 <VscGear size={16} />
               </IconButton>

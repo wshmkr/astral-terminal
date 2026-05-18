@@ -9,8 +9,8 @@ import {
   setFontSize,
   setTerminalTheme,
   setUiScale,
-  useWorkspaceStore,
-} from "../../store";
+  useSettingsStore,
+} from "../../settings-window/store";
 import {
   FONT_OPTIONS,
   MAX_FONT_SIZE,
@@ -39,7 +39,7 @@ const FONT_OPTS = FONT_OPTIONS.map((o) => ({
 }));
 
 export function AppearanceSection() {
-  const appearance = useWorkspaceStore((s) => s.appearance);
+  const appearance = useSettingsStore((s) => s.appearance);
 
   return (
     <Box sx={ROOT_SX}>

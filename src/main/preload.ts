@@ -4,11 +4,15 @@ import type {
   BrowserCommand,
   BrowserOpenNewTabPayload,
   BrowserState,
+  ConfigureAgentHooksResult,
   NotificationFirePayload,
   NotificationPanelAction,
   NotificationPanelItem,
   PersistedSettings,
   ScreenRect,
+  SettingsAction,
+  SettingsState,
+  UninstallAgentHooksResult,
 } from "../shared/types";
 import {
   browserStateChannel,
@@ -127,6 +131,22 @@ contextBridge.exposeInMainWorld("app", {
       IPC.notification.panelAction,
       callback,
     ),
+
+  openSettingsWindow: () => ipcRenderer.send(IPC.settings.open),
+  closeSettingsWindow: () => ipcRenderer.send(IPC.settings.close),
+  onSettingsStateChanged: (callback: (state: SettingsState) => void) =>
+    subscribe<[SettingsState]>(IPC.settings.stateChanged, callback),
+  sendSettingsAction: (action: SettingsAction) =>
+    ipcRenderer.send(IPC.settings.action, action),
+  onSettingsActionApply: (callback: (action: SettingsAction) => void) =>
+    subscribe<[SettingsAction]>(IPC.settings.actionApply, callback),
+  publishSettingsState: (state: SettingsState) =>
+    ipcRenderer.send(IPC.settings.statePublish, state),
+  invokeSettingsAgentHook: (params: {
+    providerName: string;
+    enabled: boolean;
+  }): Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult> =>
+    ipcRenderer.invoke(IPC.settings.invokeAgentHook, params),
 
   configureAgentHooks: (params: { providerName: string }) =>
     ipcRenderer.invoke(IPC.agentHooks.configure, params),
