@@ -4,6 +4,7 @@ import type {
   BrowserState,
 } from "../../../shared/types";
 import type { SurfaceController } from "../../app/surface-lifecycle";
+import { getState } from "../../store";
 
 interface ControllerOptions {
   surfaceId: string;
@@ -59,16 +60,13 @@ export class BrowserController implements SurfaceController {
 
   private syncBounds(): void {
     if (this.disposed) return;
+    const zoom = getState().appearance.uiScale;
     const rect = this.anchor.getBoundingClientRect();
-    const left = Math.round(rect.left);
-    const top = Math.round(rect.top);
-    const right = Math.round(rect.right);
-    const bottom = Math.round(rect.bottom);
     const next: BrowserAnchorOffsets = {
-      left,
-      top,
-      right: window.innerWidth - right,
-      bottom: window.innerHeight - bottom,
+      left: Math.round(rect.left * zoom),
+      top: Math.round(rect.top * zoom),
+      right: Math.round((window.innerWidth - rect.right) * zoom),
+      bottom: Math.round((window.innerHeight - rect.bottom) * zoom),
     };
     const prev = this.lastOffsets;
     if (

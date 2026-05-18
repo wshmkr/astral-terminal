@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   VscArrowLeft,
   VscArrowRight,
@@ -58,6 +58,7 @@ export function BrowserPane({
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
+  const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
   const fg = terminalTheme.foreground;
   const navButtonStyle = useMemo(() => navButtonSx(fg), [fg]);
   const urlInputStyle = useMemo(() => urlInputSx(fg), [fg]);
@@ -96,6 +97,11 @@ export function BrowserPane({
       });
     },
   });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: controllerRef is a stable ref
+  useEffect(() => {
+    controllerRef.current?.remeasure();
+  }, [uiScale]);
 
   const submitUrl = () => {
     const draft = urlDraft;
