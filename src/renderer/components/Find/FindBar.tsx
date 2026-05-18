@@ -58,9 +58,7 @@ const BAR_OVERLAY_SX = {
 
 const BAR_EMBEDDED_SX = {
   ...BAR_BASE_SX,
-  width: "100%",
-  height: "100%",
-  boxSizing: "border-box",
+  width: "max-content",
   borderRadius: 0,
   boxShadow: "none",
   borderWidth: 0,

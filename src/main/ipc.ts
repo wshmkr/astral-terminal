@@ -31,7 +31,10 @@ import {
   getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
-import { hideBrowserFindWindow } from "./browser-find-window";
+import {
+  hideBrowserFindWindow,
+  resizeBrowserFindWindow,
+} from "./browser-find-window";
 import type { BrowserManager } from "./browser-manager";
 import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
 import {
@@ -408,4 +411,11 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   ipcMain.on(IPC.browser.closeFindWindow, () => {
     hideBrowserFindWindow();
   });
+
+  ipcMain.on(
+    IPC.browser.resizeFindWindow,
+    (_event, msg: { width: number; height: number }) => {
+      resizeBrowserFindWindow(msg.width, msg.height);
+    },
+  );
 }

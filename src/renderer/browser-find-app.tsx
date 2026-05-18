@@ -77,8 +77,7 @@ class BrowserFindController implements FindController {
 }
 
 const ROOT_STYLE: React.CSSProperties = {
-  width: "100vw",
-  height: "100vh",
+  display: "inline-block",
 };
 
 export function BrowserFindApp() {
@@ -86,6 +85,7 @@ export function BrowserFindApp() {
     useState<AppearanceSettings>(DEFAULT_APPEARANCE);
   const [surfaceId, setSurfaceId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const barWrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     void window.app.readSettings().then((s) => {
@@ -122,6 +122,18 @@ export function BrowserFindApp() {
     return () => controller?.dispose();
   }, [controller]);
 
+  useEffect(() => {
+    const el = barWrapRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      const w = Math.ceil(el.getBoundingClientRect().width);
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      if (w > 0 && h > 0) window.app.resizeBrowserFindWindow(w, h);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const theme = useMemo(
     () => buildTheme(resolveAccentHex(appearance.accentColorId), appearance.appThemeId),
     [appearance.accentColorId, appearance.appThemeId],
@@ -130,7 +142,7 @@ export function BrowserFindApp() {
   return (
     <ThemeProvider theme={theme} defaultMode={resolveColorScheme(appearance.appThemeId)}>
       <CssBaseline />
-      <div style={ROOT_STYLE}>
+      <div ref={barWrapRef} style={ROOT_STYLE}>
         {controller && (
           <FindBar
             controller={controller}

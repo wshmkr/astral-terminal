@@ -10,19 +10,40 @@ import { APP_MODE, IS_DEV } from "./env";
 
 const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 
-const PANEL_WIDTH = 460;
-const PANEL_HEIGHT = 44;
+// Initial window size before the renderer reports the bar's measured size via
+// browser:resize-find-window — generous so the bar lays out at its natural width
+const PANEL_WIDTH = 480;
+const PANEL_HEIGHT = 48;
 const RIGHT_INSET = 16;
 const TOP_INSET = 8;
 
 let findWindow: BrowserWindow | null = null;
 let ready = false;
 let currentSurfaceId: string | null = null;
+let currentParent: BrowserWindow | null = null;
+let currentAnchor: ScreenRect | null = null;
+let currentSize = { width: PANEL_WIDTH, height: PANEL_HEIGHT };
 let pendingShow: {
   parent: BrowserWindow;
   anchor: ScreenRect;
   surfaceId: string;
 } | null = null;
+
+function applyBounds(): void {
+  if (!findWindow || findWindow.isDestroyed()) return;
+  if (!currentParent || !currentAnchor) return;
+  const parentBounds = currentParent.getContentBounds();
+  const zoom = currentParent.webContents.getZoomFactor();
+  const width = Math.round(currentSize.width * zoom);
+  const height = Math.round(currentSize.height * zoom);
+  const right = Math.round(
+    (currentAnchor.x + currentAnchor.width - RIGHT_INSET) * zoom,
+  );
+  const x = Math.round(parentBounds.x + right - width);
+  const y = Math.round(parentBounds.y + (currentAnchor.y + TOP_INSET) * zoom);
+  findWindow.webContents.setZoomFactor(zoom);
+  findWindow.setBounds({ x, y, width, height });
+}
 
 function placeAndShow(
   parent: BrowserWindow,
@@ -30,15 +51,9 @@ function placeAndShow(
   surfaceId: string,
 ): void {
   if (!findWindow || findWindow.isDestroyed()) return;
-  const parentBounds = parent.getContentBounds();
-  const zoom = parent.webContents.getZoomFactor();
-  const width = Math.round(PANEL_WIDTH * zoom);
-  const height = Math.round(PANEL_HEIGHT * zoom);
-  const right = Math.round((anchor.x + anchor.width - RIGHT_INSET) * zoom);
-  const x = Math.round(parentBounds.x + right - width);
-  const y = Math.round(parentBounds.y + (anchor.y + TOP_INSET) * zoom);
-  findWindow.webContents.setZoomFactor(zoom);
-  findWindow.setBounds({ x, y, width, height });
+  currentParent = parent;
+  currentAnchor = anchor;
+  applyBounds();
   const targetChanged = currentSurfaceId !== surfaceId;
   currentSurfaceId = surfaceId;
   findWindow.show();
@@ -136,6 +151,14 @@ export function hideBrowserFindWindow(): void {
   if (!findWindow || findWindow.isDestroyed()) return;
   currentSurfaceId = null;
   if (findWindow.isVisible()) findWindow.hide();
+}
+
+export function resizeBrowserFindWindow(width: number, height: number): void {
+  if (!findWindow || findWindow.isDestroyed()) return;
+  if (width <= 0 || height <= 0) return;
+  if (currentSize.width === width && currentSize.height === height) return;
+  currentSize = { width, height };
+  applyBounds();
 }
 
 export function isBrowserFindWindowTargeting(surfaceId: string): boolean {
