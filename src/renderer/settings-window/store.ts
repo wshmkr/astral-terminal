@@ -29,9 +29,17 @@ function subscribeStore(listener: () => void): () => void {
   };
 }
 
+function getStateOrNull(): SettingsState | null {
+  return state;
+}
+
 export function setSettingsStoreState(next: SettingsState): void {
   state = next;
   notify();
+}
+
+export function useSettingsState(): SettingsState | null {
+  return useSyncExternalStore(subscribeStore, getStateOrNull);
 }
 
 export function useSettingsStore<T>(selector: (s: SettingsState) => T): T {

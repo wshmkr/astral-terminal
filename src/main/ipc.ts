@@ -41,7 +41,6 @@ import type { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
 import {
   applySettingsUiScale,
-  forwardSettingsAction,
   hideSettingsWindow,
   openSettingsWindow,
   setSettingsState,
@@ -247,17 +246,22 @@ export function registerSettingsIpc(): void {
 }
 
 export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
+  function dispatchToMainRenderer(action: SettingsAction): void {
+    getMainWindow()?.webContents.send(IPC.settings.actionApply, action);
+  }
+
   ipcMain.on(IPC.settings.open, async () => {
     const win = getMainWindow();
     if (!win) return;
     openSettingsWindow(win);
-    for (const provider of agentProviders) {
-      const status = await getAgentHookStatus(provider.name);
-      forwardSettingsAction(win, {
-        kind: "setAgentHookStatus",
-        name: provider.name,
-        status,
-      });
+    const statuses = await Promise.all(
+      agentProviders.map(async (p) => ({
+        name: p.name,
+        status: await getAgentHookStatus(p.name),
+      })),
+    );
+    for (const { name, status } of statuses) {
+      dispatchToMainRenderer({ kind: "setAgentHookStatus", name, status });
     }
   });
 
@@ -272,7 +276,7 @@ export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
   ipcMain.on(IPC.settings.action, (_event, action: SettingsAction) => {
     const win = getMainWindow();
     if (!win) return;
-    forwardSettingsAction(win, action);
+    dispatchToMainRenderer(action);
     if (action.kind === "setUiScale") applySettingsUiScale(win, action.n);
   });
 
@@ -286,14 +290,11 @@ export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
         ? await configureAgentHooks(providerName)
         : await uninstallAgentHooks(providerName);
       if (result.status !== "error") {
-        const win = getMainWindow();
-        if (win) {
-          forwardSettingsAction(win, {
-            kind: "setAgentHookStatus",
-            name: providerName as AgentName,
-            status: enabled ? "installed" : "missing",
-          });
-        }
+        dispatchToMainRenderer({
+          kind: "setAgentHookStatus",
+          name: providerName as AgentName,
+          status: enabled ? "installed" : "missing",
+        });
       }
       return result;
     },

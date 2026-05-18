@@ -9,14 +9,13 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
 import { APP_VERSION } from "../../shared/meta";
-import type { AccentColorId, SettingsState } from "../../shared/types";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
 import { NotificationsSection } from "../components/Settings/NotificationsSection";
 import { UpdatesSection } from "../components/Settings/UpdatesSection";
 import { resolveAccentHex } from "../theme/accent-colors";
 import { buildTheme } from "../theme/index";
 import { CUSTOM_SCROLLBAR_SX } from "../theme/scrollbar";
-import { setSettingsStoreState } from "./store";
+import { setSettingsStoreState, useSettingsState } from "./store";
 
 const HEADER_HEIGHT = 40;
 
@@ -123,20 +122,9 @@ const CONTENT_SX = {
 } as const;
 
 export function SettingsApp() {
-  const [hydrated, setHydrated] = useState(false);
-  const [appThemeId, setAppThemeId] = useState<"dark" | "light">("dark");
-  const [accentColorId, setAccentColorId] = useState<AccentColorId>("blue");
+  const state = useSettingsState();
 
-  useEffect(
-    () =>
-      window.app.onSettingsStateChanged((next: SettingsState) => {
-        setSettingsStoreState(next);
-        setAppThemeId(next.appearance.appThemeId);
-        setAccentColorId(next.appearance.accentColorId);
-        setHydrated(true);
-      }),
-    [],
-  );
+  useEffect(() => window.app.onSettingsStateChanged(setSettingsStoreState), []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -145,6 +133,9 @@ export function SettingsApp() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  const appThemeId = state?.appearance.appThemeId ?? "dark";
+  const accentColorId = state?.appearance.accentColorId ?? "blue";
 
   const theme = useMemo(
     () => buildTheme(resolveAccentHex(accentColorId)),
@@ -168,7 +159,7 @@ export function SettingsApp() {
             <VscChromeClose size={16} />
           </CloseButton>
         </Box>
-        {hydrated && (
+        {state && (
           <Box sx={BODY_SX}>
             <Box sx={NAV_SX}>
               <List sx={NAV_LIST_SX} disablePadding>

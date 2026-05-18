@@ -1,11 +1,6 @@
 import path from "node:path";
 import { BrowserWindow } from "electron";
-import {
-  encodeAppModeArg,
-  IPC,
-  type SettingsAction,
-  type SettingsState,
-} from "../shared/types";
+import { encodeAppModeArg, IPC, type SettingsState } from "../shared/types";
 import { APP_MODE, IS_DEV } from "./env";
 
 const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
@@ -25,6 +20,7 @@ function pushState(): void {
     !settingsReady ||
     !settingsWindow ||
     settingsWindow.isDestroyed() ||
+    !settingsWindow.isVisible() ||
     !pendingState
   )
     return;
@@ -49,6 +45,7 @@ function placeAndShow(parent: BrowserWindow): void {
   applyZoom(parent, parent.webContents.getZoomFactor());
   settingsWindow.show();
   settingsWindow.focus();
+  pushState();
 }
 
 export function applySettingsUiScale(
@@ -94,7 +91,6 @@ function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
 
   win.once("ready-to-show", () => {
     settingsReady = true;
-    pushState();
     if (pendingShow) {
       placeAndShow(parent);
       pendingShow = false;
@@ -143,13 +139,6 @@ export function hideSettingsWindow(): void {
 export function setSettingsState(state: SettingsState): void {
   pendingState = state;
   pushState();
-}
-
-export function forwardSettingsAction(
-  parent: BrowserWindow,
-  action: SettingsAction,
-): void {
-  parent.webContents.send(IPC.settings.actionApply, action);
 }
 
 export function destroySettingsWindow(): void {
