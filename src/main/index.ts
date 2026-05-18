@@ -23,7 +23,11 @@ import {
 } from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings } from "./settings-store";
-import { destroySettingsWindow, initSettingsWindow } from "./settings-window";
+import {
+  destroySettingsWindow,
+  initSettingsWindow,
+  onSettingsVisibilityChange,
+} from "./settings-window";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
 
 if (IS_DEV) {
@@ -115,6 +119,9 @@ app.whenReady().then(() => {
       },
     });
     registerBrowserIpc({ browserManager });
+    onSettingsVisibilityChange((visible) => {
+      browserManager?.setDimmed(visible);
+    });
   }
 });
 
