@@ -21,6 +21,8 @@ import {
   ptyDataChannel,
   ptyExitChannel,
   type ScreenRect,
+  type SettingsAction,
+  type SettingsState,
   type TerminalThemeId,
 } from "../shared/types";
 import {
@@ -37,6 +39,13 @@ import {
 } from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
+import {
+  applySettingsUiScale,
+  forwardSettingsAction,
+  hideSettingsWindow,
+  openSettingsWindow,
+  setSettingsState,
+} from "./settings-window";
 import { focusMainWindow } from "./window";
 
 interface PtyDeps {
@@ -233,6 +242,60 @@ export function registerSettingsIpc(): void {
     async (_event, settings: PersistedSettings) => {
       await saveSettings(settings);
       applyTerminalThemeNative(settings.appearance?.terminalThemeId);
+    },
+  );
+}
+
+export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
+  ipcMain.on(IPC.settings.open, async () => {
+    const win = getMainWindow();
+    if (!win) return;
+    openSettingsWindow(win);
+    for (const provider of agentProviders) {
+      const status = await getAgentHookStatus(provider.name);
+      forwardSettingsAction(win, {
+        kind: "setAgentHookStatus",
+        name: provider.name,
+        status,
+      });
+    }
+  });
+
+  ipcMain.on(IPC.settings.close, () => {
+    hideSettingsWindow();
+  });
+
+  ipcMain.on(IPC.settings.stateChanged, (_event, state: SettingsState) => {
+    setSettingsState(state);
+  });
+
+  ipcMain.on(IPC.settings.action, (_event, action: SettingsAction) => {
+    const win = getMainWindow();
+    if (!win) return;
+    forwardSettingsAction(win, action);
+    if (action.kind === "setUiScale") applySettingsUiScale(win, action.n);
+  });
+
+  ipcMain.handle(
+    IPC.settings.invokeAgentHook,
+    async (
+      _event,
+      { providerName, enabled }: { providerName: string; enabled: boolean },
+    ) => {
+      const result = enabled
+        ? await configureAgentHooks(providerName)
+        : await uninstallAgentHooks(providerName);
+      if (result.status !== "error") {
+        const win = getMainWindow();
+        if (win) {
+          forwardSettingsAction(win, {
+            kind: "setAgentHookStatus",
+            name: providerName as AgentName,
+            status: enabled ? "installed" : "missing",
+          });
+        }
+      }
+      return result;
     },
   );
 }

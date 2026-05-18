@@ -16,7 +16,11 @@ import {
   isAgentHookInstalled,
 } from "../../../shared/agent-hooks";
 import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
-import { updateNotificationSettings, useWorkspaceStore } from "../../store";
+import {
+  setAgentHook,
+  updateNotificationSettings,
+  useWorkspaceStore,
+} from "./settings-store-shim";
 import { DIVIDER_SX, ROOT_SX, SettingRow, SUBHEAD_SX } from "./shared";
 
 const SWITCH_SX = { ml: -1 } as const;
@@ -77,7 +81,7 @@ export function NoHooksAlert({ sx }: { sx?: SxProps<Theme> }) {
 export function NotificationsSection() {
   const settings = useWorkspaceStore((s) => s.notificationSettings);
   const hookStatuses = useWorkspaceStore((s) => s.agentHookStatuses);
-  const { toggle, pending, errors } = useAgentHookToggle();
+  const { toggle, pending, errors } = useAgentHookToggle(setAgentHook);
 
   const noHooksEnabled = agentProviders.every(
     (p) => !isAgentHookInstalled(hookStatuses[p.name]),

@@ -12,6 +12,8 @@ import type {
   NotificationPanelItem,
   PersistedSettings,
   ScreenRect,
+  SettingsAction,
+  SettingsState,
   UninstallAgentHooksResult,
 } from "../../shared/types";
 
@@ -95,6 +97,21 @@ export interface AppAPI {
   onNotificationPanelAction: (
     callback: (action: NotificationPanelAction) => void,
   ) => () => void;
+
+  openSettingsWindow: () => void;
+  closeSettingsWindow: () => void;
+  onSettingsStateChanged: (
+    callback: (state: SettingsState) => void,
+  ) => () => void;
+  sendSettingsAction: (action: SettingsAction) => void;
+  onSettingsActionApply: (
+    callback: (action: SettingsAction) => void,
+  ) => () => void;
+  publishSettingsState: (state: SettingsState) => void;
+  invokeSettingsAgentHook: (params: {
+    providerName: string;
+    enabled: boolean;
+  }) => Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult>;
 }
 
 declare global {

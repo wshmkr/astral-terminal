@@ -75,6 +75,10 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
+export function subscribeWorkspaceStore(listener: () => void): () => void {
+  return subscribe(listener);
+}
+
 export function useWorkspaceStore(): AppState;
 export function useWorkspaceStore<T>(selector: (s: AppState) => T): T;
 export function useWorkspaceStore<T>(

@@ -220,6 +220,27 @@ export type NotificationPanelAction =
   | { kind: "dismiss"; workspaceId: string; notifId: string }
   | { kind: "clearAll" };
 
+export interface SettingsState {
+  appearance: AppearanceSettings;
+  notificationSettings: NotificationSettings;
+  updateSettings: UpdateSettings;
+  agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
+}
+
+export type SettingsAction =
+  | { kind: "setAppTheme"; id: AppThemeId }
+  | { kind: "setTerminalTheme"; id: TerminalThemeId }
+  | { kind: "setAccentColor"; id: AccentColorId }
+  | { kind: "setFontFamily"; id: FontFamilyId }
+  | { kind: "setFontSize"; n: number }
+  | { kind: "setUiScale"; n: number }
+  | {
+      kind: "updateNotificationSettings";
+      patch: Partial<NotificationSettings>;
+    }
+  | { kind: "updateUpdateSettings"; patch: Partial<UpdateSettings> }
+  | { kind: "setAgentHookStatus"; name: AgentName; status: AgentHookStatus };
+
 export interface AppConfig {
   platform: {
     isWindows: boolean;
@@ -258,7 +279,6 @@ export interface AppState {
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
   windowFocused: boolean;
-  settingsOpen: boolean;
   welcomeOpen: boolean;
 }
 
@@ -293,6 +313,12 @@ export const IPC = {
   settings: {
     read: "settings:read",
     write: "settings:write",
+    open: "settings:open",
+    close: "settings:close",
+    stateChanged: "settings:state-changed",
+    action: "settings:action",
+    actionApply: "settings:action-apply",
+    invokeAgentHook: "settings:invoke-agent-hook",
   },
   agentHooks: {
     configure: "agent-hooks:configure",

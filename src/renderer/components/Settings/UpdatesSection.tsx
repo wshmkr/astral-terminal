@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import Switch from "@mui/material/Switch";
 import { useEffect, useState } from "react";
 import { loadAppConfig } from "../../app/config-loader";
-import { updateUpdateSettings, useWorkspaceStore } from "../../store";
+import { updateUpdateSettings, useWorkspaceStore } from "./settings-store-shim";
 import { ROOT_SX, SettingRow } from "./shared";
 
 const SWITCH_SX = { ml: -1 } as const;

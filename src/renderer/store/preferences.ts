@@ -102,13 +102,6 @@ export function setWindowFocused(focused: boolean): void {
   notify();
 }
 
-export function setSettingsOpen(open: boolean): void {
-  const s = getState();
-  if (s.settingsOpen === open) return;
-  setState({ ...s, settingsOpen: open });
-  notify();
-}
-
 export function setWelcomeOpen(open: boolean): void {
   const s = getState();
   if (s.welcomeOpen === open) return;

@@ -19,6 +19,7 @@ import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {
   dismissWelcome,
   setAccentColor,
+  setAgentHook,
   setAppTheme,
   setTerminalTheme,
   useWorkspaceStore,
@@ -116,7 +117,7 @@ export function WelcomeDialog() {
     (s) => s.appearance.accentColorId,
   );
   const hookStatuses = useWorkspaceStore((s) => s.agentHookStatuses);
-  const { toggle, pending, errors } = useAgentHookToggle();
+  const { toggle, pending, errors } = useAgentHookToggle(setAgentHook);
 
   const [draftAppTheme, setDraftAppTheme] =
     useState<AppThemeId>(persistedAppTheme);

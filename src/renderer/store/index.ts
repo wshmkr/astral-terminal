@@ -11,6 +11,7 @@ export {
   getState,
   getWorkspace,
   selectActiveWorkspace,
+  subscribeWorkspaceStore,
   useWorkspaceStore,
 } from "./core";
 export { bootStore } from "./init";
@@ -33,7 +34,6 @@ export {
   dismissWelcome,
   setAgentHook,
   setAgentHookStatuses,
-  setSettingsOpen,
   setSidebarWidth,
   setWelcomeOpen,
   setWindowFocused,

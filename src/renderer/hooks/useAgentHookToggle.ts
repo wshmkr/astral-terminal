@@ -1,8 +1,16 @@
 import { useState } from "react";
 import type { AgentName } from "../../shared/agent-hooks";
-import { setAgentHook } from "../store";
+import type {
+  ConfigureAgentHooksResult,
+  UninstallAgentHooksResult,
+} from "../../shared/types";
 
-export function useAgentHookToggle() {
+export type SetAgentHookFn = (
+  name: AgentName,
+  enabled: boolean,
+) => Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult>;
+
+export function useAgentHookToggle(setAgentHook: SetAgentHookFn) {
   const [errors, setErrors] = useState<Partial<Record<AgentName, string>>>({});
   const [pending, setPending] = useState<Partial<Record<AgentName, boolean>>>(
     {},

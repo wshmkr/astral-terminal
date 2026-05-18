@@ -8,7 +8,6 @@ import { SurfaceBodyRegistryProvider } from "./app/SurfaceBodyRegistry";
 import { WorkspaceSurfaceHost } from "./app/WorkspaceSurfaceHost";
 import { installBrowserPopupListener } from "./components/Browser/popup-listener";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
-import { SettingsDialog } from "./components/Settings/SettingsDialog";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TitleBar } from "./components/ui/TitleBar";
@@ -23,7 +22,6 @@ import {
   setActiveWorkspace,
   setAgentHook,
   setAgentHookStatuses,
-  setSettingsOpen,
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
@@ -53,7 +51,6 @@ export function App() {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
-  const settingsOpen = useWorkspaceStore((s) => s.settingsOpen);
   const welcomeOpen = useWorkspaceStore((s) => s.welcomeOpen);
   const workspacesContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{
@@ -144,11 +141,6 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!settingsOpen) return;
-    refreshAgentHookStatuses();
-  }, [settingsOpen]);
-
-  useEffect(() => {
     const handle = requestIdleCallback(() => refreshAgentHookStatuses());
     return () => cancelIdleCallback(handle);
   }, []);
@@ -233,10 +225,6 @@ export function App() {
           {welcomeOpen && <WelcomeDialog />}
         </Box>
       </Box>
-      <SettingsDialog
-        open={settingsOpen && !welcomeOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
     </AppDndContext>
   );
 }

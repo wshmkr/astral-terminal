@@ -14,6 +14,7 @@ import {
   registerNotificationIpc,
   registerPtyIpc,
   registerSettingsIpc,
+  registerSettingsWindowIpc,
   registerWindowIpc,
 } from "./ipc";
 import {
@@ -22,6 +23,7 @@ import {
 } from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings } from "./settings-store";
+import { destroySettingsWindow, initSettingsWindow } from "./settings-window";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
 
 if (IS_DEV) {
@@ -92,6 +94,7 @@ app.whenReady().then(() => {
   registerWindowIpc({ getMainWindow });
   registerNotificationIpc({ getMainWindow });
   registerSettingsIpc();
+  registerSettingsWindowIpc({ getMainWindow });
   registerAgentHookIpc();
   createWindow();
   checkForUpdatesOnStartup();
@@ -99,6 +102,7 @@ app.whenReady().then(() => {
   const win = getMainWindow();
   if (win) {
     initNotificationWindow(win);
+    initSettingsWindow(win);
     browserManager = new BrowserManager(win, {
       onState: (surfaceId, state) => {
         getMainWindow()?.webContents.send(
@@ -118,6 +122,7 @@ app.on("before-quit", () => {
   ptyManager?.saveAndKillAll();
   browserManager?.destroyAll();
   destroyNotificationWindow();
+  destroySettingsWindow();
 });
 
 app.on("window-all-closed", () => {
