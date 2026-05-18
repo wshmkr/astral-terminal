@@ -48,7 +48,7 @@ import {
   SettingRow,
 } from "../Settings/shared";
 import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";
-import { TITLE_BAR_HEIGHT } from "../ui/TitleBar";
+import { TITLE_BAR_HEIGHT } from "../ui/TitleBarButton";
 import { ThemePreview } from "./ThemePreview";
 
 const PAPER_SX = {

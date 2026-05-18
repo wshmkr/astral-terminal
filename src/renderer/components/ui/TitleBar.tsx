@@ -1,6 +1,4 @@
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
-import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { memo, useEffect, useState } from "react";
 import {
@@ -13,29 +11,11 @@ import iconUrl from "../../../../build/icon.svg?url";
 import iconDevUrl from "../../../../build/icon-dev.svg?url";
 import { APP_NAME_SHORT, DEV_SUFFIX } from "../../../shared/meta";
 import { selectActiveWorkspace, useWorkspaceStore } from "../../store";
+import { TITLE_BAR_HEIGHT, TitleBarButton } from "./TitleBarButton";
 
-export const TITLE_BAR_HEIGHT = 40;
 const IS_DEV = window.app.mode === "dev";
 const APP_NAME_LC = `${APP_NAME_SHORT.toLowerCase()}${IS_DEV ? DEV_SUFFIX : ""}`;
 const APP_ICON_URL = IS_DEV ? iconDevUrl : iconUrl;
-
-const TitleBarButton = styled(IconButton, {
-  shouldForwardProp: (p) => p !== "$dimmed" && p !== "$isClose",
-})<{ $dimmed: boolean; $isClose?: boolean }>(({ theme, $dimmed, $isClose }) => {
-  const vars = theme.vars ?? theme;
-  return {
-    borderRadius: 0,
-    width: 46,
-    height: TITLE_BAR_HEIGHT,
-    color: $dimmed ? vars.palette.text.disabled : vars.palette.text.secondary,
-    "&:hover": $isClose
-      ? {
-          backgroundColor: vars.palette.error.main,
-          color: vars.palette.common.white,
-        }
-      : { backgroundColor: vars.palette.custom.titlebarButtonHover },
-  };
-});
 
 const TITLE_SX = {
   position: "absolute",

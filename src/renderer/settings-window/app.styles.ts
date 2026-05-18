@@ -1,6 +1,5 @@
+import { TITLE_BAR_HEIGHT } from "../components/ui/TitleBarButton";
 import { CUSTOM_SCROLLBAR_SX } from "../theme/scrollbar";
-
-export const HEADER_HEIGHT = 40;
 
 export const ROOT_SX = {
   width: "100vw",
@@ -19,7 +18,7 @@ export const HEADER_SX = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  height: HEADER_HEIGHT,
+  height: TITLE_BAR_HEIGHT,
   bgcolor: "custom.titlebarFocused",
   borderBottom: 1,
   borderColor: "divider",

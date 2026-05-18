@@ -1,10 +1,9 @@
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
-import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
-import { styled, ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
@@ -12,12 +11,12 @@ import { APP_VERSION } from "../../shared/meta";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
 import { NotificationsSection } from "../components/Settings/NotificationsSection";
 import { UpdatesSection } from "../components/Settings/UpdatesSection";
+import { TitleBarButton } from "../components/ui/TitleBarButton";
 import { resolveAccentHex } from "../theme/accent-colors";
 import { buildTheme } from "../theme/index";
 import {
   BODY_SX,
   CONTENT_SX,
-  HEADER_HEIGHT,
   HEADER_SX,
   HEADER_TITLE_SX,
   NAV_ITEM_SX,
@@ -35,20 +34,6 @@ const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "notifications", label: "Notifications" },
   { id: "updates", label: "Updates" },
 ];
-
-const CloseButton = styled(IconButton)(({ theme }) => {
-  const vars = theme.vars ?? theme;
-  return {
-    borderRadius: 0,
-    width: 46,
-    height: HEADER_HEIGHT,
-    color: vars.palette.text.secondary,
-    "&:hover": {
-      backgroundColor: vars.palette.error.main,
-      color: vars.palette.common.white,
-    },
-  };
-});
 
 export function SettingsApp() {
   const state = useSettingsState();
@@ -81,12 +66,14 @@ export function SettingsApp() {
           <Typography variant="caption" sx={HEADER_TITLE_SX}>
             Settings
           </Typography>
-          <CloseButton
+          <TitleBarButton
+            $dimmed={false}
+            $isClose
             onClick={() => window.app.closeSettingsWindow()}
             aria-label="Close settings"
           >
             <VscChromeClose size={16} />
-          </CloseButton>
+          </TitleBarButton>
         </Box>
         {state && (
           <Box sx={BODY_SX}>
