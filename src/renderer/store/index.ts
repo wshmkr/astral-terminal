@@ -8,6 +8,11 @@ export {
   stepUiScale,
 } from "./appearance";
 export {
+  clearBrowserFavicon,
+  setBrowserFavicon,
+  useBrowserFavicon,
+} from "./browser-favicons";
+export {
   getState,
   getWorkspace,
   selectActiveWorkspace,

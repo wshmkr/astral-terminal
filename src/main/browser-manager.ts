@@ -45,7 +45,8 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
     a.title === b.title &&
     a.isLoading === b.isLoading &&
     a.canGoBack === b.canGoBack &&
-    a.canGoForward === b.canGoForward
+    a.canGoForward === b.canGoForward &&
+    a.favicon === b.favicon
   );
 }
 
@@ -58,6 +59,26 @@ const DIM_HTML =
       body.show { opacity:1; }
     </style>`,
   );
+
+const MAX_FAVICON_BYTES = 256 * 1024;
+
+async function fetchFaviconDataUrl(url: string): Promise<string | null> {
+  try {
+    const response = await session.fromPartition(BROWSER_PARTITION).fetch(url);
+    if (!response.ok) return null;
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_FAVICON_BYTES) {
+      return null;
+    }
+    const mime =
+      response.headers.get("content-type")?.split(";")[0]?.trim() ||
+      "image/x-icon";
+    const base64 = Buffer.from(buffer).toString("base64");
+    return `data:${mime};base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
 
@@ -218,13 +239,21 @@ export class BrowserManager {
       update({ isLoading: false, ...readNavState(wc) }),
     );
     wc.on("did-navigate", (_event, url) =>
-      update({ url, ...readNavState(wc) }),
+      update({ url, favicon: null, ...readNavState(wc) }),
     );
     wc.on("did-navigate-in-page", (_event, url, isMainFrame) => {
       if (!isMainFrame) return;
       update({ url, ...readNavState(wc) });
     });
     wc.on("page-title-updated", (_event, title) => update({ title }));
+    wc.on("page-favicon-updated", (_event, favicons) => {
+      const url = favicons[0];
+      if (!url) {
+        update({ favicon: null });
+        return;
+      }
+      fetchFaviconDataUrl(url).then((dataUrl) => update({ favicon: dataUrl }));
+    });
 
     wc.loadURL(normalizeUrl(url)).catch((err) => {
       console.error("[browser] initial loadURL failed:", err);

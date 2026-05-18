@@ -110,3 +110,19 @@ export const TAB_UNREAD_DOT_SX = {
   bgcolor: "primary.main",
   flexShrink: 0,
 } as const;
+
+export const TAB_ICON_SX = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 14,
+  height: 14,
+  flexShrink: 0,
+  color: "text.secondary",
+} as const;
+
+export const TAB_ICON_IMG_SX = {
+  width: 14,
+  height: 14,
+  objectFit: "contain",
+} as const;

@@ -1,9 +1,12 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { VscClose } from "react-icons/vsc";
+import { VscClose, VscGlobe } from "react-icons/vsc";
 import type { Surface } from "../../../shared/types";
+import { useBrowserFavicon } from "../../store";
 import {
   TAB_CLOSE_SX,
+  TAB_ICON_IMG_SX,
+  TAB_ICON_SX,
   TAB_TITLE_SX,
   TAB_UNREAD_DOT_SX,
 } from "./TabbedPane.styles";
@@ -70,6 +73,7 @@ export function TabContent({
   return (
     <>
       {hasUnread && <Box sx={TAB_UNREAD_DOT_SX} />}
+      {surface.type === "browser" && <BrowserTabIcon surfaceId={surface.id} />}
       <Typography variant="body2" noWrap sx={TAB_TITLE_SX}>
         {surface.name}
       </Typography>
@@ -84,5 +88,17 @@ export function TabContent({
         </Box>
       )}
     </>
+  );
+}
+
+function BrowserTabIcon({ surfaceId }: { surfaceId: string }) {
+  const favicon = useBrowserFavicon(surfaceId);
+  if (favicon) {
+    return <Box component="img" src={favicon} alt="" sx={TAB_ICON_IMG_SX} />;
+  }
+  return (
+    <Box sx={TAB_ICON_SX}>
+      <VscGlobe size={14} />
+    </Box>
   );
 }
