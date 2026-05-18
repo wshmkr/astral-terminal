@@ -18,7 +18,7 @@ export function decodeAppModeArg(argv: readonly string[]): AppMode {
 export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
-export const INITIAL_WINDOW_BG = "#282c34";
+export const INITIAL_WINDOW_BG = "#262624";
 
 export interface BaseSurface {
   id: string;
@@ -122,7 +122,7 @@ export interface Workspace {
 }
 
 export interface TerminalTheme {
-  colorScheme: AppThemeId;
+  colorScheme: "dark" | "light";
   background: string;
   foreground: string;
   cursor: string;
@@ -169,8 +169,14 @@ export interface WslDistro {
   version: number | null;
 }
 
-export type AppThemeId = "dark" | "light";
-export type TerminalThemeId = "one-half-dark" | "one-half-light";
+export type AppThemeId = "dark" | "light" | "black";
+export type TerminalThemeId =
+  | "one-half-dark"
+  | "one-half-light"
+  | "dracula"
+  | "alucard"
+  | "github-dark"
+  | "github-light";
 export type FontFamilyId =
   | "jetbrains-mono"
   | "cascadia-code"

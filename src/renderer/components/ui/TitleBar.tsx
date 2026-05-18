@@ -75,7 +75,7 @@ function TitleBarImpl() {
       <Typography
         variant="caption"
         title={fullTitle}
-        sx={[TITLE_SX, { color: dimmed ? "text.disabled" : "text.secondary" }]}
+        sx={[TITLE_SX, { color: dimmed ? "text.disabled" : "text.primary" }]}
       >
         {workspaceName && (
           <Box component="span" sx={WORKSPACE_NAME_SX}>

@@ -7,7 +7,7 @@ import type {
 } from "../shared/types";
 import { NotificationPanelBody } from "./components/Sidebar/NotificationPanelBody";
 import { DEFAULT_APPEARANCE, normalizeAppearance } from "./store/appearance";
-import { buildTheme } from "./theme";
+import { buildTheme, resolveColorScheme } from "./theme";
 import { resolveAccentHex } from "./theme/accent-colors";
 
 export function NotificationsApp() {
@@ -38,12 +38,19 @@ export function NotificationsApp() {
   }, []);
 
   const theme = useMemo(
-    () => buildTheme(resolveAccentHex(appearance.accentColorId)),
-    [appearance.accentColorId],
+    () =>
+      buildTheme(
+        resolveAccentHex(appearance.accentColorId),
+        appearance.appThemeId,
+      ),
+    [appearance.accentColorId, appearance.appThemeId],
   );
 
   return (
-    <ThemeProvider theme={theme} defaultMode={appearance.appThemeId}>
+    <ThemeProvider
+      theme={theme}
+      defaultMode={resolveColorScheme(appearance.appThemeId)}
+    >
       <CssBaseline />
       <NotificationPanelBody
         items={items}

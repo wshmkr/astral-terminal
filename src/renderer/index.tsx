@@ -29,9 +29,10 @@ if (import.meta.env.DEV) {
 
 function ThemedApp() {
   const accentColorId = useWorkspaceStore((s) => s.appearance.accentColorId);
+  const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
   const theme = useMemo(
-    () => buildTheme(resolveAccentHex(accentColorId)),
-    [accentColorId],
+    () => buildTheme(resolveAccentHex(accentColorId), appThemeId),
+    [accentColorId, appThemeId],
   );
   return (
     <ThemeProvider theme={theme} defaultMode="dark">

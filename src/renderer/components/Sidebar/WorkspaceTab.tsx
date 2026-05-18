@@ -48,11 +48,13 @@ const TITLE_ROW_SX = {
   gap: 0.75,
 } as const;
 
-const NAME_TYPOGRAPHY_SX = {
-  minWidth: 0,
-  fontWeight: 500,
-  color: "text.primary",
-} as const;
+function nameTypographySx(isActive: boolean) {
+  return {
+    minWidth: 0,
+    fontWeight: 500,
+    color: isActive ? "text.primary" : "text.secondary",
+  } as const;
+}
 
 const UNREAD_DOT_SX = {
   width: 8,
@@ -156,7 +158,7 @@ export const WorkspaceTab = memo(function WorkspaceTab({
               e.stopPropagation();
               setEditing(true);
             }}
-            sx={NAME_TYPOGRAPHY_SX}
+            sx={nameTypographySx(isActive)}
           >
             {workspace.name}
           </Typography>
