@@ -286,6 +286,7 @@ export const IPC = {
     maximize: "window:maximize",
     close: "window:close",
     maximizedChanged: "window:maximized-changed",
+    focusChanged: "window:focus-changed",
   },
   config: {
     read: "config:read",
