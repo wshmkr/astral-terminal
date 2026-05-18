@@ -93,6 +93,12 @@ export function BrowserFindApp() {
     });
   }, []);
 
+  useEffect(() => {
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.margin = "0";
+  }, []);
+
   useEffect(
     () =>
       window.app.onBrowserFindTargetChanged((payload) => {

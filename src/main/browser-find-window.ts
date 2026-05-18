@@ -42,7 +42,7 @@ function applyBounds(): void {
   const x = Math.round(parentBounds.x + right - width);
   const y = Math.round(parentBounds.y + (currentAnchor.y + TOP_INSET) * zoom);
   findWindow.webContents.setZoomFactor(zoom);
-  findWindow.setBounds({ x, y, width, height });
+  findWindow.setContentBounds({ x, y, width, height });
 }
 
 function placeAndShow(
