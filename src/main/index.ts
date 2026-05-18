@@ -120,7 +120,7 @@ app.whenReady().then(() => {
     });
     registerBrowserIpc({ browserManager });
     onSettingsVisibilityChange((visible) => {
-      browserManager?.setInputBlocked(visible);
+      browserManager?.setDimmed(visible);
     });
   }
 });

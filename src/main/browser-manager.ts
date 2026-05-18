@@ -72,30 +72,17 @@ export interface BrowserManagerCallbacks {
 
 export class BrowserManager {
   private entries = new Map<string, Entry>();
-  private inputBlocked = false;
-  private readonly dimView: WebContentsView;
+  private dimView: WebContentsView | null = null;
 
   constructor(
     private readonly window: BrowserWindow,
     private readonly callbacks: BrowserManagerCallbacks,
   ) {
-    this.dimView = new WebContentsView({
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-      },
-    });
-    this.dimView.setBackgroundColor("#00000000");
-    this.dimView.setVisible(false);
-    this.dimView.webContents.loadURL(DIM_HTML).catch(() => {});
-    this.window.contentView.addChildView(this.dimView);
-
     const reapplyAll = () => {
       for (const entry of this.entries.values()) {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
-      if (this.dimView.getVisible()) this.applyDimBounds();
+      if (this.dimView?.getVisible()) this.applyDimBounds();
     };
     this.window.on("resize", reapplyAll);
     this.window.on("maximize", reapplyAll);
@@ -104,12 +91,33 @@ export class BrowserManager {
     this.window.on("leave-full-screen", reapplyAll);
   }
 
+  private ensureDimView(): WebContentsView {
+    if (this.dimView) return this.dimView;
+    const view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+    view.setBackgroundColor("#00000000");
+    view.setVisible(false);
+    view.webContents.loadURL(DIM_HTML).catch((err) => {
+      console.error("[browser] dim loadURL failed:", err);
+    });
+    this.window.contentView.addChildView(view);
+    this.dimView = view;
+    return view;
+  }
+
   private applyDimBounds(): void {
+    if (!this.dimView) return;
     const { width, height } = this.window.getContentBounds();
     this.dimView.setBounds({ x: 0, y: 0, width, height });
   }
 
   private bringDimToTop(): void {
+    if (!this.dimView) return;
     this.window.contentView.removeChildView(this.dimView);
     this.window.contentView.addChildView(this.dimView);
   }
@@ -128,7 +136,7 @@ export class BrowserManager {
     view.setVisible(false);
     view.setBackgroundColor("#00000000");
     this.window.contentView.addChildView(view);
-    this.bringDimToTop();
+    if (this.dimView?.getVisible()) this.bringDimToTop();
 
     const wc = view.webContents;
     const entry: Entry = {
@@ -243,16 +251,16 @@ export class BrowserManager {
     entry.view.setVisible(visible);
   }
 
-  setInputBlocked(blocked: boolean): void {
-    if (this.inputBlocked === blocked) return;
-    this.inputBlocked = blocked;
-    if (blocked) {
-      this.applyDimBounds();
-      this.bringDimToTop();
-      this.dimView.setVisible(true);
-    } else {
-      this.dimView.setVisible(false);
+  setDimmed(dimmed: boolean): void {
+    if (!dimmed) {
+      this.dimView?.setVisible(false);
+      return;
     }
+    const view = this.ensureDimView();
+    if (view.getVisible()) return;
+    this.applyDimBounds();
+    this.bringDimToTop();
+    view.setVisible(true);
   }
 
   loadURL(surfaceId: string, url: string): void {
