@@ -37,7 +37,7 @@ npm run dev
 
 - Font: [JetBrains Mono](https://www.jetbrains.com/lp/mono/)
 - Icons: [Codicons](https://github.com/microsoft/vscode-codicons), [Simple Icons](https://simpleicons.org/) (via [react-icons](https://github.com/react-icons/react-icons))
-- Bundled terminal color schemes derive from the following MIT-licensed upstreams:
-  - [One Half Dark, One Half Light](https://github.com/sonph/onehalf) — Son A. Pham
-  - [GitHub Dark, GitHub Light](https://github.com/primer/github-vscode-theme) — GitHub, Inc.
-  - [Dracula, Alucard](https://draculatheme.com/spec) — Zeno Rocha and Dracula contributors
+- Terminal themes:
+  - [One Half](https://github.com/sonph/onehalf)
+  - [GitHub](https://github.com/primer/github-vscode-theme)
+  - [Dracula](https://draculatheme.com/spec)
