@@ -1,9 +1,6 @@
-import path from "node:path";
-import { BrowserWindow } from "electron";
-import { encodeAppModeArg, IPC, type SettingsState } from "../shared/types";
-import { APP_MODE, IS_DEV } from "./env";
-
-const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
+import type { BrowserWindow } from "electron";
+import { IPC, type SettingsState } from "../shared/types";
+import { createChildPanelWindow } from "./child-panel-window";
 
 const PANEL_WIDTH = 760;
 const PANEL_HEIGHT = 520;
@@ -57,36 +54,11 @@ export function applySettingsUiScale(
 }
 
 function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
-  const win = new BrowserWindow({
+  const win = createChildPanelWindow({
+    parent,
+    hash: "settings",
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
-    show: false,
-    frame: false,
-    skipTaskbar: true,
-    resizable: false,
-    movable: false,
-    minimizable: false,
-    maximizable: false,
-    parent,
-    webPreferences: {
-      preload: path.join(__dirname, "../preload/preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      additionalArguments: [encodeAppModeArg(APP_MODE)],
-    },
-  });
-
-  if (DEV_URL) {
-    win.loadURL(`${DEV_URL}#settings`);
-  } else {
-    win.loadFile(path.join(__dirname, "../index.html"), {
-      hash: "settings",
-    });
-  }
-
-  win.webContents.on("page-title-updated", (event) => {
-    event.preventDefault();
   });
 
   win.once("ready-to-show", () => {

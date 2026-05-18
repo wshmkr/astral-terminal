@@ -1,14 +1,10 @@
-import path from "node:path";
-import { BrowserWindow } from "electron";
+import type { BrowserWindow } from "electron";
 import {
-  encodeAppModeArg,
   IPC,
   type NotificationPanelItem,
   type ScreenRect,
 } from "../shared/types";
-import { APP_MODE, IS_DEV } from "./env";
-
-const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
+import { createChildPanelWindow } from "./child-panel-window";
 
 const PANEL_WIDTH = 320;
 const PANEL_HEIGHT = 400;
@@ -41,36 +37,11 @@ function placeAndShow(parent: BrowserWindow, anchor: ScreenRect): void {
 }
 
 function createNotificationWindow(parent: BrowserWindow): BrowserWindow {
-  const win = new BrowserWindow({
+  const win = createChildPanelWindow({
+    parent,
+    hash: "notifications",
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
-    show: false,
-    frame: false,
-    skipTaskbar: true,
-    resizable: false,
-    movable: false,
-    minimizable: false,
-    maximizable: false,
-    parent,
-    webPreferences: {
-      preload: path.join(__dirname, "../preload/preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      additionalArguments: [encodeAppModeArg(APP_MODE)],
-    },
-  });
-
-  if (DEV_URL) {
-    win.loadURL(`${DEV_URL}#notifications`);
-  } else {
-    win.loadFile(path.join(__dirname, "../index.html"), {
-      hash: "notifications",
-    });
-  }
-
-  win.webContents.on("page-title-updated", (event) => {
-    event.preventDefault();
   });
 
   win.once("ready-to-show", () => {
