@@ -409,7 +409,8 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   });
 
   ipcMain.on(IPC.browser.closeFindWindow, () => {
-    hideBrowserFindWindow();
+    const previousSurfaceId = hideBrowserFindWindow();
+    if (previousSurfaceId) browserManager.focus(previousSurfaceId);
   });
 
   ipcMain.on(

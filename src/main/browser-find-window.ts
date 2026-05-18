@@ -147,10 +147,12 @@ export function sendBrowserFindResult(
   findWindow.webContents.send(IPC.browser.findResultChanged, result);
 }
 
-export function hideBrowserFindWindow(): void {
-  if (!findWindow || findWindow.isDestroyed()) return;
+export function hideBrowserFindWindow(): string | null {
+  if (!findWindow || findWindow.isDestroyed()) return null;
+  const previousSurfaceId = currentSurfaceId;
   currentSurfaceId = null;
   if (findWindow.isVisible()) findWindow.hide();
+  return previousSurfaceId;
 }
 
 export function resizeBrowserFindWindow(width: number, height: number): void {
