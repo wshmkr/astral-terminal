@@ -94,7 +94,6 @@ export interface AppAPI {
   browserFindRequest: (surfaceId: string, opts: BrowserFindOptions) => void;
   browserFindStop: (surfaceId: string) => void;
   closeBrowserFindWindow: () => void;
-  resizeBrowserFindWindow: (width: number, height: number) => void;
   onBrowserFindTargetChanged: (
     callback: (payload: { surfaceId: string }) => void,
   ) => () => void;

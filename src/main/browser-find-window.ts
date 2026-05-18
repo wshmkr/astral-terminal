@@ -10,19 +10,19 @@ import { APP_MODE, IS_DEV } from "./env";
 
 const DEV_URL = IS_DEV ? process.env.VITE_DEV_SERVER_URL : undefined;
 
-// Initial window size before the renderer reports the bar's measured size via
-// browser:resize-find-window — generous so the bar lays out at its natural width
-const PANEL_WIDTH = 480;
-const PANEL_HEIGHT = 48;
+const MAX_BAR_WIDTH = 320;
+const BAR_HEIGHT = 36;
 const RIGHT_INSET = 8;
 const TOP_INSET = 4;
+// Total horizontal buffer when contracting against a narrow anchor — matches
+// the terminal overlay's `maxWidth: calc(100% - 32px)`
+const HORIZONTAL_BUFFER = 32;
 
 let findWindow: BrowserWindow | null = null;
 let ready = false;
 let currentSurfaceId: string | null = null;
 let currentParent: BrowserWindow | null = null;
 let currentAnchor: ScreenRect | null = null;
-let currentSize = { width: PANEL_WIDTH, height: PANEL_HEIGHT };
 let pendingShow: {
   parent: BrowserWindow;
   anchor: ScreenRect;
@@ -34,8 +34,10 @@ function applyBounds(): void {
   if (!currentParent || !currentAnchor) return;
   const parentBounds = currentParent.getContentBounds();
   const zoom = currentParent.webContents.getZoomFactor();
-  const width = Math.round(currentSize.width * zoom);
-  const height = Math.round(currentSize.height * zoom);
+  const available = Math.max(0, currentAnchor.width - HORIZONTAL_BUFFER);
+  const targetWidth = Math.min(MAX_BAR_WIDTH, available);
+  const width = Math.round(targetWidth * zoom);
+  const height = Math.round(BAR_HEIGHT * zoom);
   const right = Math.round(
     (currentAnchor.x + currentAnchor.width - RIGHT_INSET) * zoom,
   );
@@ -65,8 +67,8 @@ function placeAndShow(
 
 function createFindWindow(parent: BrowserWindow): BrowserWindow {
   const win = new BrowserWindow({
-    width: PANEL_WIDTH,
-    height: PANEL_HEIGHT,
+    width: MAX_BAR_WIDTH,
+    height: BAR_HEIGHT,
     show: false,
     frame: false,
     skipTaskbar: true,
@@ -156,14 +158,6 @@ export function hideBrowserFindWindow(): string | null {
   currentSurfaceId = null;
   if (findWindow.isVisible()) findWindow.hide();
   return previousSurfaceId;
-}
-
-export function resizeBrowserFindWindow(width: number, height: number): void {
-  if (!findWindow || findWindow.isDestroyed()) return;
-  if (width <= 0 || height <= 0) return;
-  if (currentSize.width === width && currentSize.height === height) return;
-  currentSize = { width, height };
-  applyBounds();
 }
 
 export function updateBrowserFindAnchor(

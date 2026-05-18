@@ -184,8 +184,6 @@ contextBridge.exposeInMainWorld("app", {
   browserFindStop: (surfaceId: string) =>
     ipcRenderer.send(IPC.browser.findStop, { surfaceId }),
   closeBrowserFindWindow: () => ipcRenderer.send(IPC.browser.closeFindWindow),
-  resizeBrowserFindWindow: (width: number, height: number) =>
-    ipcRenderer.send(IPC.browser.resizeFindWindow, { width, height }),
   onBrowserFindTargetChanged: (
     callback: (payload: { surfaceId: string }) => void,
   ) =>
