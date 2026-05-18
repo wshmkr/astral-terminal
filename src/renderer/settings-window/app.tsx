@@ -14,10 +14,19 @@ import { NotificationsSection } from "../components/Settings/NotificationsSectio
 import { UpdatesSection } from "../components/Settings/UpdatesSection";
 import { resolveAccentHex } from "../theme/accent-colors";
 import { buildTheme } from "../theme/index";
-import { CUSTOM_SCROLLBAR_SX } from "../theme/scrollbar";
+import {
+  BODY_SX,
+  CONTENT_SX,
+  HEADER_HEIGHT,
+  HEADER_SX,
+  HEADER_TITLE_SX,
+  NAV_ITEM_SX,
+  NAV_LIST_SX,
+  NAV_SX,
+  ROOT_SX,
+  VERSION_SX,
+} from "./app.styles";
 import { setSettingsStoreState, useSettingsState } from "./store";
-
-const HEADER_HEIGHT = 40;
 
 type SectionId = "appearance" | "notifications" | "updates";
 
@@ -26,42 +35,6 @@ const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "notifications", label: "Notifications" },
   { id: "updates", label: "Updates" },
 ];
-
-const ROOT_SX = {
-  width: "100vw",
-  height: "100vh",
-  bgcolor: "background.paper",
-  backgroundImage: "none",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  userSelect: "none",
-  "& input, & textarea": { userSelect: "auto" },
-} as const;
-
-const HEADER_SX = {
-  position: "relative",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  height: HEADER_HEIGHT,
-  bgcolor: "custom.titlebarFocused",
-  borderBottom: 1,
-  borderColor: "divider",
-  userSelect: "none",
-  flexShrink: 0,
-} as const;
-
-const HEADER_TITLE_SX = {
-  position: "absolute",
-  left: 0,
-  right: 0,
-  textAlign: "center",
-  fontSize: "11pt",
-  fontWeight: 600,
-  color: "text.secondary",
-  pointerEvents: "none",
-} as const;
 
 const CloseButton = styled(IconButton)(({ theme }) => {
   const vars = theme.vars ?? theme;
@@ -76,50 +49,6 @@ const CloseButton = styled(IconButton)(({ theme }) => {
     },
   };
 });
-
-const BODY_SX = {
-  display: "flex",
-  flex: 1,
-  minHeight: 0,
-} as const;
-
-const NAV_SX = {
-  width: 180,
-  flexShrink: 0,
-  borderRight: "1px solid",
-  borderColor: "custom.subtleDivider",
-  display: "flex",
-  flexDirection: "column",
-} as const;
-
-const NAV_LIST_SX = {
-  flex: 1,
-  minHeight: 0,
-} as const;
-
-const VERSION_SX = {
-  px: 2,
-  py: 1,
-  fontSize: "10px",
-} as const;
-
-const NAV_ITEM_SX = {
-  py: 1,
-  px: 2.5,
-  borderRadius: 0,
-  "&.Mui-selected": {
-    bgcolor: "action.selected",
-    "& .MuiListItemText-primary": { fontWeight: 600 },
-    "&:hover": { bgcolor: "action.selected" },
-  },
-} as const;
-
-const CONTENT_SX = {
-  flex: 1,
-  p: 2,
-  overflowY: "auto",
-  ...CUSTOM_SCROLLBAR_SX,
-} as const;
 
 export function SettingsApp() {
   const state = useSettingsState();
