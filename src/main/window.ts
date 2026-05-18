@@ -100,6 +100,13 @@ export function createWindow(): void {
     mainWindow?.webContents.send(IPC.window.maximizedChanged, false);
   });
 
+  mainWindow.on("focus", () => {
+    mainWindow?.webContents.send(IPC.window.focusChanged, true);
+  });
+  mainWindow.on("blur", () => {
+    mainWindow?.webContents.send(IPC.window.focusChanged, false);
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

@@ -95,14 +95,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const onFocus = () => setWindowFocused(true);
-    const onBlur = () => setWindowFocused(false);
-    window.addEventListener("focus", onFocus);
-    window.addEventListener("blur", onBlur);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      window.removeEventListener("blur", onBlur);
-    };
+    return window.app.onWindowFocusChange(setWindowFocused);
   }, []);
 
   useEffect(() => {
