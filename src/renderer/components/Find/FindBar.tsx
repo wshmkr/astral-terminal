@@ -81,7 +81,7 @@ const BUTTON_ACTIVE_SX = { ...BUTTON_BASE_SX, color: "primary.main" } as const;
 
 const preventFocusSteal = (e: React.MouseEvent) => e.preventDefault();
 
-const COUNT_SX = {
+const COUNT_BASE_SX = {
   fontSize: "12px",
   color: "text.disabled",
   width: 64,
@@ -91,7 +91,16 @@ const COUNT_SX = {
   whiteSpace: "nowrap",
   textAlign: "left" as const,
   fontVariantNumeric: "tabular-nums",
+};
+
+const COUNT_OVERLAY_SX = {
+  ...COUNT_BASE_SX,
   "@container (max-width: 460px)": { display: "none" },
+};
+
+const COUNT_EMBEDDED_SX = {
+  ...COUNT_BASE_SX,
+  "@container (max-width: 260px)": { display: "none" },
 };
 
 function getCountLabel(
@@ -168,7 +177,11 @@ export function FindBar({
         placeholder="Find"
         sx={INPUT_SX}
       />
-      <Typography sx={COUNT_SX}>{countLabel}</Typography>
+      <Typography
+        sx={variant === "embedded" ? COUNT_EMBEDDED_SX : COUNT_OVERLAY_SX}
+      >
+        {countLabel}
+      </Typography>
       <Hint title="Match case" variant={variant}>
         <IconButton
           size="small"
