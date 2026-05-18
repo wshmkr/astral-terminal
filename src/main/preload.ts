@@ -141,7 +141,7 @@ contextBridge.exposeInMainWorld("app", {
   onSettingsActionApply: (callback: (action: SettingsAction) => void) =>
     subscribe<[SettingsAction]>(IPC.settings.actionApply, callback),
   publishSettingsState: (state: SettingsState) =>
-    ipcRenderer.send(IPC.settings.stateChanged, state),
+    ipcRenderer.send(IPC.settings.statePublish, state),
   invokeSettingsAgentHook: (params: {
     providerName: string;
     enabled: boolean;

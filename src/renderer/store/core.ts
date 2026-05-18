@@ -68,15 +68,11 @@ export function notify(): void {
   });
 }
 
-function subscribe(listener: () => void): () => void {
+export function subscribeWorkspaceStore(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
   };
-}
-
-export function subscribeWorkspaceStore(listener: () => void): () => void {
-  return subscribe(listener);
 }
 
 export function useWorkspaceStore(): AppState;
@@ -84,7 +80,7 @@ export function useWorkspaceStore<T>(selector: (s: AppState) => T): T;
 export function useWorkspaceStore<T>(
   selector?: (s: AppState) => T,
 ): T | AppState {
-  return useSyncExternalStore(subscribe, () =>
+  return useSyncExternalStore(subscribeWorkspaceStore, () =>
     selector ? selector(getState()) : getState(),
   );
 }

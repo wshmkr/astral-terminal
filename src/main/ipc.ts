@@ -265,7 +265,7 @@ export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
     hideSettingsWindow();
   });
 
-  ipcMain.on(IPC.settings.stateChanged, (_event, state: SettingsState) => {
+  ipcMain.on(IPC.settings.statePublish, (_event, state: SettingsState) => {
     setSettingsState(state);
   });
 

@@ -317,6 +317,7 @@ export const IPC = {
     open: "settings:open",
     close: "settings:close",
     stateChanged: "settings:state-changed",
+    statePublish: "settings:state-publish",
     action: "settings:action",
     actionApply: "settings:action-apply",
     invokeAgentHook: "settings:invoke-agent-hook",
