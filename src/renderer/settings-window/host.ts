@@ -1,6 +1,7 @@
 import type {
   AppState,
   SettingsAction,
+  SettingsActionMap,
   SettingsState,
 } from "../../shared/types";
 import {
@@ -26,36 +27,21 @@ function deriveSettingsState(s: AppState): SettingsState {
   };
 }
 
+const HANDLERS: SettingsActionMap = {
+  setAppTheme,
+  setTerminalTheme,
+  setAccentColor,
+  setFontFamily,
+  setFontSize,
+  setUiScale,
+  updateNotificationSettings,
+  updateUpdateSettings,
+  setAgentHookStatus: (name, status) =>
+    setAgentHookStatuses({ [name]: status }),
+};
+
 function applyAction(action: SettingsAction): void {
-  switch (action.kind) {
-    case "setAppTheme":
-      setAppTheme(action.id);
-      return;
-    case "setTerminalTheme":
-      setTerminalTheme(action.id);
-      return;
-    case "setAccentColor":
-      setAccentColor(action.id);
-      return;
-    case "setFontFamily":
-      setFontFamily(action.id);
-      return;
-    case "setFontSize":
-      setFontSize(action.n);
-      return;
-    case "setUiScale":
-      setUiScale(action.n);
-      return;
-    case "updateNotificationSettings":
-      updateNotificationSettings(action.patch);
-      return;
-    case "updateUpdateSettings":
-      updateUpdateSettings(action.patch);
-      return;
-    case "setAgentHookStatus":
-      setAgentHookStatuses({ [action.name]: action.status });
-      return;
-  }
+  (HANDLERS[action.kind] as (...args: unknown[]) => void)(...action.args);
 }
 
 export function startSettingsHost(): void {

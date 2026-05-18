@@ -227,19 +227,24 @@ export interface SettingsState {
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
 }
 
-export type SettingsAction =
-  | { kind: "setAppTheme"; id: AppThemeId }
-  | { kind: "setTerminalTheme"; id: TerminalThemeId }
-  | { kind: "setAccentColor"; id: AccentColorId }
-  | { kind: "setFontFamily"; id: FontFamilyId }
-  | { kind: "setFontSize"; n: number }
-  | { kind: "setUiScale"; n: number }
-  | {
-      kind: "updateNotificationSettings";
-      patch: Partial<NotificationSettings>;
-    }
-  | { kind: "updateUpdateSettings"; patch: Partial<UpdateSettings> }
-  | { kind: "setAgentHookStatus"; name: AgentName; status: AgentHookStatus };
+export type SettingsActionMap = {
+  setAppTheme: (id: AppThemeId) => void;
+  setTerminalTheme: (id: TerminalThemeId) => void;
+  setAccentColor: (id: AccentColorId) => void;
+  setFontFamily: (id: FontFamilyId) => void;
+  setFontSize: (n: number) => void;
+  setUiScale: (n: number) => void;
+  updateNotificationSettings: (patch: Partial<NotificationSettings>) => void;
+  updateUpdateSettings: (patch: Partial<UpdateSettings>) => void;
+  setAgentHookStatus: (name: AgentName, status: AgentHookStatus) => void;
+};
+
+export type SettingsAction = {
+  [K in keyof SettingsActionMap]: {
+    kind: K;
+    args: Parameters<SettingsActionMap[K]>;
+  };
+}[keyof SettingsActionMap];
 
 export interface AppConfig {
   platform: {

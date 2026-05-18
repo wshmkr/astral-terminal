@@ -1,16 +1,11 @@
 import { useSyncExternalStore } from "react";
 import type { AgentName } from "../../shared/agent-hooks";
 import type {
-  AccentColorId,
-  AppThemeId,
   ConfigureAgentHooksResult,
-  FontFamilyId,
-  NotificationSettings,
   SettingsAction,
+  SettingsActionMap,
   SettingsState,
-  TerminalThemeId,
   UninstallAgentHooksResult,
-  UpdateSettings,
 } from "../../shared/types";
 
 let state: SettingsState | null = null;
@@ -53,43 +48,30 @@ export function useSettingsStore<T>(selector: (s: SettingsState) => T): T {
   });
 }
 
-function dispatch(action: SettingsAction): void {
-  window.app.sendSettingsAction(action);
-}
-
-export function setAppTheme(id: AppThemeId): void {
-  dispatch({ kind: "setAppTheme", id });
-}
-
-export function setTerminalTheme(id: TerminalThemeId): void {
-  dispatch({ kind: "setTerminalTheme", id });
-}
-
-export function setAccentColor(id: AccentColorId): void {
-  dispatch({ kind: "setAccentColor", id });
-}
-
-export function setFontFamily(id: FontFamilyId): void {
-  dispatch({ kind: "setFontFamily", id });
-}
-
-export function setFontSize(n: number): void {
-  dispatch({ kind: "setFontSize", n });
-}
-
-export function setUiScale(n: number): void {
-  dispatch({ kind: "setUiScale", n });
-}
-
-export function updateNotificationSettings(
-  patch: Partial<NotificationSettings>,
+function dispatch<K extends SettingsAction["kind"]>(
+  kind: K,
+  ...args: Parameters<SettingsActionMap[K]>
 ): void {
-  dispatch({ kind: "updateNotificationSettings", patch });
+  window.app.sendSettingsAction({ kind, args } as SettingsAction);
 }
 
-export function updateUpdateSettings(patch: Partial<UpdateSettings>): void {
-  dispatch({ kind: "updateUpdateSettings", patch });
-}
+export const setAppTheme: SettingsActionMap["setAppTheme"] = (id) =>
+  dispatch("setAppTheme", id);
+export const setTerminalTheme: SettingsActionMap["setTerminalTheme"] = (id) =>
+  dispatch("setTerminalTheme", id);
+export const setAccentColor: SettingsActionMap["setAccentColor"] = (id) =>
+  dispatch("setAccentColor", id);
+export const setFontFamily: SettingsActionMap["setFontFamily"] = (id) =>
+  dispatch("setFontFamily", id);
+export const setFontSize: SettingsActionMap["setFontSize"] = (n) =>
+  dispatch("setFontSize", n);
+export const setUiScale: SettingsActionMap["setUiScale"] = (n) =>
+  dispatch("setUiScale", n);
+export const updateNotificationSettings: SettingsActionMap["updateNotificationSettings"] =
+  (patch) => dispatch("updateNotificationSettings", patch);
+export const updateUpdateSettings: SettingsActionMap["updateUpdateSettings"] = (
+  patch,
+) => dispatch("updateUpdateSettings", patch);
 
 export async function setAgentHook(
   providerName: AgentName,

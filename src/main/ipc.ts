@@ -261,7 +261,10 @@ export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
       })),
     );
     for (const { name, status } of statuses) {
-      dispatchToMainRenderer({ kind: "setAgentHookStatus", name, status });
+      dispatchToMainRenderer({
+        kind: "setAgentHookStatus",
+        args: [name, status],
+      });
     }
   });
 
@@ -277,7 +280,7 @@ export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
     const win = getMainWindow();
     if (!win) return;
     dispatchToMainRenderer(action);
-    if (action.kind === "setUiScale") applySettingsUiScale(win, action.n);
+    if (action.kind === "setUiScale") applySettingsUiScale(win, action.args[0]);
   });
 
   ipcMain.handle(
@@ -292,8 +295,7 @@ export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
       if (result.status !== "error") {
         dispatchToMainRenderer({
           kind: "setAgentHookStatus",
-          name: providerName as AgentName,
-          status: enabled ? "installed" : "missing",
+          args: [providerName as AgentName, enabled ? "installed" : "missing"],
         });
       }
       return result;
