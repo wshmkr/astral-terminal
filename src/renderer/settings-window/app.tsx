@@ -13,7 +13,7 @@ import { NotificationsSection } from "../components/Settings/NotificationsSectio
 import { UpdatesSection } from "../components/Settings/UpdatesSection";
 import { TitleBarButton } from "../components/ui/TitleBarButton";
 import { resolveAccentHex } from "../theme/accent-colors";
-import { buildTheme } from "../theme/index";
+import { buildTheme, resolveColorScheme } from "../theme/index";
 import {
   BODY_SX,
   CONTENT_SX,
@@ -52,14 +52,14 @@ export function SettingsApp() {
   const accentColorId = state?.appearance.accentColorId ?? "blue";
 
   const theme = useMemo(
-    () => buildTheme(resolveAccentHex(accentColorId)),
-    [accentColorId],
+    () => buildTheme(resolveAccentHex(accentColorId), appThemeId),
+    [accentColorId, appThemeId],
   );
 
   const [section, setSection] = useState<SectionId>("appearance");
 
   return (
-    <ThemeProvider theme={theme} defaultMode={appThemeId}>
+    <ThemeProvider theme={theme} defaultMode={resolveColorScheme(appThemeId)}>
       <CssBaseline />
       <Box sx={ROOT_SX}>
         <Box sx={HEADER_SX}>
