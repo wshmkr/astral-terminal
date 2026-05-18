@@ -72,6 +72,8 @@ export const updateNotificationSettings: SettingsActionMap["updateNotificationSe
 export const updateUpdateSettings: SettingsActionMap["updateUpdateSettings"] = (
   patch,
 ) => dispatch("updateUpdateSettings", patch);
+export const setWslDistro: SettingsActionMap["setWslDistro"] = (distro) =>
+  dispatch("setWslDistro", distro);
 
 export async function setAgentHook(
   providerName: AgentName,

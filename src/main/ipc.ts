@@ -46,6 +46,7 @@ import {
   setSettingsState,
 } from "./settings-window";
 import { focusMainWindow } from "./window";
+import { listWslDistros } from "./wsl-distros";
 
 interface PtyDeps {
   getPtyManager: () => Promise<PtyManager>;
@@ -69,6 +70,7 @@ export function registerPtyIpc({
         surfaceId: string;
         cols?: number;
         rows?: number;
+        wslDistro?: string | null;
       },
     ) => {
       if (!isValidSurfaceId(options.surfaceId)) {
@@ -80,6 +82,7 @@ export function registerPtyIpc({
         cwd: options.cwd,
         cols: options.cols,
         rows: options.rows,
+        wslDistro: options.wslDistro,
         config: getConfig(),
         callbacks: (ptyId) => ({
           onData: (data) => {
@@ -137,6 +140,8 @@ export function registerPtyIpc({
       m.kill(msg.ptyId);
     });
   });
+
+  ipcMain.handle(IPC.wsl.listDistros, () => listWslDistros());
 }
 
 interface WindowDeps {

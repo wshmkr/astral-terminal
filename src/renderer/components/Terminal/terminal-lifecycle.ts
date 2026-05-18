@@ -374,6 +374,7 @@ export class TerminalController implements SurfaceController {
       surfaceId: this.opts.surfaceId,
       cols: proposed?.cols,
       rows: proposed?.rows,
+      wslDistro: getState().terminalSettings.wslDistro,
     });
     if (this.disposed) {
       window.app.killPty(id);

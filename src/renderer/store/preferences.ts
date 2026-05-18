@@ -2,6 +2,7 @@ import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
   ConfigureAgentHooksResult,
   NotificationSettings,
+  TerminalSettings,
   UninstallAgentHooksResult,
   UpdateSettings,
 } from "../../shared/types";
@@ -18,6 +19,10 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 
 export const DEFAULT_UPDATE_SETTINGS: UpdateSettings = {
   autoEnabled: true,
+};
+
+export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
+  wslDistro: null,
 };
 
 export function clampSidebarWidth(
@@ -51,6 +56,16 @@ export function updateNotificationSettings(
   setState({
     ...s,
     notificationSettings: { ...current, ...settings },
+  });
+  commit();
+}
+
+export function setWslDistro(distro: string | null): void {
+  const s = getState();
+  if (s.terminalSettings.wslDistro === distro) return;
+  setState({
+    ...s,
+    terminalSettings: { ...s.terminalSettings, wslDistro: distro },
   });
   commit();
 }

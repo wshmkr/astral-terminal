@@ -9,8 +9,8 @@ import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
 import { APP_VERSION } from "../../shared/meta";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
+import { AstralSection } from "../components/Settings/AstralSection";
 import { NotificationsSection } from "../components/Settings/NotificationsSection";
-import { UpdatesSection } from "../components/Settings/UpdatesSection";
 import { TitleBarButton } from "../components/ui/TitleBarButton";
 import { resolveAccentHex } from "../theme/accent-colors";
 import { buildTheme } from "../theme/index";
@@ -27,12 +27,12 @@ import {
 } from "./app.styles";
 import { setSettingsStoreState, useSettingsState } from "./store";
 
-type SectionId = "appearance" | "notifications" | "updates";
+type SectionId = "appearance" | "notifications" | "astral";
 
 const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
-  { id: "updates", label: "Updates" },
+  { id: "astral", label: "Astral" },
 ];
 
 export function SettingsApp() {
@@ -104,7 +104,7 @@ export function SettingsApp() {
             <Box sx={CONTENT_SX}>
               {section === "appearance" && <AppearanceSection />}
               {section === "notifications" && <NotificationsSection />}
-              {section === "updates" && <UpdatesSection />}
+              {section === "astral" && <AstralSection />}
             </Box>
           </Box>
         )}

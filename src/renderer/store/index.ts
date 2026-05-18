@@ -37,6 +37,7 @@ export {
   setSidebarWidth,
   setWelcomeOpen,
   setWindowFocused,
+  setWslDistro,
   updateNotificationSettings,
   updateUpdateSettings,
 } from "./preferences";

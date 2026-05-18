@@ -56,7 +56,9 @@ contextBridge.exposeInMainWorld("app", {
     surfaceId: string;
     cols?: number;
     rows?: number;
+    wslDistro?: string | null;
   }) => ipcRenderer.invoke(IPC.pty.create, options),
+  listWslDistros: () => ipcRenderer.invoke(IPC.wsl.listDistros),
   writePty: (ptyId: string, data: string) =>
     ipcRenderer.send(IPC.pty.write, { ptyId, data }),
   resizePty: (ptyId: string, cols: number, rows: number) =>

@@ -13,6 +13,7 @@ import {
   setFontSize,
   setTerminalTheme,
   setUiScale,
+  setWslDistro,
   subscribeWorkspaceStore,
   updateNotificationSettings,
   updateUpdateSettings,
@@ -23,6 +24,7 @@ function deriveSettingsState(s: AppState): SettingsState {
     appearance: s.appearance,
     notificationSettings: s.notificationSettings,
     updateSettings: s.updateSettings,
+    terminalSettings: s.terminalSettings,
     agentHookStatuses: s.agentHookStatuses,
   };
 }
@@ -36,6 +38,7 @@ const HANDLERS: SettingsActionMap = {
   setUiScale,
   updateNotificationSettings,
   updateUpdateSettings,
+  setWslDistro,
   setAgentHookStatus: (name, status) =>
     setAgentHookStatuses({ [name]: status }),
 };
@@ -54,6 +57,7 @@ export function startSettingsHost(): void {
       next.appearance === last.appearance &&
       next.notificationSettings === last.notificationSettings &&
       next.updateSettings === last.updateSettings &&
+      next.terminalSettings === last.terminalSettings &&
       next.agentHookStatuses === last.agentHookStatuses
     ) {
       return;
