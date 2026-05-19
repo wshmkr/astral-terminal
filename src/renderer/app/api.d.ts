@@ -4,6 +4,8 @@ import type {
   AppMode,
   BrowserAnchorOffsets,
   BrowserCommand,
+  BrowserFindOptions,
+  BrowserFindResult,
   BrowserOpenNewTabPayload,
   BrowserState,
   ConfigureAgentHooksResult,
@@ -89,6 +91,15 @@ export interface AppAPI {
   ) => () => void;
   onBrowserOpenNewTab: (
     callback: (payload: BrowserOpenNewTabPayload) => void,
+  ) => () => void;
+  browserFindRequest: (surfaceId: string, opts: BrowserFindOptions) => void;
+  browserFindStop: (surfaceId: string) => void;
+  closeBrowserFindWindow: () => void;
+  onBrowserFindTargetChanged: (
+    callback: (payload: { surfaceId: string }) => void,
+  ) => () => void;
+  onBrowserFindResult: (
+    callback: (result: BrowserFindResult) => void,
   ) => () => void;
 
   openNotificationPanel: (anchor: ScreenRect) => void;

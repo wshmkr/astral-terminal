@@ -389,6 +389,11 @@ export const IPC = {
     loadURL: "browser:load-url",
     command: "browser:command",
     openNewTab: "browser:open-new-tab",
+    findRequest: "browser:find-request",
+    findStop: "browser:find-stop",
+    closeFindWindow: "browser:close-find-window",
+    findTargetChanged: "browser:find-target-changed",
+    findResultChanged: "browser:find-result-changed",
   },
   update: {
     getStatus: "update:get-status",
@@ -416,6 +421,19 @@ const BROWSER_COMMAND_SET: ReadonlySet<string> = new Set(BROWSER_COMMANDS);
 
 export function isBrowserCommand(x: unknown): x is BrowserCommand {
   return typeof x === "string" && BROWSER_COMMAND_SET.has(x);
+}
+
+export interface BrowserFindOptions {
+  text: string;
+  forward: boolean;
+  matchCase: boolean;
+  findNext: boolean;
+}
+
+export interface BrowserFindResult {
+  activeMatchOrdinal: number;
+  matches: number;
+  finalUpdate: boolean;
 }
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;

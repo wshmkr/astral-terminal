@@ -6,9 +6,12 @@ import {
 } from "electron";
 import {
   type BrowserAnchorOffsets,
+  type BrowserFindOptions,
+  type BrowserFindResult,
   type BrowserOpenNewTabPayload,
   type BrowserState,
   defaultBrowserState,
+  type ScreenRect,
   SETTINGS_FADE_EASING,
   SETTINGS_FADE_MS,
 } from "../shared/types";
@@ -75,6 +78,22 @@ function normalizeUrl(raw: string): string {
 export interface BrowserManagerCallbacks {
   onState: (surfaceId: string, state: BrowserState) => void;
   onOpenNewTab: (payload: BrowserOpenNewTabPayload) => void;
+  onFindRequested: (surfaceId: string, anchor: ScreenRect) => void;
+  onFindResult: (surfaceId: string, result: BrowserFindResult) => void;
+  onSurfaceHidden: (surfaceId: string) => void;
+  onSurfaceAnchorChanged: (surfaceId: string, anchor: ScreenRect) => void;
+}
+
+function offsetsEqual(
+  a: BrowserAnchorOffsets,
+  b: BrowserAnchorOffsets,
+): boolean {
+  return (
+    a.left === b.left &&
+    a.top === b.top &&
+    a.right === b.right &&
+    a.bottom === b.bottom
+  );
 }
 
 export class BrowserManager {
@@ -184,8 +203,18 @@ export class BrowserManager {
       });
     });
 
-    wc.on("before-input-event", (_event, input) => {
+    wc.on("before-input-event", (event, input) => {
       entry.shiftHeld = input.shift;
+      if (
+        input.type === "keyDown" &&
+        input.control &&
+        !input.shift &&
+        !input.alt &&
+        input.key.toLowerCase() === "f"
+      ) {
+        event.preventDefault();
+        this.callbacks.onFindRequested(surfaceId, this.computeAnchor(entry));
+      }
     });
     wc.on("blur", () => {
       entry.shiftHeld = false;
@@ -217,14 +246,22 @@ export class BrowserManager {
     wc.on("did-stop-loading", () =>
       update({ isLoading: false, ...readNavState(wc) }),
     );
-    wc.on("did-navigate", (_event, url) =>
-      update({ url, ...readNavState(wc) }),
-    );
+    wc.on("did-navigate", (_event, url) => {
+      update({ url, ...readNavState(wc) });
+      wc.stopFindInPage("clearSelection");
+    });
     wc.on("did-navigate-in-page", (_event, url, isMainFrame) => {
       if (!isMainFrame) return;
       update({ url, ...readNavState(wc) });
     });
     wc.on("page-title-updated", (_event, title) => update({ title }));
+    wc.on("found-in-page", (_event, result) => {
+      this.callbacks.onFindResult(surfaceId, {
+        activeMatchOrdinal: result.activeMatchOrdinal,
+        matches: result.matches,
+        finalUpdate: result.finalUpdate,
+      });
+    });
 
     wc.loadURL(normalizeUrl(url)).catch((err) => {
       console.error("[browser] initial loadURL failed:", err);
@@ -240,6 +277,7 @@ export class BrowserManager {
       this.window.contentView.removeChildView(entry.view);
       entry.view.webContents.close();
     } catch {}
+    this.callbacks.onSurfaceHidden(surfaceId);
   }
 
   destroyAll(): void {
@@ -249,29 +287,26 @@ export class BrowserManager {
   setAnchorOffsets(surfaceId: string, offsets: BrowserAnchorOffsets): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
+    if (entry.offsets && offsetsEqual(entry.offsets, offsets)) return;
     entry.offsets = offsets;
     this.applyBounds(entry);
+    this.callbacks.onSurfaceAnchorChanged(surfaceId, this.computeAnchor(entry));
   }
 
   private applyBounds(entry: Entry): void {
     if (!entry.offsets) return;
-    const { width, height } = this.window.getContentBounds();
-    const { left, top, right, bottom } = entry.offsets;
-    entry.view.setBounds({
-      x: Math.round(left),
-      y: Math.round(top),
-      width: Math.max(0, Math.round(width - left - right)),
-      height: Math.max(0, Math.round(height - top - bottom)),
-    });
+    entry.view.setBounds(this.contentRect(entry.offsets));
   }
 
   setVisible(surfaceId: string, visible: boolean): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
     const wasVisible = entry.visible;
+    if (wasVisible === visible) return;
     entry.visible = visible;
-    if (visible && !wasVisible) this.applyBounds(entry);
+    if (visible) this.applyBounds(entry);
     entry.view.setVisible(visible);
+    if (!visible) this.callbacks.onSurfaceHidden(surfaceId);
   }
 
   setDimmed(dimmed: boolean): void {
@@ -320,5 +355,44 @@ export class BrowserManager {
 
   focus(surfaceId: string): void {
     this.entries.get(surfaceId)?.view.webContents.focus();
+  }
+
+  findInPage(surfaceId: string, opts: BrowserFindOptions): void {
+    const wc = this.entries.get(surfaceId)?.view.webContents;
+    if (!wc) return;
+    if (!opts.text) {
+      wc.stopFindInPage("clearSelection");
+      return;
+    }
+    wc.findInPage(opts.text, {
+      forward: opts.forward,
+      matchCase: opts.matchCase,
+      findNext: opts.findNext,
+    });
+  }
+
+  stopFindInPage(surfaceId: string): void {
+    this.entries
+      .get(surfaceId)
+      ?.view.webContents.stopFindInPage("clearSelection");
+  }
+
+  private computeAnchor(entry: Entry): ScreenRect {
+    if (!entry.offsets) {
+      const { width, height } = this.window.getContentBounds();
+      return { x: 0, y: 0, width, height };
+    }
+    return this.contentRect(entry.offsets);
+  }
+
+  private contentRect(offsets: BrowserAnchorOffsets): ScreenRect {
+    const { width, height } = this.window.getContentBounds();
+    const { left, top, right, bottom } = offsets;
+    return {
+      x: Math.round(left),
+      y: Math.round(top),
+      width: Math.max(0, Math.round(width - left - right)),
+      height: Math.max(0, Math.round(height - top - bottom)),
+    };
   }
 }

@@ -11,6 +11,7 @@ import {
   type AppConfig,
   type BrowserAnchorOffsets,
   type BrowserCommand,
+  type BrowserFindOptions,
   IPC,
   isBrowserCommand,
   type NotificationFirePayload,
@@ -35,6 +36,7 @@ import {
   getUpdateStatus,
   quitAndInstall,
 } from "./auto-update";
+import { hideBrowserFindWindow } from "./browser-find-window";
 import type { BrowserManager } from "./browser-manager";
 import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
 import {
@@ -406,4 +408,20 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
       browserManager[msg.cmd](ensureSurfaceId(msg.surfaceId));
     },
   );
+
+  ipcMain.on(
+    IPC.browser.findRequest,
+    (_event, msg: { surfaceId: string; opts: BrowserFindOptions }) => {
+      browserManager.findInPage(ensureSurfaceId(msg.surfaceId), msg.opts);
+    },
+  );
+
+  ipcMain.on(IPC.browser.findStop, (_event, msg: { surfaceId: string }) => {
+    browserManager.stopFindInPage(ensureSurfaceId(msg.surfaceId));
+  });
+
+  ipcMain.on(IPC.browser.closeFindWindow, () => {
+    const previousSurfaceId = hideBrowserFindWindow();
+    if (previousSurfaceId) browserManager.focus(previousSurfaceId);
+  });
 }
