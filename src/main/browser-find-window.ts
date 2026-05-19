@@ -120,7 +120,11 @@ export function openBrowserFindWindow(
   anchor: ScreenRect,
   surfaceId: string,
 ): void {
-  findWindow ??= createFindWindow(parent);
+  if (!findWindow || findWindow.isDestroyed()) {
+    throw new Error(
+      "openBrowserFindWindow called before initBrowserFindWindow",
+    );
+  }
   currentParent = parent;
   currentAnchor = anchor;
   currentSurfaceId = surfaceId;
