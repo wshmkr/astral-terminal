@@ -11,7 +11,6 @@ import { patchLocalUpdateStatus } from "./settings-window/store";
 import {
   bootStore,
   getState,
-  setUpdateStatus,
   setWelcomeOpen,
   useWorkspaceStore,
 } from "./store";
@@ -52,8 +51,6 @@ const DEV_UPDATE_STATUS: Record<UpdateState, () => UpdateStatus> = {
 
 function installMainDevHelpers() {
   window.showWelcome = () => setWelcomeOpen(true);
-  window.setUpdateState = (state) =>
-    setUpdateStatus(DEV_UPDATE_STATUS[state]());
 }
 
 function installSettingsDevHelpers() {

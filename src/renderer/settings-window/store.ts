@@ -34,9 +34,7 @@ export function setSettingsStoreState(next: SettingsState): void {
   notify();
 }
 
-// DEV-only: bypasses the main→settings sync so window.setUpdateState(...) can
-// drive the settings UI without round-tripping through main. Do not call from
-// production code.
+// DEV-only escape hatch for window.setUpdateState(...)
 export function patchLocalUpdateStatus(updateStatus: UpdateStatus): void {
   if (!state) return;
   state = { ...state, updateStatus };
