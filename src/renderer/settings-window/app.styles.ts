@@ -70,20 +70,20 @@ export const VERSION_SX = {
 
 export const VERSION_TEXT_SX = {
   fontSize: "10px",
+  cursor: "pointer",
 } as const;
 
-export const UPDATE_DOT_SX = {
-  width: 6,
-  height: 6,
-  borderRadius: "50%",
+export const UPDATE_BADGE_SX = {
   bgcolor: "primary.main",
-  flexShrink: 0,
-} as const;
-
-export const UPDATE_READY_TEXT_SX = {
-  color: "primary.main",
-  fontSize: "10px",
-  fontWeight: 500,
+  color: "primary.contrastText",
+  fontSize: "9px",
+  fontWeight: 600,
+  px: 0.625,
+  py: 0.125,
+  borderRadius: 0.5,
+  lineHeight: 1.4,
+  cursor: "pointer",
+  "&:hover": { bgcolor: "primary.dark" },
 } as const;
 
 export const NAV_ITEM_SX = {

@@ -1,11 +1,15 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import Link from "@mui/material/Link";
 import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { VscError, VscRefresh } from "react-icons/vsc";
+import { APP_GITHUB_SLUG } from "../../../shared/meta";
 import type { UpdateStatus, WslDistro } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
 import {
@@ -42,13 +46,13 @@ const UNSUPPORTED_DESCRIPTION = "These settings only apply on Windows.";
 
 const STATUS_ROW_SX = {
   display: "flex",
-  alignItems: "center",
+  flexDirection: "column",
+  alignItems: "flex-start",
   gap: 1,
   mt: 1,
 } as const;
 
 const STATUS_STACK_SX = {
-  flex: 1,
   minWidth: 0,
   display: "flex",
   flexDirection: "column",
@@ -58,20 +62,51 @@ const STATUS_STACK_SX = {
 const STATUS_TEXT_SX = { fontWeight: 500 } as const;
 const STATUS_SUB_SX = { color: "text.secondary", fontSize: 12 } as const;
 
-function statusLabel(status: UpdateStatus): string {
+const STATUS_LABEL_SX = {
+  display: "flex",
+  alignItems: "center",
+  gap: 0.5,
+} as const;
+
+const STATUS_ERROR_ICON_SX = { color: "error.main", display: "inline-flex" };
+
+const RELEASES_URL = `https://github.com/${APP_GITHUB_SLUG}/releases`;
+
+function versionLink(version: string): ReactNode {
+  return (
+    <Link
+      href={RELEASES_URL}
+      underline="hover"
+      onClick={(e) => {
+        e.preventDefault();
+        window.app.openExternal(RELEASES_URL);
+      }}
+    >
+      {version}
+    </Link>
+  );
+}
+
+function statusLabel(status: UpdateStatus): ReactNode {
   switch (status.state) {
     case "idle":
       return "Not checked yet";
     case "checking":
       return "Checking for updates…";
     case "not-available":
-      return "Astral is up to date";
+      return "Astral Terminal is up to date";
     case "downloading":
-      return "Downloading update…";
+      return status.version ? (
+        <>Downloading update: {versionLink(status.version)}</>
+      ) : (
+        "Downloading update…"
+      );
     case "downloaded":
-      return status.downloadedVersion
-        ? `Update ready: ${status.downloadedVersion}`
-        : "Update ready";
+      return status.version ? (
+        <>Update ready: {versionLink(status.version)}</>
+      ) : (
+        "Update ready"
+      );
     case "error":
       return "Couldn't check for updates";
   }
@@ -99,40 +134,51 @@ function ActionButton({ status }: { status: UpdateStatus }) {
       size="small"
       variant="outlined"
       disabled={busy}
+      startIcon={
+        busy ? <CircularProgress size={12} /> : <VscRefresh size={14} />
+      }
       onClick={() => {
         window.app.requestUpdateCheck().catch((err) => {
           console.error("Update check failed:", err);
         });
       }}
     >
-      {busy ? "Checking…" : "Check now"}
+      {busy ? "Checking for updates" : "Check for updates"}
     </Button>
   );
 }
 
 function UpdateStatusRow({ status }: { status: UpdateStatus }) {
-  const subLine =
+  const subLine = `Last checked: ${
     status.lastCheckedAt !== null
-      ? `Last checked: ${formatRelativeTime(status.lastCheckedAt)}`
-      : null;
-  const label = (
-    <Typography variant="body2" sx={STATUS_TEXT_SX}>
-      {statusLabel(status)}
-    </Typography>
-  );
+      ? formatRelativeTime(status.lastCheckedAt)
+      : "never"
+  }`;
+  const isError = status.state === "error";
+  const errorIcon =
+    isError && status.errorMessage ? (
+      <Tooltip title={status.errorMessage} placement="top" arrow>
+        <Box component="span" sx={STATUS_ERROR_ICON_SX}>
+          <VscError size={18} />
+        </Box>
+      </Tooltip>
+    ) : isError ? (
+      <Box component="span" sx={STATUS_ERROR_ICON_SX}>
+        <VscError size={18} />
+      </Box>
+    ) : null;
   return (
     <Box sx={STATUS_ROW_SX}>
-      <Box sx={STATUS_STACK_SX}>
-        {status.state === "error" && status.errorMessage ? (
-          <Tooltip title={status.errorMessage} placement="top">
-            {label}
-          </Tooltip>
-        ) : (
-          label
-        )}
-        {subLine && <Typography sx={STATUS_SUB_SX}>{subLine}</Typography>}
-      </Box>
       <ActionButton status={status} />
+      <Box sx={STATUS_STACK_SX}>
+        <Box sx={STATUS_LABEL_SX}>
+          <Typography variant="body2" sx={STATUS_TEXT_SX}>
+            {statusLabel(status)}
+          </Typography>
+          {errorIcon}
+        </Box>
+        <Typography sx={STATUS_SUB_SX}>{subLine}</Typography>
+      </Box>
     </Box>
   );
 }

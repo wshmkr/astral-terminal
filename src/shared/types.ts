@@ -183,7 +183,7 @@ export interface UpdateStatus {
   state: UpdateState;
   lastCheckedAt: number | null;
   errorMessage?: string;
-  downloadedVersion?: string;
+  version?: string;
 }
 
 export type AppThemeId = "dark" | "light" | "black";

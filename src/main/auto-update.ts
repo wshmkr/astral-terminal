@@ -55,6 +55,11 @@ export function initAutoUpdater(
       state: "downloading",
       lastCheckedAt: currentStatus.lastCheckedAt,
     });
+    fetchLatestVersion().then((version) => {
+      if (currentStatus.state !== "downloading") return;
+      if (!version) return;
+      setStatus({ ...currentStatus, version });
+    });
   });
 
   autoUpdater.on("update-not-available", () => {
@@ -70,7 +75,7 @@ export function initAutoUpdater(
       setStatus({
         state: "downloaded",
         lastCheckedAt: Date.now(),
-        downloadedVersion: releaseName || undefined,
+        version: releaseName?.replace(/^v/, "") || currentStatus.version,
       });
     },
   );
@@ -107,4 +112,19 @@ export function quitAndInstall(): void {
   if (!supported) return;
   if (currentStatus.state !== "downloaded") return;
   autoUpdater.quitAndInstall();
+}
+
+async function fetchLatestVersion(): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${APP_GITHUB_SLUG}/releases/latest`,
+      { headers: { Accept: "application/vnd.github+json" } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { tag_name?: string };
+    return data.tag_name ?? null;
+  } catch (err) {
+    console.error("Failed to fetch latest release version:", err);
+    return null;
+  }
 }

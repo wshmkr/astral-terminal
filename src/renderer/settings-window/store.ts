@@ -6,6 +6,7 @@ import type {
   SettingsActionMap,
   SettingsState,
   UninstallAgentHooksResult,
+  UpdateStatus,
 } from "../../shared/types";
 
 let state: SettingsState | null = null;
@@ -30,6 +31,12 @@ function getStateOrNull(): SettingsState | null {
 
 export function setSettingsStoreState(next: SettingsState): void {
   state = next;
+  notify();
+}
+
+export function patchLocalUpdateStatus(updateStatus: UpdateStatus): void {
+  if (!state) return;
+  state = { ...state, updateStatus };
   notify();
 }
 

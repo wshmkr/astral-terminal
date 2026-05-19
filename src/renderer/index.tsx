@@ -2,13 +2,16 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { useMemo } from "react";
 import { createRoot } from "react-dom/client";
+import type { UpdateState, UpdateStatus } from "../shared/types";
 import { App } from "./App";
 import { NotificationsApp } from "./notifications-app";
 import { SettingsApp } from "./settings-window/app";
 import { startSettingsHost } from "./settings-window/host";
+import { patchLocalUpdateStatus } from "./settings-window/store";
 import {
   bootStore,
   getState,
+  setUpdateStatus,
   setWelcomeOpen,
   useWorkspaceStore,
 } from "./store";
@@ -20,11 +23,43 @@ import "./components/Terminal/terminal.css";
 declare global {
   interface Window {
     showWelcome?: () => void;
+    setUpdateState?: (state: UpdateState) => void;
   }
 }
 
-if (import.meta.env.DEV) {
+const DEV_UPDATE_STATUS: Record<UpdateState, () => UpdateStatus> = {
+  idle: () => ({ state: "idle", lastCheckedAt: null }),
+  checking: () => ({ state: "checking", lastCheckedAt: Date.now() }),
+  "not-available": () => ({
+    state: "not-available",
+    lastCheckedAt: Date.now(),
+  }),
+  downloading: () => ({
+    state: "downloading",
+    lastCheckedAt: Date.now(),
+    version: "v0.0.0-dev",
+  }),
+  downloaded: () => ({
+    state: "downloaded",
+    lastCheckedAt: Date.now(),
+    version: "v0.0.0-dev",
+  }),
+  error: () => ({
+    state: "error",
+    lastCheckedAt: Date.now(),
+    errorMessage: "Simulated dev error",
+  }),
+};
+
+function installMainDevHelpers() {
   window.showWelcome = () => setWelcomeOpen(true);
+  window.setUpdateState = (state) =>
+    setUpdateStatus(DEV_UPDATE_STATUS[state]());
+}
+
+function installSettingsDevHelpers() {
+  window.setUpdateState = (state) =>
+    patchLocalUpdateStatus(DEV_UPDATE_STATUS[state]());
 }
 
 function ThemedApp() {
@@ -49,6 +84,7 @@ function mountNotificationsApp(rootEl: HTMLElement) {
 
 function mountSettingsApp(rootEl: HTMLElement) {
   rootEl.style.height = "100vh";
+  if (import.meta.env.DEV) installSettingsDevHelpers();
   createRoot(rootEl).render(<SettingsApp />);
 }
 
@@ -57,6 +93,7 @@ function mountMainApp(rootEl: HTMLElement) {
     .then(() => {
       window.app.setUiZoom(getState().appearance.uiScale);
       startSettingsHost();
+      if (import.meta.env.DEV) installMainDevHelpers();
       createRoot(rootEl).render(<ThemedApp />);
     })
     .catch((err) => {

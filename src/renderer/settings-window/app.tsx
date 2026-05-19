@@ -8,7 +8,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
-import { APP_VERSION } from "../../shared/meta";
+import { APP_GITHUB_SLUG, APP_VERSION } from "../../shared/meta";
 import { SETTINGS_FADE_EASING, SETTINGS_FADE_MS } from "../../shared/types";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
 import { AstralSection } from "../components/Settings/AstralSection";
@@ -25,8 +25,7 @@ import {
   NAV_LIST_SX,
   NAV_SX,
   ROOT_SX,
-  UPDATE_DOT_SX,
-  UPDATE_READY_TEXT_SX,
+  UPDATE_BADGE_SX,
   VERSION_SX,
   VERSION_TEXT_SX,
 } from "./app.styles";
@@ -115,20 +114,26 @@ export function SettingsApp() {
                 ))}
               </List>
               <Box sx={VERSION_SX}>
-                {state.updateStatus.state === "downloaded" && (
-                  <Box sx={UPDATE_DOT_SX} />
-                )}
                 <Typography
                   variant="caption"
                   color="text.disabled"
                   sx={VERSION_TEXT_SX}
+                  onClick={() =>
+                    window.app.openExternal(
+                      `https://github.com/${APP_GITHUB_SLUG}/releases/tag/v${APP_VERSION}`,
+                    )
+                  }
                 >
                   v{APP_VERSION}
                 </Typography>
                 {state.updateStatus.state === "downloaded" && (
-                  <Typography sx={UPDATE_READY_TEXT_SX}>
+                  <Box
+                    component="span"
+                    sx={UPDATE_BADGE_SX}
+                    onClick={() => setSection("astral")}
+                  >
                     update ready
-                  </Typography>
+                  </Box>
                 )}
               </Box>
             </Box>

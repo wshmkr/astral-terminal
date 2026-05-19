@@ -13,7 +13,7 @@ export function setUpdateStatus(status: UpdateStatus): void {
     current.state === status.state &&
     current.lastCheckedAt === status.lastCheckedAt &&
     current.errorMessage === status.errorMessage &&
-    current.downloadedVersion === status.downloadedVersion
+    current.version === status.version
   ) {
     return;
   }
