@@ -16,8 +16,10 @@ import {
 } from "../../../shared/types";
 import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
 import {
+  clearBrowserFavicon,
   closeSurface,
   renameSurface,
+  setBrowserFavicon,
   setBrowserSurfaceUrl,
   useWorkspaceStore,
 } from "../../store";
@@ -63,6 +65,11 @@ export function BrowserPane({
   const navButtonStyle = useMemo(() => navButtonSx(fg), [fg]);
   const urlInputStyle = useMemo(() => urlInputSx(fg), [fg]);
 
+  useEffect(() => {
+    const id = surface.id;
+    return () => clearBrowserFavicon(id);
+  }, [surface.id]);
+
   const controllerRef = useSurfaceLifecycle<BrowserController>({
     paneId,
     isVisible,
@@ -77,12 +84,13 @@ export function BrowserPane({
         anchor,
         onState: (next) => {
           setState(next);
+          setBrowserFavicon(surfaceId, next.favicon);
           if (next.title) {
             renameSurface(
               workspaceId,
               paneIdRef.current,
               surfaceId,
-              `🌐︎ ${next.title}`,
+              next.title,
             );
           }
           if (next.url && next.url !== "about:blank") {

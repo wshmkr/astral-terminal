@@ -57,7 +57,7 @@ export function surfaceSidebarLabel(s: Surface): string {
     case "terminal":
       return stripUserHostPrefix(s.name);
     case "browser":
-      return s.name;
+      return `🌐︎ ${s.name}`;
   }
 }
 
@@ -67,6 +67,7 @@ export interface BrowserState {
   isLoading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
+  favicon: string | null;
 }
 
 export interface BrowserAnchorOffsets {
@@ -85,6 +86,7 @@ export function defaultBrowserState(url: string): BrowserState {
     isLoading: false,
     canGoBack: false,
     canGoForward: false,
+    favicon: null,
   };
 }
 
