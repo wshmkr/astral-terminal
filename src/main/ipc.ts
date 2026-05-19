@@ -31,6 +31,11 @@ import {
   getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
+import {
+  checkForUpdatesNow,
+  getUpdateStatus,
+  quitAndInstall,
+} from "./auto-update";
 import { hideBrowserFindWindow } from "./browser-find-window";
 import type { BrowserManager } from "./browser-manager";
 import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
@@ -250,6 +255,16 @@ export function registerSettingsIpc(): void {
       applyTerminalThemeNative(settings.appearance?.terminalThemeId);
     },
   );
+}
+
+export function registerUpdateIpc(): void {
+  ipcMain.handle(IPC.update.getStatus, () => getUpdateStatus());
+  ipcMain.handle(IPC.update.check, () => {
+    checkForUpdatesNow();
+  });
+  ipcMain.handle(IPC.update.install, () => {
+    quitAndInstall();
+  });
 }
 
 export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {

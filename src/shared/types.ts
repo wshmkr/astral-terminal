@@ -171,6 +171,21 @@ export interface WslDistro {
   version: number | null;
 }
 
+export type UpdateState =
+  | "idle"
+  | "checking"
+  | "not-available"
+  | "downloading"
+  | "downloaded"
+  | "error";
+
+export interface UpdateStatus {
+  state: UpdateState;
+  lastCheckedAt: number | null;
+  errorMessage?: string;
+  version?: string;
+}
+
 export type AppThemeId = "dark" | "light" | "black";
 export type TerminalThemeId =
   | "one-half-dark"
@@ -246,6 +261,7 @@ export interface SettingsState {
   updateSettings: UpdateSettings;
   terminalSettings: TerminalSettings;
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
+  updateStatus: UpdateStatus;
 }
 
 export type SettingsActionMap = {
@@ -307,6 +323,7 @@ export interface AppState {
 
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
+  updateStatus: UpdateStatus;
   windowFocused: boolean;
   welcomeOpen: boolean;
 }
@@ -377,6 +394,12 @@ export const IPC = {
     closeFindWindow: "browser:close-find-window",
     findTargetChanged: "browser:find-target-changed",
     findResultChanged: "browser:find-result-changed",
+  },
+  update: {
+    getStatus: "update:get-status",
+    check: "update:check",
+    install: "update:install",
+    status: "update:status",
   },
 } as const;
 

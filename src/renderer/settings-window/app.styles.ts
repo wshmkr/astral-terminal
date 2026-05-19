@@ -63,7 +63,29 @@ export const NAV_LIST_SX = {
 export const VERSION_SX = {
   px: 2,
   py: 1,
+  display: "flex",
+  alignItems: "center",
+  gap: 0.75,
+} as const;
+
+export const VERSION_TEXT_SX = {
   fontSize: "10px",
+  cursor: "pointer",
+} as const;
+
+export const UPDATE_BADGE_SX = {
+  height: "auto",
+  bgcolor: "primary.main",
+  color: "primary.contrastText",
+  borderRadius: 0.5,
+  "& .MuiChip-label": {
+    px: 0.625,
+    py: 0.125,
+    fontSize: "9px",
+    fontWeight: 600,
+    lineHeight: 1.4,
+  },
+  "&.MuiChip-clickable:hover": { bgcolor: "primary.dark" },
 } as const;
 
 export const NAV_ITEM_SX = {
