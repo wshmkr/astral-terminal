@@ -3,6 +3,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { BrowserFindApp } from "./browser-find-app";
 import { NotificationsApp } from "./notifications-app";
 import { SettingsApp } from "./settings-window/app";
 import { startSettingsHost } from "./settings-window/host";
@@ -52,6 +53,11 @@ function mountSettingsApp(rootEl: HTMLElement) {
   createRoot(rootEl).render(<SettingsApp />);
 }
 
+function mountBrowserFindApp(rootEl: HTMLElement) {
+  rootEl.style.height = "100vh";
+  createRoot(rootEl).render(<BrowserFindApp />);
+}
+
 function mountMainApp(rootEl: HTMLElement) {
   bootStore()
     .then(() => {
@@ -72,6 +78,8 @@ if (window.location.hash === "#notifications") {
   mountNotificationsApp(rootEl);
 } else if (window.location.hash === "#settings") {
   mountSettingsApp(rootEl);
+} else if (window.location.hash === "#browser-find") {
+  mountBrowserFindApp(rootEl);
 } else {
   mountMainApp(rootEl);
 }
