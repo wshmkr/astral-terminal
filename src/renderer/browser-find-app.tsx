@@ -65,10 +65,10 @@ class BrowserFindController implements FindController {
   }
 
   private emit(result: BrowserFindResult): void {
-    if (!result.finalUpdate) return;
     const matches: FindMatches = {
       resultIndex: Math.max(0, result.activeMatchOrdinal - 1),
       resultCount: result.matches,
+      pending: !result.finalUpdate,
     };
     this.listeners.forEach((cb) => {
       cb(matches);
@@ -134,12 +134,19 @@ export function BrowserFindApp() {
   }, [surfaceId]);
 
   const theme = useMemo(
-    () => buildTheme(resolveAccentHex(appearance.accentColorId), appearance.appThemeId),
+    () =>
+      buildTheme(
+        resolveAccentHex(appearance.accentColorId),
+        appearance.appThemeId,
+      ),
     [appearance.accentColorId, appearance.appThemeId],
   );
 
   return (
-    <ThemeProvider theme={theme} defaultMode={resolveColorScheme(appearance.appThemeId)}>
+    <ThemeProvider
+      theme={theme}
+      defaultMode={resolveColorScheme(appearance.appThemeId)}
+    >
       <CssBaseline />
       <div style={ROOT_STYLE}>
         {controller && surfaceId && (

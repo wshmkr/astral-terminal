@@ -15,6 +15,7 @@ import { CloseButton } from "../ui/CloseButton";
 export interface FindMatches {
   resultIndex: number;
   resultCount: number;
+  pending?: boolean;
 }
 
 export interface FindController {
@@ -108,7 +109,8 @@ function getCountLabel(
   matches: FindMatches | undefined,
 ): string {
   if (!query) return "";
-  if (!matches || matches.resultCount === 0) return "No results";
+  if (!matches) return "";
+  if (matches.resultCount === 0) return matches.pending ? "" : "No results";
   return `${matches.resultIndex + 1} / ${matches.resultCount}`;
 }
 
