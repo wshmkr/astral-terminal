@@ -100,7 +100,14 @@ function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
     }, 0);
   });
 
+  const onParentFocus = () => {
+    if (win.isDestroyed() || !win.isVisible()) return;
+    hideSettingsWindow();
+  };
+  parent.on("focus", onParentFocus);
+
   win.on("closed", () => {
+    parent.off("focus", onParentFocus);
     if (settingsWindow === win) {
       settingsWindow = null;
       settingsReady = false;
