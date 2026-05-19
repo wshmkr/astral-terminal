@@ -1,7 +1,7 @@
 import type { BrowserWindow } from "electron";
 import {
   IPC,
-  type NotificationPanelItem,
+  type NotificationPanelState,
   type ScreenRect,
 } from "../shared/types";
 import { createChildPanelWindow } from "./child-panel-window";
@@ -11,15 +11,19 @@ const PANEL_HEIGHT = 400;
 
 let notifWindow: BrowserWindow | null = null;
 let notifReady = false;
-let pendingItems: NotificationPanelItem[] = [];
+let pendingState: NotificationPanelState | null = null;
 let pendingShow: { parent: BrowserWindow; anchor: ScreenRect } | null = null;
 
-function pushItems(): void {
-  if (!notifReady || !notifWindow || notifWindow.isDestroyed()) return;
-  notifWindow.webContents.send(
-    IPC.notification.panelItemsChanged,
-    pendingItems,
-  );
+function pushState(): void {
+  if (
+    !notifReady ||
+    !notifWindow ||
+    notifWindow.isDestroyed() ||
+    !notifWindow.isVisible() ||
+    !pendingState
+  )
+    return;
+  notifWindow.webContents.send(IPC.notification.stateChanged, pendingState);
 }
 
 function placeAndShow(parent: BrowserWindow, anchor: ScreenRect): void {
@@ -34,6 +38,7 @@ function placeAndShow(parent: BrowserWindow, anchor: ScreenRect): void {
   notifWindow.setBounds({ x, y, width, height });
   notifWindow.show();
   notifWindow.focus();
+  pushState();
 }
 
 function createNotificationWindow(parent: BrowserWindow): BrowserWindow {
@@ -46,7 +51,6 @@ function createNotificationWindow(parent: BrowserWindow): BrowserWindow {
 
   win.once("ready-to-show", () => {
     notifReady = true;
-    pushItems();
     if (pendingShow) {
       placeAndShow(pendingShow.parent, pendingShow.anchor);
       pendingShow = null;
@@ -85,11 +89,9 @@ export function openNotificationPanel(
   placeAndShow(parent, anchor);
 }
 
-export function setNotificationPanelItems(
-  items: NotificationPanelItem[],
-): void {
-  pendingItems = items;
-  pushItems();
+export function setNotificationPanelState(state: NotificationPanelState): void {
+  pendingState = state;
+  pushState();
 }
 
 export function hideNotificationPanel(): void {
@@ -105,6 +107,6 @@ export function destroyNotificationWindow(): void {
   }
   notifWindow = null;
   notifReady = false;
-  pendingItems = [];
+  pendingState = null;
   pendingShow = null;
 }

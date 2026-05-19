@@ -3,7 +3,8 @@ import { ThemeProvider } from "@mui/material/styles";
 import { useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
-import { NotificationsApp } from "./notifications-app";
+import { NotificationsApp } from "./notifications-window/app";
+import { startNotificationsHost } from "./notifications-window/host";
 import { SettingsApp } from "./settings-window/app";
 import { startSettingsHost } from "./settings-window/host";
 import {
@@ -55,6 +56,7 @@ function mountMainApp(rootEl: HTMLElement) {
   bootStore()
     .then(() => {
       window.app.setUiZoom(getState().appearance.uiScale);
+      startNotificationsHost();
       startSettingsHost();
       createRoot(rootEl).render(<ThemedApp />);
     })
