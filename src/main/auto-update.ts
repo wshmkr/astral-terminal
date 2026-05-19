@@ -46,7 +46,7 @@ export function initAutoUpdater(
   autoUpdater.on("checking-for-update", () => {
     setStatus({
       state: "checking",
-      lastCheckedAt: currentStatus.lastCheckedAt,
+      lastCheckedAt: Date.now(),
     });
   });
 
@@ -55,17 +55,12 @@ export function initAutoUpdater(
       state: "downloading",
       lastCheckedAt: currentStatus.lastCheckedAt,
     });
-    fetchLatestVersion().then((version) => {
-      if (currentStatus.state !== "downloading") return;
-      if (!version) return;
-      setStatus({ ...currentStatus, version });
-    });
   });
 
   autoUpdater.on("update-not-available", () => {
     setStatus({
       state: "not-available",
-      lastCheckedAt: Date.now(),
+      lastCheckedAt: currentStatus.lastCheckedAt,
     });
   });
 
@@ -74,8 +69,8 @@ export function initAutoUpdater(
     (_event, _releaseNotes, releaseName: string) => {
       setStatus({
         state: "downloaded",
-        lastCheckedAt: Date.now(),
-        version: releaseName?.replace(/^v/, "") || currentStatus.version,
+        lastCheckedAt: currentStatus.lastCheckedAt,
+        version: releaseName.replace(/^v/, "") || undefined,
       });
     },
   );
@@ -84,7 +79,7 @@ export function initAutoUpdater(
     console.error("auto-updater error:", err);
     setStatus({
       state: "error",
-      lastCheckedAt: Date.now(),
+      lastCheckedAt: currentStatus.lastCheckedAt,
       errorMessage: err.message,
     });
   });
@@ -112,19 +107,4 @@ export function quitAndInstall(): void {
   if (!supported) return;
   if (currentStatus.state !== "downloaded") return;
   autoUpdater.quitAndInstall();
-}
-
-async function fetchLatestVersion(): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://api.github.com/repos/${APP_GITHUB_SLUG}/releases/latest`,
-      { headers: { Accept: "application/vnd.github+json" } },
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { tag_name?: string };
-    return data.tag_name ?? null;
-  } catch (err) {
-    console.error("Failed to fetch latest release version:", err);
-    return null;
-  }
 }

@@ -8,15 +8,7 @@ export const INITIAL_UPDATE_STATUS: UpdateStatus = {
 
 export function setUpdateStatus(status: UpdateStatus): void {
   const s = getState();
-  const current = s.updateStatus;
-  if (
-    current.state === status.state &&
-    current.lastCheckedAt === status.lastCheckedAt &&
-    current.errorMessage === status.errorMessage &&
-    current.version === status.version
-  ) {
-    return;
-  }
+  if (s.updateStatus === status) return;
   setState({ ...s, updateStatus: status });
   notify();
 }

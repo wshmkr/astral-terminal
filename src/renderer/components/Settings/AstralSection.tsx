@@ -5,10 +5,9 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import Switch from "@mui/material/Switch";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { type ReactNode, useEffect, useState } from "react";
-import { VscError, VscRefresh } from "react-icons/vsc";
+import { VscRefresh } from "react-icons/vsc";
 import { APP_GITHUB_SLUG } from "../../../shared/meta";
 import type { UpdateStatus, WslDistro } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
@@ -17,7 +16,6 @@ import {
   updateUpdateSettings,
   useSettingsStore,
 } from "../../settings-window/store";
-import { formatRelativeTime } from "../../utils/format-time";
 import {
   DIVIDER_SX,
   FIELD_LABEL_SX,
@@ -62,17 +60,15 @@ const STATUS_STACK_SX = {
 const STATUS_TEXT_SX = { fontWeight: 500 } as const;
 const STATUS_SUB_SX = { color: "text.secondary", fontSize: 12 } as const;
 
-const STATUS_LABEL_SX = {
-  display: "flex",
-  alignItems: "center",
-  gap: 0.5,
+const STATUS_ERROR_DETAIL_SX = {
+  color: "error.main",
+  fontSize: 12,
+  wordBreak: "break-word",
 } as const;
-
-const STATUS_ERROR_ICON_SX = { color: "error.main", display: "inline-flex" };
 
 const RELEASES_URL = `https://github.com/${APP_GITHUB_SLUG}/releases`;
 
-function versionLink(version: string): ReactNode {
+function releasesLink(text: string): ReactNode {
   return (
     <Link
       href={RELEASES_URL}
@@ -82,7 +78,7 @@ function versionLink(version: string): ReactNode {
         window.app.openExternal(RELEASES_URL);
       }}
     >
-      {version}
+      {text}
     </Link>
   );
 }
@@ -96,14 +92,10 @@ function statusLabel(status: UpdateStatus): ReactNode {
     case "not-available":
       return "Astral Terminal is up to date";
     case "downloading":
-      return status.version ? (
-        <>Downloading update: {versionLink(status.version)}</>
-      ) : (
-        "Downloading update…"
-      );
+      return <>Downloading update… {releasesLink("(view releases)")}</>;
     case "downloaded":
       return status.version ? (
-        <>Update ready: {versionLink(status.version)}</>
+        <>Update ready: {releasesLink(`v${status.version}`)}</>
       ) : (
         "Update ready"
       );
@@ -149,35 +141,24 @@ function ActionButton({ status }: { status: UpdateStatus }) {
 }
 
 function UpdateStatusRow({ status }: { status: UpdateStatus }) {
-  const subLine = `Last checked: ${
+  const subLine =
     status.lastCheckedAt !== null
-      ? formatRelativeTime(status.lastCheckedAt)
-      : "never"
-  }`;
+      ? `Last checked: ${new Date(status.lastCheckedAt).toLocaleString()}`
+      : "Last checked: never";
   const isError = status.state === "error";
-  const errorIcon =
-    isError && status.errorMessage ? (
-      <Tooltip title={status.errorMessage} placement="top" arrow>
-        <Box component="span" sx={STATUS_ERROR_ICON_SX}>
-          <VscError size={18} />
-        </Box>
-      </Tooltip>
-    ) : isError ? (
-      <Box component="span" sx={STATUS_ERROR_ICON_SX}>
-        <VscError size={18} />
-      </Box>
-    ) : null;
   return (
     <Box sx={STATUS_ROW_SX}>
       <ActionButton status={status} />
       <Box sx={STATUS_STACK_SX}>
-        <Box sx={STATUS_LABEL_SX}>
-          <Typography variant="body2" sx={STATUS_TEXT_SX}>
-            {statusLabel(status)}
-          </Typography>
-          {errorIcon}
-        </Box>
+        <Typography variant="body2" sx={STATUS_TEXT_SX}>
+          {statusLabel(status)}
+        </Typography>
         <Typography sx={STATUS_SUB_SX}>{subLine}</Typography>
+        {isError && status.errorMessage && (
+          <Typography sx={STATUS_ERROR_DETAIL_SX}>
+            {status.errorMessage}
+          </Typography>
+        )}
       </Box>
     </Box>
   );

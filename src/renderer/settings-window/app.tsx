@@ -39,6 +39,8 @@ const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "astral", label: "Astral Terminal" },
 ];
 
+const UPDATE_CHECK_THROTTLE_MS = 5 * 60 * 1000;
+
 export function SettingsApp() {
   const state = useSettingsState();
   const [visible, setVisible] = useState(false);
@@ -54,12 +56,19 @@ export function SettingsApp() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const lastCheckedAt = state?.updateStatus.lastCheckedAt ?? null;
   useEffect(() => {
     if (!visible) return;
+    if (
+      lastCheckedAt !== null &&
+      Date.now() - lastCheckedAt < UPDATE_CHECK_THROTTLE_MS
+    ) {
+      return;
+    }
     window.app.requestUpdateCheck().catch((err) => {
       console.error("Update check failed:", err);
     });
-  }, [visible]);
+  }, [visible, lastCheckedAt]);
 
   const appThemeId = state?.appearance.appThemeId ?? "dark";
   const accentColorId = state?.appearance.accentColorId ?? "blue";

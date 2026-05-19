@@ -37,12 +37,11 @@ const DEV_UPDATE_STATUS: Record<UpdateState, () => UpdateStatus> = {
   downloading: () => ({
     state: "downloading",
     lastCheckedAt: Date.now(),
-    version: "v0.0.0-dev",
   }),
   downloaded: () => ({
     state: "downloaded",
     lastCheckedAt: Date.now(),
-    version: "v0.0.0-dev",
+    version: "0.0.0-dev",
   }),
   error: () => ({
     state: "error",
