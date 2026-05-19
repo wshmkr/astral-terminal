@@ -42,11 +42,7 @@ export {
   updateUpdateSettings,
 } from "./preferences";
 
-export {
-  installUpdate,
-  requestUpdateCheck,
-  setUpdateStatus,
-} from "./update-status";
+export { setUpdateStatus } from "./update-status";
 
 export {
   addSurface,

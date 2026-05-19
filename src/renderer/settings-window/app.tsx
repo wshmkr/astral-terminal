@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import CssBaseline from "@mui/material/CssBaseline";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import List from "@mui/material/List";
@@ -136,13 +137,12 @@ export function SettingsApp() {
                   v{APP_VERSION}
                 </Typography>
                 {state.updateStatus.state === "downloaded" && (
-                  <Box
-                    component="span"
-                    sx={UPDATE_BADGE_SX}
+                  <Chip
+                    label="update ready"
+                    size="small"
                     onClick={() => setSection("astral")}
-                  >
-                    update ready
-                  </Box>
+                    sx={UPDATE_BADGE_SX}
+                  />
                 )}
               </Box>
             </Box>

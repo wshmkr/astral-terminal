@@ -12,11 +12,3 @@ export function setUpdateStatus(status: UpdateStatus): void {
   setState({ ...s, updateStatus: status });
   notify();
 }
-
-export function requestUpdateCheck(): Promise<void> {
-  return window.app.requestUpdateCheck();
-}
-
-export function installUpdate(): Promise<void> {
-  return window.app.installUpdate();
-}

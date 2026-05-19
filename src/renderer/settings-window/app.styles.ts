@@ -74,16 +74,18 @@ export const VERSION_TEXT_SX = {
 } as const;
 
 export const UPDATE_BADGE_SX = {
+  height: "auto",
   bgcolor: "primary.main",
   color: "primary.contrastText",
-  fontSize: "9px",
-  fontWeight: 600,
-  px: 0.625,
-  py: 0.125,
   borderRadius: 0.5,
-  lineHeight: 1.4,
-  cursor: "pointer",
-  "&:hover": { bgcolor: "primary.dark" },
+  "& .MuiChip-label": {
+    px: 0.625,
+    py: 0.125,
+    fontSize: "9px",
+    fontWeight: 600,
+    lineHeight: 1.4,
+  },
+  "&.MuiChip-clickable:hover": { bgcolor: "primary.dark" },
 } as const;
 
 export const NAV_ITEM_SX = {
