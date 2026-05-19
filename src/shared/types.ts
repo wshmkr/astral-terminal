@@ -57,7 +57,7 @@ export function surfaceSidebarLabel(s: Surface): string {
     case "terminal":
       return stripUserHostPrefix(s.name);
     case "browser":
-      return s.name;
+      return `🌐︎ ${s.name}`;
   }
 }
 
