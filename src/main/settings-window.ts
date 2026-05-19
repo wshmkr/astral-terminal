@@ -1,12 +1,11 @@
 import type { BrowserWindow } from "electron";
-import { IPC, type SettingsState } from "../shared/types";
+import { IPC, SETTINGS_FADE_MS, type SettingsState } from "../shared/types";
 import { createChildPanelWindow } from "./child-panel-window";
 
 const PANEL_WIDTH = 760;
 const PANEL_HEIGHT = 520;
 const PARENT_PADDING_X = 48;
 const PARENT_PADDING_Y = 80;
-export const FADE_MS = 200;
 
 type VisibilityListener = (visible: boolean) => void;
 
@@ -17,21 +16,9 @@ let pendingShow = false;
 let fadeToken = 0;
 const visibilityListeners = new Set<VisibilityListener>();
 
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
-}
-
-function fadeOpacity(win: BrowserWindow, to: number): void {
-  const myToken = ++fadeToken;
-  const from = win.getOpacity();
-  const start = Date.now();
-  const tick = () => {
-    if (myToken !== fadeToken || win.isDestroyed()) return;
-    const t = Math.min(1, (Date.now() - start) / FADE_MS);
-    win.setOpacity(from + (to - from) * easeOutCubic(t));
-    if (t < 1) setTimeout(tick, 16);
-  };
-  tick();
+function sendFade(visible: boolean): void {
+  if (!settingsWindow || settingsWindow.isDestroyed()) return;
+  settingsWindow.webContents.send(IPC.settings.fade, visible);
 }
 
 export function onSettingsVisibilityChange(cb: VisibilityListener): () => void {
@@ -70,13 +57,13 @@ function applyZoom(parent: BrowserWindow, zoom: number): void {
 
 function placeAndShow(parent: BrowserWindow): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
+  ++fadeToken;
   applyZoom(parent, parent.webContents.getZoomFactor());
-  settingsWindow.setOpacity(0);
   settingsWindow.show();
   settingsWindow.focus();
   pushState();
   emitVisibility(true);
-  fadeOpacity(settingsWindow, 1);
+  sendFade(true);
 }
 
 export function applySettingsUiScale(
@@ -93,6 +80,7 @@ function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
     hash: "settings",
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
+    transparent: true,
   });
 
   win.once("ready-to-show", () => {
@@ -140,14 +128,13 @@ export function hideSettingsWindow(): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
   if (!settingsWindow.isVisible()) return;
   const win = settingsWindow;
+  const myToken = ++fadeToken;
   emitVisibility(false);
-  fadeOpacity(win, 0);
-  const myToken = fadeToken;
+  sendFade(false);
   setTimeout(() => {
     if (myToken !== fadeToken || win.isDestroyed()) return;
     win.hide();
-    win.setOpacity(1);
-  }, FADE_MS);
+  }, SETTINGS_FADE_MS);
 }
 
 export function setSettingsState(state: SettingsState): void {

@@ -112,6 +112,7 @@ export interface AppAPI {
     callback: (action: SettingsAction) => void,
   ) => () => void;
   publishSettingsState: (state: SettingsState) => void;
+  onSettingsFade: (callback: (visible: boolean) => void) => () => void;
   invokeSettingsAgentHook: (params: {
     providerName: string;
     enabled: boolean;

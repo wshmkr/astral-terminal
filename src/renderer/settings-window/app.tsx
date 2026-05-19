@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import CssBaseline from "@mui/material/CssBaseline";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
@@ -8,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
 import { APP_VERSION } from "../../shared/meta";
+import { SETTINGS_FADE_EASING, SETTINGS_FADE_MS } from "../../shared/types";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
 import { AstralSection } from "../components/Settings/AstralSection";
 import { NotificationsSection } from "../components/Settings/NotificationsSection";
@@ -37,8 +39,10 @@ const SECTIONS: Array<{ id: SectionId; label: string }> = [
 
 export function SettingsApp() {
   const state = useSettingsState();
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => window.app.onSettingsStateChanged(setSettingsStoreState), []);
+  useEffect(() => window.app.onSettingsFade(setVisible), []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -61,7 +65,14 @@ export function SettingsApp() {
   return (
     <ThemeProvider theme={theme} defaultMode={resolveColorScheme(appThemeId)}>
       <CssBaseline />
-      <Box sx={ROOT_SX}>
+      <GlobalStyles styles={{ body: { backgroundColor: "transparent" } }} />
+      <Box
+        sx={{
+          ...ROOT_SX,
+          opacity: visible ? 1 : 0,
+          transition: `opacity ${SETTINGS_FADE_MS}ms ${SETTINGS_FADE_EASING}`,
+        }}
+      >
         <Box sx={HEADER_SX}>
           <Typography variant="caption" sx={HEADER_TITLE_SX}>
             Settings

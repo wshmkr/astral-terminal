@@ -9,13 +9,14 @@ import {
   type BrowserOpenNewTabPayload,
   type BrowserState,
   defaultBrowserState,
+  SETTINGS_FADE_EASING,
+  SETTINGS_FADE_MS,
 } from "../shared/types";
 import {
   attachExternalLinkHandler,
   openInSystemBrowser,
   showLinkContextMenu,
 } from "./external-links";
-import { FADE_MS } from "./settings-window";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
@@ -53,7 +54,7 @@ const DIM_HTML =
   encodeURIComponent(
     `<style>
       html,body { margin:0; height:100%; background:transparent; }
-      body { opacity:0; transition:opacity ${FADE_MS}ms ease-out; background:rgba(0,0,0,0.5); }
+      body { opacity:0; transition:opacity ${SETTINGS_FADE_MS}ms ${SETTINGS_FADE_EASING}; background:rgba(0,0,0,0.5); }
       body.${DIM_SHOW_CLASS} { opacity:1; }
     </style>`,
   );
@@ -289,7 +290,7 @@ export class BrowserManager {
       this.applyDimClass();
       setTimeout(() => {
         if (!this.dimVisible) view.setVisible(false);
-      }, FADE_MS);
+      }, SETTINGS_FADE_MS);
     }
   }
 
