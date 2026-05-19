@@ -6,7 +6,7 @@ const PANEL_WIDTH = 760;
 const PANEL_HEIGHT = 520;
 const PARENT_PADDING_X = 48;
 const PARENT_PADDING_Y = 80;
-const FADE_MS = 200;
+export const FADE_MS = 200;
 
 type VisibilityListener = (visible: boolean) => void;
 
@@ -21,10 +21,10 @@ function easeOutCubic(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
-function fadeOpacity(win: BrowserWindow, from: number, to: number): void {
+function fadeOpacity(win: BrowserWindow, to: number): void {
   const myToken = ++fadeToken;
+  const from = win.getOpacity();
   const start = Date.now();
-  win.setOpacity(from);
   const tick = () => {
     if (myToken !== fadeToken || win.isDestroyed()) return;
     const t = Math.min(1, (Date.now() - start) / FADE_MS);
@@ -76,7 +76,7 @@ function placeAndShow(parent: BrowserWindow): void {
   settingsWindow.focus();
   pushState();
   emitVisibility(true);
-  fadeOpacity(settingsWindow, 0, 1);
+  fadeOpacity(settingsWindow, 1);
 }
 
 export function applySettingsUiScale(
@@ -141,7 +141,7 @@ export function hideSettingsWindow(): void {
   if (!settingsWindow.isVisible()) return;
   const win = settingsWindow;
   emitVisibility(false);
-  fadeOpacity(win, win.getOpacity(), 0);
+  fadeOpacity(win, 0);
   const myToken = fadeToken;
   setTimeout(() => {
     if (myToken !== fadeToken || win.isDestroyed()) return;

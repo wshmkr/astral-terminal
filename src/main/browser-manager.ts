@@ -15,6 +15,7 @@ import {
   openInSystemBrowser,
   showLinkContextMenu,
 } from "./external-links";
+import { FADE_MS } from "./settings-window";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
@@ -46,14 +47,14 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
   );
 }
 
-const DIM_FADE_MS = 200;
+const DIM_SHOW_CLASS = "show";
 const DIM_HTML =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
     `<style>
       html,body { margin:0; height:100%; background:transparent; }
-      body { opacity:0; transition:opacity ${DIM_FADE_MS}ms ease-out; background:rgba(0,0,0,0.5); }
-      body.show { opacity:1; }
+      body { opacity:0; transition:opacity ${FADE_MS}ms ease-out; background:rgba(0,0,0,0.5); }
+      body.${DIM_SHOW_CLASS} { opacity:1; }
     </style>`,
   );
 
@@ -79,6 +80,7 @@ export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
   private dimVisible = false;
+  private dimReady = false;
 
   constructor(
     private readonly window: BrowserWindow,
@@ -108,12 +110,27 @@ export class BrowserManager {
     });
     view.setBackgroundColor("#00000000");
     view.setVisible(false);
+    view.webContents.once("did-finish-load", () => {
+      this.dimReady = true;
+      this.applyDimClass();
+    });
     view.webContents.loadURL(DIM_HTML).catch((err) => {
       console.error("[browser] dim loadURL failed:", err);
     });
     this.window.contentView.addChildView(view);
     this.dimView = view;
     return view;
+  }
+
+  private applyDimClass(): void {
+    if (!this.dimView || !this.dimReady) return;
+    const op = this.dimVisible ? "add" : "remove";
+    this.dimView.webContents
+      .executeJavaScript(
+        `requestAnimationFrame(() => document.body.classList.${op}('${DIM_SHOW_CLASS}'))`,
+        true,
+      )
+      .catch(() => {});
   }
 
   private applyDimBounds(): void {
@@ -265,21 +282,14 @@ export class BrowserManager {
       this.applyDimBounds();
       this.bringDimToTop();
       view.setVisible(true);
-      view.webContents
-        .executeJavaScript(
-          "requestAnimationFrame(() => document.body.classList.add('show'))",
-          true,
-        )
-        .catch(() => {});
+      this.applyDimClass();
     } else {
       const view = this.dimView;
       if (!view) return;
-      view.webContents
-        .executeJavaScript("document.body.classList.remove('show')", true)
-        .catch(() => {});
+      this.applyDimClass();
       setTimeout(() => {
         if (!this.dimVisible) view.setVisible(false);
-      }, DIM_FADE_MS);
+      }, FADE_MS);
     }
   }
 
