@@ -122,7 +122,9 @@ export const TAB_ICON_SX = {
 } as const;
 
 export const TAB_ICON_IMG_SX = {
+  display: "block",
   width: 14,
   height: 14,
   objectFit: "contain",
+  flexShrink: 0,
 } as const;

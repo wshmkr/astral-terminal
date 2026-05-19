@@ -30,6 +30,7 @@ interface Entry {
   visible: boolean;
   disposed: boolean;
   shiftHeld: boolean;
+  pendingFaviconUrl: string | null;
 }
 
 function readNavState(
@@ -61,11 +62,23 @@ const DIM_HTML =
   );
 
 const MAX_FAVICON_BYTES = 256 * 1024;
+const FAVICON_SCHEMES = new Set(["http:", "https:", "data:"]);
 
 async function fetchFaviconDataUrl(url: string): Promise<string | null> {
+  let scheme: string;
+  try {
+    scheme = new URL(url).protocol;
+  } catch {
+    return null;
+  }
+  if (!FAVICON_SCHEMES.has(scheme)) return null;
+  if (scheme === "data:") return url;
   try {
     const response = await session.fromPartition(BROWSER_PARTITION).fetch(url);
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.warn(`[browser] favicon fetch ${response.status} for ${url}`);
+      return null;
+    }
     const buffer = await response.arrayBuffer();
     if (buffer.byteLength === 0 || buffer.byteLength > MAX_FAVICON_BYTES) {
       return null;
@@ -75,7 +88,8 @@ async function fetchFaviconDataUrl(url: string): Promise<string | null> {
       "image/x-icon";
     const base64 = Buffer.from(buffer).toString("base64");
     return `data:${mime};base64,${base64}`;
-  } catch {
+  } catch (err) {
+    console.warn(`[browser] favicon fetch failed for ${url}:`, err);
     return null;
   }
 }
@@ -190,6 +204,7 @@ export class BrowserManager {
       visible: false,
       disposed: false,
       shiftHeld: false,
+      pendingFaviconUrl: null,
     };
     this.entries.set(surfaceId, entry);
 
@@ -238,9 +253,10 @@ export class BrowserManager {
     wc.on("did-stop-loading", () =>
       update({ isLoading: false, ...readNavState(wc) }),
     );
-    wc.on("did-navigate", (_event, url) =>
-      update({ url, favicon: null, ...readNavState(wc) }),
-    );
+    wc.on("did-navigate", (_event, url) => {
+      entry.pendingFaviconUrl = null;
+      update({ url, favicon: null, ...readNavState(wc) });
+    });
     wc.on("did-navigate-in-page", (_event, url, isMainFrame) => {
       if (!isMainFrame) return;
       update({ url, ...readNavState(wc) });
@@ -249,10 +265,16 @@ export class BrowserManager {
     wc.on("page-favicon-updated", (_event, favicons) => {
       const url = favicons[0];
       if (!url) {
+        entry.pendingFaviconUrl = null;
         update({ favicon: null });
         return;
       }
-      fetchFaviconDataUrl(url).then((dataUrl) => update({ favicon: dataUrl }));
+      entry.pendingFaviconUrl = url;
+      fetchFaviconDataUrl(url).then((dataUrl) => {
+        if (entry.disposed || entry.pendingFaviconUrl !== url) return;
+        entry.pendingFaviconUrl = null;
+        update({ favicon: dataUrl });
+      });
     });
 
     wc.loadURL(normalizeUrl(url)).catch((err) => {
