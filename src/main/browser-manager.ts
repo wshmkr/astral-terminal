@@ -63,6 +63,25 @@ const DIM_HTML =
 
 const MAX_FAVICON_BYTES = 256 * 1024;
 const FAVICON_SCHEMES = new Set(["http:", "https:", "data:"]);
+const FAVICON_CACHE_MAX = 64;
+const faviconCache = new Map<string, string>();
+
+function getCachedFavicon(sourceUrl: string): string | null {
+  const hit = faviconCache.get(sourceUrl);
+  if (hit === undefined) return null;
+  faviconCache.delete(sourceUrl);
+  faviconCache.set(sourceUrl, hit);
+  return hit;
+}
+
+function setCachedFavicon(sourceUrl: string, dataUrl: string): void {
+  if (faviconCache.has(sourceUrl)) faviconCache.delete(sourceUrl);
+  faviconCache.set(sourceUrl, dataUrl);
+  if (faviconCache.size > FAVICON_CACHE_MAX) {
+    const oldest = faviconCache.keys().next().value;
+    if (oldest !== undefined) faviconCache.delete(oldest);
+  }
+}
 
 async function fetchFaviconDataUrl(url: string): Promise<string | null> {
   let scheme: string;
@@ -269,10 +288,17 @@ export class BrowserManager {
         update({ favicon: null });
         return;
       }
+      const cached = getCachedFavicon(url);
+      if (cached) {
+        entry.pendingFaviconUrl = null;
+        update({ favicon: cached });
+        return;
+      }
       entry.pendingFaviconUrl = url;
       fetchFaviconDataUrl(url).then((dataUrl) => {
         if (entry.disposed || entry.pendingFaviconUrl !== url) return;
         entry.pendingFaviconUrl = null;
+        if (dataUrl) setCachedFavicon(url, dataUrl);
         update({ favicon: dataUrl });
       });
     });
