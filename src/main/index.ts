@@ -106,7 +106,7 @@ app.whenReady().then(() => {
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
   registerWindowIpc({ getMainWindow });
   registerNotificationIpc({ getMainWindow });
-  registerSettingsIpc();
+  registerSettingsIpc({ getBrowserManager: () => browserManager });
   registerSettingsWindowIpc({ getMainWindow });
   registerAgentHookIpc();
   registerUpdateIpc();
@@ -143,6 +143,8 @@ app.whenReady().then(() => {
         updateBrowserFindAnchor(surfaceId, anchor);
       },
     });
+    const persistedBrowser = loadSettings()?.browserSettings;
+    if (persistedBrowser) browserManager.setBrowserSettings(persistedBrowser);
     registerBrowserIpc({ browserManager });
     onSettingsVisibilityChange((visible) => {
       browserManager?.setDimmed(visible);

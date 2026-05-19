@@ -43,6 +43,7 @@ export {
   setWelcomeOpen,
   setWindowFocused,
   setWslDistro,
+  updateBrowserSettings,
   updateNotificationSettings,
   updateUpdateSettings,
 } from "./preferences";

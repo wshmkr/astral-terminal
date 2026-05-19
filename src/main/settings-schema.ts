@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   type AppearanceSettings,
+  type BrowserSettings,
   MAX_FONT_SIZE,
   MAX_UI_SCALE,
   MIN_FONT_SIZE,
@@ -139,6 +140,13 @@ const TerminalSettingsSchema = tolerantPartial({
   wslDistro: z.string().nullable(),
 }) satisfies z.ZodType<Partial<TerminalSettings>>;
 
+const SearchEngineIdSchema = z.enum(["google", "bing", "duckduckgo", "custom"]);
+
+const BrowserSettingsSchema = tolerantPartial({
+  searchEngineId: SearchEngineIdSchema,
+  customSearchUrl: z.string(),
+}) satisfies z.ZodType<Partial<BrowserSettings>>;
+
 const WorkspaceSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -153,4 +161,5 @@ export const PersistedSettingsSchema = z.object({
   notificationSettings: NotificationSettingsSchema.optional().catch(undefined),
   updateSettings: UpdateSettingsSchema.optional().catch(undefined),
   terminalSettings: TerminalSettingsSchema.optional().catch(undefined),
+  browserSettings: BrowserSettingsSchema.optional().catch(undefined),
 }) satisfies z.ZodType<PersistedSettings>;

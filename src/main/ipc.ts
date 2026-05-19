@@ -248,13 +248,18 @@ export function applyTerminalThemeNative(
   nativeTheme.themeSource = theme?.colorScheme ?? "dark";
 }
 
-export function registerSettingsIpc(): void {
+export function registerSettingsIpc(deps: {
+  getBrowserManager: () => BrowserManager | null;
+}): void {
   ipcMain.handle(IPC.settings.read, () => loadSettings());
   ipcMain.handle(
     IPC.settings.write,
     async (_event, settings: PersistedSettings) => {
       await saveSettings(settings);
       applyTerminalThemeNative(settings.appearance?.terminalThemeId);
+      if (settings.browserSettings) {
+        deps.getBrowserManager()?.setBrowserSettings(settings.browserSettings);
+      }
     },
   );
 }

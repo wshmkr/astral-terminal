@@ -15,6 +15,7 @@ import {
   setUiScale,
   setWslDistro,
   subscribeWorkspaceStore,
+  updateBrowserSettings,
   updateNotificationSettings,
   updateUpdateSettings,
 } from "../store";
@@ -25,6 +26,7 @@ function deriveSettingsState(s: AppState): SettingsState {
     notificationSettings: s.notificationSettings,
     updateSettings: s.updateSettings,
     terminalSettings: s.terminalSettings,
+    browserSettings: s.browserSettings,
     agentHookStatuses: s.agentHookStatuses,
     updateStatus: s.updateStatus,
   };
@@ -40,6 +42,7 @@ const HANDLERS: SettingsActionMap = {
   updateNotificationSettings,
   updateUpdateSettings,
   setWslDistro,
+  updateBrowserSettings,
   setAgentHookStatus: (name, status) =>
     setAgentHookStatuses({ [name]: status }),
 };
@@ -59,6 +62,7 @@ export function startSettingsHost(): void {
       next.notificationSettings === last.notificationSettings &&
       next.updateSettings === last.updateSettings &&
       next.terminalSettings === last.terminalSettings &&
+      next.browserSettings === last.browserSettings &&
       next.agentHookStatuses === last.agentHookStatuses &&
       next.updateStatus === last.updateStatus
     ) {
