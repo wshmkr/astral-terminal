@@ -64,22 +64,37 @@ const DIM_HTML =
 const MAX_FAVICON_BYTES = 256 * 1024;
 const FAVICON_SCHEMES = new Set(["http:", "https:", "data:"]);
 const FAVICON_CACHE_MAX = 64;
-const faviconCache = new Map<string, string>();
+const originFaviconCache = new Map<string, string>();
 
-function getCachedFavicon(sourceUrl: string): string | null {
-  const hit = faviconCache.get(sourceUrl);
+function httpOrigin(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function getOriginFavicon(pageUrl: string): string | null {
+  const origin = httpOrigin(pageUrl);
+  if (!origin) return null;
+  const hit = originFaviconCache.get(origin);
   if (hit === undefined) return null;
-  faviconCache.delete(sourceUrl);
-  faviconCache.set(sourceUrl, hit);
+  originFaviconCache.delete(origin);
+  originFaviconCache.set(origin, hit);
   return hit;
 }
 
-function setCachedFavicon(sourceUrl: string, dataUrl: string): void {
-  if (faviconCache.has(sourceUrl)) faviconCache.delete(sourceUrl);
-  faviconCache.set(sourceUrl, dataUrl);
-  if (faviconCache.size > FAVICON_CACHE_MAX) {
-    const oldest = faviconCache.keys().next().value;
-    if (oldest !== undefined) faviconCache.delete(oldest);
+function setOriginFavicon(pageUrl: string, dataUrl: string): void {
+  const origin = httpOrigin(pageUrl);
+  if (!origin) return;
+  if (originFaviconCache.has(origin)) originFaviconCache.delete(origin);
+  originFaviconCache.set(origin, dataUrl);
+  if (originFaviconCache.size > FAVICON_CACHE_MAX) {
+    const oldest = originFaviconCache.keys().next().value;
+    if (oldest !== undefined) originFaviconCache.delete(oldest);
   }
 }
 
@@ -274,7 +289,7 @@ export class BrowserManager {
     );
     wc.on("did-navigate", (_event, url) => {
       entry.pendingFaviconUrl = null;
-      update({ url, favicon: null, ...readNavState(wc) });
+      update({ url, favicon: getOriginFavicon(url), ...readNavState(wc) });
     });
     wc.on("did-navigate-in-page", (_event, url, isMainFrame) => {
       if (!isMainFrame) return;
@@ -283,22 +298,17 @@ export class BrowserManager {
     wc.on("page-title-updated", (_event, title) => update({ title }));
     wc.on("page-favicon-updated", (_event, favicons) => {
       const url = favicons[0];
+      const pageUrl = wc.getURL();
       if (!url) {
         entry.pendingFaviconUrl = null;
         update({ favicon: null });
-        return;
-      }
-      const cached = getCachedFavicon(url);
-      if (cached) {
-        entry.pendingFaviconUrl = null;
-        update({ favicon: cached });
         return;
       }
       entry.pendingFaviconUrl = url;
       fetchFaviconDataUrl(url).then((dataUrl) => {
         if (entry.disposed || entry.pendingFaviconUrl !== url) return;
         entry.pendingFaviconUrl = null;
-        if (dataUrl) setCachedFavicon(url, dataUrl);
+        if (dataUrl) setOriginFavicon(pageUrl, dataUrl);
         update({ favicon: dataUrl });
       });
     });
