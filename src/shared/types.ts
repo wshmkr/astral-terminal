@@ -19,6 +19,8 @@ export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
 export const INITIAL_WINDOW_BG = "#262624";
+export const SETTINGS_FADE_MS = 200;
+export const SETTINGS_FADE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
 export interface BaseSurface {
   id: string;
@@ -348,6 +350,7 @@ export const IPC = {
     action: "settings:action",
     actionApply: "settings:action-apply",
     invokeAgentHook: "settings:invoke-agent-hook",
+    fade: "settings:fade",
   },
   agentHooks: {
     configure: "agent-hooks:configure",

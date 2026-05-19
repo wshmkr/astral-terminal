@@ -9,12 +9,15 @@ import {
   type BrowserOpenNewTabPayload,
   type BrowserState,
   defaultBrowserState,
+  SETTINGS_FADE_EASING,
+  SETTINGS_FADE_MS,
 } from "../shared/types";
 import {
   attachExternalLinkHandler,
   openInSystemBrowser,
   showLinkContextMenu,
 } from "./external-links";
+import { createFadeController } from "./fade-controller";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
@@ -49,7 +52,11 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
 const DIM_HTML =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
-    "<style>html,body{margin:0;height:100%;background:rgba(0,0,0,0.5)}</style>",
+    `<style>
+      html,body { margin:0; height:100%; background:transparent; }
+      body { opacity:0; transition:opacity ${SETTINGS_FADE_MS}ms ${SETTINGS_FADE_EASING}; background:rgba(0,0,0,0.5); }
+      body.show { opacity:1; }
+    </style>`,
   );
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
@@ -73,6 +80,9 @@ export interface BrowserManagerCallbacks {
 export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
+  private dimVisible = false;
+  private dimReady = false;
+  private dimFade = createFadeController(SETTINGS_FADE_MS);
 
   constructor(
     private readonly window: BrowserWindow,
@@ -82,7 +92,7 @@ export class BrowserManager {
       for (const entry of this.entries.values()) {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
-      if (this.dimView?.getVisible()) this.applyDimBounds();
+      if (this.dimVisible) this.applyDimBounds();
     };
     this.window.on("resize", reapplyAll);
     this.window.on("maximize", reapplyAll);
@@ -102,12 +112,25 @@ export class BrowserManager {
     });
     view.setBackgroundColor("#00000000");
     view.setVisible(false);
+    view.webContents.once("did-finish-load", () => {
+      this.dimReady = true;
+      this.applyDimClass();
+    });
     view.webContents.loadURL(DIM_HTML).catch((err) => {
       console.error("[browser] dim loadURL failed:", err);
     });
     this.window.contentView.addChildView(view);
     this.dimView = view;
     return view;
+  }
+
+  private applyDimClass(): void {
+    if (!this.dimView || !this.dimReady) return;
+    this.dimView.webContents
+      .executeJavaScript(
+        `document.body.classList.toggle('show', ${this.dimVisible})`,
+      )
+      .catch(() => {});
   }
 
   private applyDimBounds(): void {
@@ -136,7 +159,7 @@ export class BrowserManager {
     view.setVisible(false);
     view.setBackgroundColor("#00000000");
     this.window.contentView.addChildView(view);
-    if (this.dimView?.getVisible()) this.bringDimToTop();
+    if (this.dimVisible) this.bringDimToTop();
 
     const wc = view.webContents;
     const entry: Entry = {
@@ -252,15 +275,21 @@ export class BrowserManager {
   }
 
   setDimmed(dimmed: boolean): void {
-    if (!dimmed) {
-      this.dimView?.setVisible(false);
-      return;
+    if (this.dimVisible === dimmed) return;
+    this.dimVisible = dimmed;
+    if (dimmed) {
+      this.dimFade.cancelPendingHide();
+      const view = this.ensureDimView();
+      this.applyDimBounds();
+      this.bringDimToTop();
+      view.setVisible(true);
+      this.applyDimClass();
+    } else {
+      const view = this.dimView;
+      if (!view) return;
+      this.applyDimClass();
+      this.dimFade.scheduleHide(() => view.setVisible(false));
     }
-    const view = this.ensureDimView();
-    if (view.getVisible()) return;
-    this.applyDimBounds();
-    this.bringDimToTop();
-    view.setVisible(true);
   }
 
   loadURL(surfaceId: string, url: string): void {

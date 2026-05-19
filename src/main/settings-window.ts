@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
-import { IPC, type SettingsState } from "../shared/types";
+import { IPC, SETTINGS_FADE_MS, type SettingsState } from "../shared/types";
 import { createChildPanelWindow } from "./child-panel-window";
+import { createFadeController } from "./fade-controller";
 
 const PANEL_WIDTH = 760;
 const PANEL_HEIGHT = 520;
@@ -13,7 +14,13 @@ let settingsWindow: BrowserWindow | null = null;
 let settingsReady = false;
 let pendingState: SettingsState | null = null;
 let pendingShow = false;
+const fade = createFadeController(SETTINGS_FADE_MS);
 const visibilityListeners = new Set<VisibilityListener>();
+
+function sendFade(visible: boolean): void {
+  if (!settingsWindow || settingsWindow.isDestroyed()) return;
+  settingsWindow.webContents.send(IPC.settings.fade, visible);
+}
 
 export function onSettingsVisibilityChange(cb: VisibilityListener): () => void {
   visibilityListeners.add(cb);
@@ -51,11 +58,13 @@ function applyZoom(parent: BrowserWindow, zoom: number): void {
 
 function placeAndShow(parent: BrowserWindow): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
+  fade.cancelPendingHide();
   applyZoom(parent, parent.webContents.getZoomFactor());
   settingsWindow.show();
   settingsWindow.focus();
   pushState();
   emitVisibility(true);
+  sendFade(true);
 }
 
 export function applySettingsUiScale(
@@ -72,6 +81,7 @@ function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
     hash: "settings",
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
+    transparent: true,
   });
 
   win.once("ready-to-show", () => {
@@ -90,7 +100,14 @@ function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
     }, 0);
   });
 
+  const onParentFocus = () => {
+    if (win.isDestroyed() || !win.isVisible()) return;
+    hideSettingsWindow();
+  };
+  parent.on("focus", onParentFocus);
+
   win.on("closed", () => {
+    parent.off("focus", onParentFocus);
     if (settingsWindow === win) {
       settingsWindow = null;
       settingsReady = false;
@@ -118,8 +135,12 @@ export function openSettingsWindow(parent: BrowserWindow): void {
 export function hideSettingsWindow(): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
   if (!settingsWindow.isVisible()) return;
-  settingsWindow.hide();
+  const win = settingsWindow;
   emitVisibility(false);
+  sendFade(false);
+  fade.scheduleHide(() => {
+    if (!win.isDestroyed()) win.hide();
+  });
 }
 
 export function setSettingsState(state: SettingsState): void {
