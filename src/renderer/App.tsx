@@ -22,6 +22,7 @@ import {
   setActiveWorkspace,
   setAgentHook,
   setAgentHookStatuses,
+  setUpdateStatus,
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
@@ -137,6 +138,17 @@ export function App() {
   useEffect(() => {
     const handle = requestIdleCallback(() => refreshAgentHookStatuses());
     return () => cancelIdleCallback(handle);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.app.onUpdateStatus(setUpdateStatus);
+    window.app
+      .readUpdateStatus()
+      .then(setUpdateStatus)
+      .catch((err) => {
+        console.error("Failed to read update status:", err);
+      });
+    return unsubscribe;
   }, []);
 
   return (

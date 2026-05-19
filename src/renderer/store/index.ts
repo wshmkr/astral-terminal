@@ -47,6 +47,8 @@ export {
   updateUpdateSettings,
 } from "./preferences";
 
+export { setUpdateStatus } from "./update-status";
+
 export {
   addSurface,
   closePane,

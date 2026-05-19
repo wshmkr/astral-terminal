@@ -1,10 +1,15 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import Link from "@mui/material/Link";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
-import { useEffect, useState } from "react";
-import type { WslDistro } from "../../../shared/types";
+import { type ReactNode, useEffect, useState } from "react";
+import { VscRefresh } from "react-icons/vsc";
+import { APP_GITHUB_SLUG } from "../../../shared/meta";
+import type { UpdateStatus, WslDistro } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
 import {
   setWslDistro,
@@ -37,9 +42,132 @@ const UPDATES_DESCRIPTION =
 
 const UNSUPPORTED_DESCRIPTION = "These settings only apply on Windows.";
 
+const STATUS_ROW_SX = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 1,
+  mt: 1,
+} as const;
+
+const STATUS_STACK_SX = {
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: 0.25,
+} as const;
+
+const STATUS_TEXT_SX = { fontWeight: 500 } as const;
+const STATUS_SUB_SX = { color: "text.secondary", fontSize: 12 } as const;
+
+const STATUS_ERROR_DETAIL_SX = {
+  color: "error.main",
+  fontSize: 12,
+  wordBreak: "break-word",
+} as const;
+
+const RELEASES_URL = `https://github.com/${APP_GITHUB_SLUG}/releases`;
+
+function releasesLink(text: string): ReactNode {
+  return (
+    <Link
+      href={RELEASES_URL}
+      underline="hover"
+      onClick={(e) => {
+        e.preventDefault();
+        window.app.openExternal(RELEASES_URL);
+      }}
+    >
+      {text}
+    </Link>
+  );
+}
+
+function statusLabel(status: UpdateStatus): ReactNode {
+  switch (status.state) {
+    case "idle":
+      return "Not checked yet";
+    case "checking":
+      return "Checking for updates…";
+    case "not-available":
+      return "Astral Terminal is up to date";
+    case "downloading":
+      return <>Downloading update… {releasesLink("(view releases)")}</>;
+    case "downloaded":
+      return status.version ? (
+        <>Update ready: {releasesLink(`v${status.version}`)}</>
+      ) : (
+        "Update ready"
+      );
+    case "error":
+      return "Couldn't check for updates";
+  }
+}
+
+function ActionButton({ status }: { status: UpdateStatus }) {
+  if (status.state === "downloaded") {
+    return (
+      <Button
+        size="small"
+        variant="contained"
+        onClick={() => {
+          window.app.installUpdate().catch((err) => {
+            console.error("Install update failed:", err);
+          });
+        }}
+      >
+        Restart & install
+      </Button>
+    );
+  }
+  const busy = status.state === "checking" || status.state === "downloading";
+  return (
+    <Button
+      size="small"
+      variant="outlined"
+      disabled={busy}
+      startIcon={
+        busy ? <CircularProgress size={12} /> : <VscRefresh size={14} />
+      }
+      onClick={() => {
+        window.app.requestUpdateCheck().catch((err) => {
+          console.error("Update check failed:", err);
+        });
+      }}
+    >
+      {busy ? "Checking for updates" : "Check for updates"}
+    </Button>
+  );
+}
+
+function UpdateStatusRow({ status }: { status: UpdateStatus }) {
+  const subLine =
+    status.lastCheckedAt !== null
+      ? `Last checked: ${new Date(status.lastCheckedAt).toLocaleString()}`
+      : "Last checked: never";
+  const isError = status.state === "error";
+  return (
+    <Box sx={STATUS_ROW_SX}>
+      <ActionButton status={status} />
+      <Box sx={STATUS_STACK_SX}>
+        <Typography variant="body2" sx={STATUS_TEXT_SX}>
+          {statusLabel(status)}
+        </Typography>
+        <Typography sx={STATUS_SUB_SX}>{subLine}</Typography>
+        {isError && status.errorMessage && (
+          <Typography sx={STATUS_ERROR_DETAIL_SX}>
+            {status.errorMessage}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 export function AstralSection() {
   const wslDistro = useSettingsStore((s) => s.terminalSettings.wslDistro);
   const autoEnabled = useSettingsStore((s) => s.updateSettings.autoEnabled);
+  const updateStatus = useSettingsStore((s) => s.updateStatus);
   const [supported, setSupported] = useState<boolean | null>(null);
   const [distros, setDistros] = useState<WslDistro[] | null>(null);
 
@@ -158,6 +286,8 @@ export function AstralSection() {
           />
         }
       />
+
+      <UpdateStatusRow status={updateStatus} />
 
       {showSystemWarning && (
         <Alert

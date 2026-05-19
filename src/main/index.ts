@@ -3,7 +3,15 @@ import { app, BrowserWindow, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import { type AppConfig, browserStateChannel, IPC } from "../shared/types";
-import { checkForUpdatesOnStartup } from "./auto-update";
+import { checkForUpdatesOnStartup, initAutoUpdater } from "./auto-update";
+import {
+  destroyBrowserFindWindow,
+  hideBrowserFindWindow,
+  initBrowserFindWindow,
+  openBrowserFindWindow,
+  sendBrowserFindResult,
+  updateBrowserFindAnchor,
+} from "./browser-find-window";
 import { BrowserManager } from "./browser-manager";
 import { loadConfig } from "./config";
 import { IS_DEV } from "./env";
@@ -15,6 +23,7 @@ import {
   registerPtyIpc,
   registerSettingsIpc,
   registerSettingsWindowIpc,
+  registerUpdateIpc,
   registerWindowIpc,
 } from "./ipc";
 import {
@@ -100,6 +109,8 @@ app.whenReady().then(() => {
   registerSettingsIpc();
   registerSettingsWindowIpc({ getMainWindow });
   registerAgentHookIpc();
+  registerUpdateIpc();
+  initAutoUpdater(getMainWindow);
   createWindow();
   checkForUpdatesOnStartup();
 
@@ -107,6 +118,7 @@ app.whenReady().then(() => {
   if (win) {
     initNotificationWindow(win);
     initSettingsWindow(win);
+    initBrowserFindWindow(win);
     browserManager = new BrowserManager(win, {
       onState: (surfaceId, state) => {
         getMainWindow()?.webContents.send(
@@ -116,6 +128,19 @@ app.whenReady().then(() => {
       },
       onOpenNewTab: (payload) => {
         getMainWindow()?.webContents.send(IPC.browser.openNewTab, payload);
+      },
+      onFindRequested: (surfaceId, anchor) => {
+        const parent = getMainWindow();
+        if (parent) openBrowserFindWindow(parent, anchor, surfaceId);
+      },
+      onFindResult: (surfaceId, result) => {
+        sendBrowserFindResult(surfaceId, result);
+      },
+      onSurfaceHidden: (surfaceId) => {
+        hideBrowserFindWindow(surfaceId);
+      },
+      onSurfaceAnchorChanged: (surfaceId, anchor) => {
+        updateBrowserFindAnchor(surfaceId, anchor);
       },
     });
     registerBrowserIpc({ browserManager });
@@ -130,6 +155,7 @@ app.on("before-quit", () => {
   browserManager?.destroyAll();
   destroyNotificationWindow();
   destroySettingsWindow();
+  destroyBrowserFindWindow();
 });
 
 app.on("window-all-closed", () => {

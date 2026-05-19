@@ -4,6 +4,8 @@ import type {
   AppMode,
   BrowserAnchorOffsets,
   BrowserCommand,
+  BrowserFindOptions,
+  BrowserFindResult,
   BrowserOpenNewTabPayload,
   BrowserState,
   ConfigureAgentHooksResult,
@@ -15,6 +17,7 @@ import type {
   SettingsAction,
   SettingsState,
   UninstallAgentHooksResult,
+  UpdateStatus,
   WslDistro,
 } from "../../shared/types";
 
@@ -89,6 +92,15 @@ export interface AppAPI {
   onBrowserOpenNewTab: (
     callback: (payload: BrowserOpenNewTabPayload) => void,
   ) => () => void;
+  browserFindRequest: (surfaceId: string, opts: BrowserFindOptions) => void;
+  browserFindStop: (surfaceId: string) => void;
+  closeBrowserFindWindow: () => void;
+  onBrowserFindTargetChanged: (
+    callback: (payload: { surfaceId: string }) => void,
+  ) => () => void;
+  onBrowserFindResult: (
+    callback: (result: BrowserFindResult) => void,
+  ) => () => void;
 
   openNotificationPanel: (anchor: ScreenRect) => void;
   setNotificationPanelItems: (items: NotificationPanelItem[]) => void;
@@ -117,6 +129,11 @@ export interface AppAPI {
     providerName: string;
     enabled: boolean;
   }) => Promise<ConfigureAgentHooksResult | UninstallAgentHooksResult>;
+
+  readUpdateStatus: () => Promise<UpdateStatus>;
+  requestUpdateCheck: () => Promise<void>;
+  installUpdate: () => Promise<void>;
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
 }
 
 declare global {

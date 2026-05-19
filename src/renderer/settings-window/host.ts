@@ -26,6 +26,7 @@ function deriveSettingsState(s: AppState): SettingsState {
     updateSettings: s.updateSettings,
     terminalSettings: s.terminalSettings,
     agentHookStatuses: s.agentHookStatuses,
+    updateStatus: s.updateStatus,
   };
 }
 
@@ -58,7 +59,8 @@ export function startSettingsHost(): void {
       next.notificationSettings === last.notificationSettings &&
       next.updateSettings === last.updateSettings &&
       next.terminalSettings === last.terminalSettings &&
-      next.agentHookStatuses === last.agentHookStatuses
+      next.agentHookStatuses === last.agentHookStatuses &&
+      next.updateStatus === last.updateStatus
     ) {
       return;
     }

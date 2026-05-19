@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import CssBaseline from "@mui/material/CssBaseline";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import List from "@mui/material/List";
@@ -8,7 +9,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
-import { APP_VERSION } from "../../shared/meta";
+import { APP_GITHUB_SLUG, APP_VERSION } from "../../shared/meta";
 import { SETTINGS_FADE_EASING, SETTINGS_FADE_MS } from "../../shared/types";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
 import { AstralSection } from "../components/Settings/AstralSection";
@@ -25,7 +26,9 @@ import {
   NAV_LIST_SX,
   NAV_SX,
   ROOT_SX,
+  UPDATE_BADGE_SX,
   VERSION_SX,
+  VERSION_TEXT_SX,
 } from "./app.styles";
 import { setSettingsStoreState, useSettingsState } from "./store";
 
@@ -36,6 +39,8 @@ const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "notifications", label: "Notifications" },
   { id: "astral", label: "Astral Terminal" },
 ];
+
+const UPDATE_CHECK_THROTTLE_MS = 5 * 60 * 1000;
 
 export function SettingsApp() {
   const state = useSettingsState();
@@ -51,6 +56,20 @@ export function SettingsApp() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  const lastCheckedAt = state?.updateStatus.lastCheckedAt ?? null;
+  useEffect(() => {
+    if (!visible) return;
+    if (
+      lastCheckedAt !== null &&
+      Date.now() - lastCheckedAt < UPDATE_CHECK_THROTTLE_MS
+    ) {
+      return;
+    }
+    window.app.requestUpdateCheck().catch((err) => {
+      console.error("Update check failed:", err);
+    });
+  }, [visible, lastCheckedAt]);
 
   const appThemeId = state?.appearance.appThemeId ?? "dark";
   const accentColorId = state?.appearance.accentColorId ?? "blue";
@@ -104,13 +123,28 @@ export function SettingsApp() {
                   </ListItemButton>
                 ))}
               </List>
-              <Typography
-                variant="caption"
-                color="text.disabled"
-                sx={VERSION_SX}
-              >
-                v{APP_VERSION}
-              </Typography>
+              <Box sx={VERSION_SX}>
+                <Typography
+                  variant="caption"
+                  color="text.disabled"
+                  sx={VERSION_TEXT_SX}
+                  onClick={() =>
+                    window.app.openExternal(
+                      `https://github.com/${APP_GITHUB_SLUG}/releases/tag/v${APP_VERSION}`,
+                    )
+                  }
+                >
+                  v{APP_VERSION}
+                </Typography>
+                {state.updateStatus.state === "downloaded" && (
+                  <Chip
+                    label="update ready"
+                    size="small"
+                    onClick={() => setSection("astral")}
+                    sx={UPDATE_BADGE_SX}
+                  />
+                )}
+              </Box>
             </Box>
             <Box sx={CONTENT_SX}>
               {section === "appearance" && <AppearanceSection />}
