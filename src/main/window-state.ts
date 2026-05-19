@@ -1,4 +1,5 @@
 import { type BrowserWindow, screen } from "electron";
+import { z } from "zod";
 import { readUserDataJson, writeUserDataJsonSync } from "./user-data-json";
 
 const FILE_NAME = "window-state.json";
@@ -6,34 +7,21 @@ const FILE_NAME = "window-state.json";
 export const MIN_WINDOW_WIDTH = 600;
 export const MIN_WINDOW_HEIGHT = 400;
 
-export interface WindowState {
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-  isMaximized: boolean;
-}
+const WindowStateSchema = z.object({
+  width: z.number().finite().min(MIN_WINDOW_WIDTH),
+  height: z.number().finite().min(MIN_WINDOW_HEIGHT),
+  x: z.number().finite().optional(),
+  y: z.number().finite().optional(),
+  isMaximized: z.boolean(),
+});
+
+export type WindowState = z.infer<typeof WindowStateSchema>;
 
 const DEFAULTS: WindowState = {
   width: 1200,
   height: 800,
   isMaximized: false,
 };
-
-function isValidState(v: unknown): v is WindowState {
-  if (typeof v !== "object" || v === null) return false;
-  const s = v as Record<string, unknown>;
-  if (!Number.isFinite(s.width) || !Number.isFinite(s.height)) return false;
-  if (
-    (s.width as number) < MIN_WINDOW_WIDTH ||
-    (s.height as number) < MIN_WINDOW_HEIGHT
-  )
-    return false;
-  if (s.x !== undefined && !Number.isFinite(s.x)) return false;
-  if (s.y !== undefined && !Number.isFinite(s.y)) return false;
-  if (typeof s.isMaximized !== "boolean") return false;
-  return true;
-}
 
 function isOnVisibleDisplay(state: WindowState): boolean {
   const { x, y, width, height } = state;
@@ -49,7 +37,10 @@ function isOnVisibleDisplay(state: WindowState): boolean {
 }
 
 export function loadWindowState(): WindowState {
-  const parsed = readUserDataJson(FILE_NAME, isValidState);
+  const parsed = readUserDataJson(FILE_NAME, (raw) => {
+    const result = WindowStateSchema.safeParse(raw);
+    return result.success ? result.data : null;
+  });
   if (!parsed) return DEFAULTS;
   if (!isOnVisibleDisplay(parsed)) {
     return { ...parsed, x: undefined, y: undefined };

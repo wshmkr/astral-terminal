@@ -15,8 +15,8 @@ import type {
   AccentColorId,
   AppThemeId,
   TerminalThemeId,
-  WslDistro,
-} from "../../../shared/types";
+} from "../../../shared/settings-schema";
+import type { WslDistro } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
 import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {

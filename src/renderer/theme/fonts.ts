@@ -1,4 +1,4 @@
-import type { FontFamilyId } from "../../shared/types";
+import type { FontFamilyId } from "../../shared/settings-schema";
 
 export interface FontOption {
   id: FontFamilyId;

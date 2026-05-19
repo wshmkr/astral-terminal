@@ -1,12 +1,10 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
-import type {
-  AppearanceSettings,
-  NotificationPanelItem,
-} from "../shared/types";
+import type { AppearanceSettings } from "../shared/settings-schema";
+import type { NotificationPanelItem } from "../shared/types";
 import { NotificationPanelBody } from "./components/Sidebar/NotificationPanelBody";
-import { DEFAULT_APPEARANCE, normalizeAppearance } from "./store/appearance";
+import { DEFAULT_APPEARANCE } from "./store/appearance";
 import { buildTheme, resolveColorScheme } from "./theme";
 import { resolveAccentHex } from "./theme/accent-colors";
 
@@ -17,7 +15,7 @@ export function NotificationsApp() {
 
   useEffect(() => {
     void window.app.readSettings().then((s) => {
-      setAppearance(normalizeAppearance(s?.appearance));
+      setAppearance({ ...DEFAULT_APPEARANCE, ...(s?.appearance ?? {}) });
     });
   }, []);
 

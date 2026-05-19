@@ -1,4 +1,14 @@
 import type { AgentHookStatus, AgentName } from "./agent-hooks";
+import type {
+  AccentColorId,
+  AppearanceSettings,
+  AppThemeId,
+  FontFamilyId,
+  NotificationSettings,
+  TerminalSettings,
+  TerminalThemeId,
+  UpdateSettings,
+} from "./settings-schema";
 
 export type AppMode = "packaged" | "dev";
 
@@ -150,20 +160,6 @@ export interface TerminalTheme {
   searchHighlight: string;
 }
 
-export interface NotificationSettings {
-  soundEnabled: boolean;
-  osNotificationsEnabled: boolean;
-}
-
-export interface UpdateSettings {
-  autoEnabled: boolean;
-}
-
-export interface TerminalSettings {
-  // null = use Windows default distro
-  wslDistro: string | null;
-}
-
 export interface WslDistro {
   name: string;
   isDefault: boolean;
@@ -184,38 +180,6 @@ export interface UpdateStatus {
   lastCheckedAt: number | null;
   errorMessage?: string;
   version?: string;
-}
-
-export type AppThemeId = "dark" | "light" | "black";
-export type TerminalThemeId =
-  | "one-half-dark"
-  | "one-half-light"
-  | "dracula"
-  | "alucard"
-  | "github-dark"
-  | "github-light";
-export type FontFamilyId =
-  | "jetbrains-mono"
-  | "cascadia-code"
-  | "consolas"
-  | "system-monospace";
-export type AccentColorId =
-  | "blue"
-  | "purple"
-  | "pink"
-  | "red"
-  | "orange"
-  | "yellow"
-  | "green"
-  | "teal";
-
-export interface AppearanceSettings {
-  appThemeId: AppThemeId;
-  terminalThemeId: TerminalThemeId;
-  fontFamily: FontFamilyId;
-  fontSize: number;
-  uiScale: number;
-  accentColorId: AccentColorId;
 }
 
 export interface NotificationFirePayload {
@@ -300,16 +264,6 @@ export type UninstallAgentHooksResult =
   | { status: "uninstalled" }
   | { status: "not-installed" }
   | { status: "error"; message: string };
-
-export interface PersistedSettings {
-  workspaces: Array<Omit<Workspace, "notifications">>;
-  activeWorkspaceId: string | null;
-  sidebarWidth?: number;
-  appearance?: AppearanceSettings;
-  notificationSettings?: NotificationSettings;
-  updateSettings?: UpdateSettings;
-  terminalSettings?: TerminalSettings;
-}
 
 export interface AppState {
   workspaces: Workspace[];

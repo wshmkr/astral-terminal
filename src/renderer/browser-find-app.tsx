@@ -1,14 +1,11 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type {
-  AppearanceSettings,
-  BrowserFindOptions,
-  BrowserFindResult,
-} from "../shared/types";
+import type { AppearanceSettings } from "../shared/settings-schema";
+import type { BrowserFindOptions, BrowserFindResult } from "../shared/types";
 import type { FindController, FindMatches } from "./components/Find/FindBar";
 import { FindBar } from "./components/Find/FindBar";
-import { DEFAULT_APPEARANCE, normalizeAppearance } from "./store/appearance";
+import { DEFAULT_APPEARANCE } from "./store/appearance";
 import { buildTheme, resolveColorScheme } from "./theme";
 import { resolveAccentHex } from "./theme/accent-colors";
 
@@ -90,7 +87,7 @@ export function BrowserFindApp() {
 
   useEffect(() => {
     void window.app.readSettings().then((s) => {
-      setAppearance(normalizeAppearance(s?.appearance));
+      setAppearance({ ...DEFAULT_APPEARANCE, ...(s?.appearance ?? {}) });
     });
   }, []);
 

@@ -1,5 +1,5 @@
 import { createTheme, type PaletteOptions } from "@mui/material/styles";
-import type { AppThemeId } from "../../shared/types";
+import type { AppThemeId } from "../../shared/settings-schema";
 import {
   APP_PALETTES,
   type AppPalette,

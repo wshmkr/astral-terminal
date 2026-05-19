@@ -1,4 +1,5 @@
-import type { AppState, PersistedSettings } from "../../shared/types";
+import type { PersistedSettings } from "../../shared/settings-schema";
+import type { AppState } from "../../shared/types";
 
 export function saveState(state: AppState): void {
   const persisted: PersistedSettings = {
