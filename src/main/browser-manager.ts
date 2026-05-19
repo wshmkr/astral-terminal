@@ -17,6 +17,7 @@ import {
   openInSystemBrowser,
   showLinkContextMenu,
 } from "./external-links";
+import { createFadeController } from "./fade-controller";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
@@ -48,14 +49,13 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
   );
 }
 
-const DIM_SHOW_CLASS = "show";
 const DIM_HTML =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
     `<style>
       html,body { margin:0; height:100%; background:transparent; }
       body { opacity:0; transition:opacity ${SETTINGS_FADE_MS}ms ${SETTINGS_FADE_EASING}; background:rgba(0,0,0,0.5); }
-      body.${DIM_SHOW_CLASS} { opacity:1; }
+      body.show { opacity:1; }
     </style>`,
   );
 
@@ -82,6 +82,7 @@ export class BrowserManager {
   private dimView: WebContentsView | null = null;
   private dimVisible = false;
   private dimReady = false;
+  private dimFade = createFadeController(SETTINGS_FADE_MS);
 
   constructor(
     private readonly window: BrowserWindow,
@@ -125,11 +126,9 @@ export class BrowserManager {
 
   private applyDimClass(): void {
     if (!this.dimView || !this.dimReady) return;
-    const op = this.dimVisible ? "add" : "remove";
     this.dimView.webContents
       .executeJavaScript(
-        `requestAnimationFrame(() => document.body.classList.${op}('${DIM_SHOW_CLASS}'))`,
-        true,
+        `document.body.classList.toggle('show', ${this.dimVisible})`,
       )
       .catch(() => {});
   }
@@ -279,6 +278,7 @@ export class BrowserManager {
     if (this.dimVisible === dimmed) return;
     this.dimVisible = dimmed;
     if (dimmed) {
+      this.dimFade.cancelPendingHide();
       const view = this.ensureDimView();
       this.applyDimBounds();
       this.bringDimToTop();
@@ -288,9 +288,7 @@ export class BrowserManager {
       const view = this.dimView;
       if (!view) return;
       this.applyDimClass();
-      setTimeout(() => {
-        if (!this.dimVisible) view.setVisible(false);
-      }, SETTINGS_FADE_MS);
+      this.dimFade.scheduleHide(() => view.setVisible(false));
     }
   }
 

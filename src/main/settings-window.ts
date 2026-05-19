@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 import { IPC, SETTINGS_FADE_MS, type SettingsState } from "../shared/types";
 import { createChildPanelWindow } from "./child-panel-window";
+import { createFadeController } from "./fade-controller";
 
 const PANEL_WIDTH = 760;
 const PANEL_HEIGHT = 520;
@@ -13,7 +14,7 @@ let settingsWindow: BrowserWindow | null = null;
 let settingsReady = false;
 let pendingState: SettingsState | null = null;
 let pendingShow = false;
-let fadeToken = 0;
+const fade = createFadeController(SETTINGS_FADE_MS);
 const visibilityListeners = new Set<VisibilityListener>();
 
 function sendFade(visible: boolean): void {
@@ -57,7 +58,7 @@ function applyZoom(parent: BrowserWindow, zoom: number): void {
 
 function placeAndShow(parent: BrowserWindow): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
-  ++fadeToken;
+  fade.cancelPendingHide();
   applyZoom(parent, parent.webContents.getZoomFactor());
   settingsWindow.show();
   settingsWindow.focus();
@@ -128,13 +129,11 @@ export function hideSettingsWindow(): void {
   if (!settingsWindow || settingsWindow.isDestroyed()) return;
   if (!settingsWindow.isVisible()) return;
   const win = settingsWindow;
-  const myToken = ++fadeToken;
   emitVisibility(false);
   sendFade(false);
-  setTimeout(() => {
-    if (myToken !== fadeToken || win.isDestroyed()) return;
-    win.hide();
-  }, SETTINGS_FADE_MS);
+  fade.scheduleHide(() => {
+    if (!win.isDestroyed()) win.hide();
+  });
 }
 
 export function setSettingsState(state: SettingsState): void {
