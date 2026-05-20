@@ -82,11 +82,11 @@ export function buildSearchUrl(
   if (settings.searchEngineId === "custom") {
     const tpl = settings.customSearchUrl;
     if (tpl.includes("%s") && HTTP_URL_RE.test(tpl)) {
-      return tpl.replace("%s", encoded);
+      return tpl.replaceAll("%s", encoded);
     }
-    return SEARCH_ENGINE_TEMPLATES.google.replace("%s", encoded);
+    return SEARCH_ENGINE_TEMPLATES.google.replaceAll("%s", encoded);
   }
-  return SEARCH_ENGINE_TEMPLATES[settings.searchEngineId].replace(
+  return SEARCH_ENGINE_TEMPLATES[settings.searchEngineId].replaceAll(
     "%s",
     encoded,
   );
