@@ -35,8 +35,6 @@ export const FONT_BY_ID = Object.fromEntries(
 
 export const MONO_FONT_STACK = FONT_BY_ID["jetbrains-mono"].stack;
 
-export const MIN_FONT_SIZE = 10;
-export const MAX_FONT_SIZE = 24;
 export const DEFAULT_FONT_SIZE = 16;
 
 export interface UiScaleOption {
@@ -54,5 +52,3 @@ export const UI_SCALE_OPTIONS: UiScaleOption[] = [
 ];
 
 export const DEFAULT_UI_SCALE = 1.0;
-export const MIN_UI_SCALE = 0.8;
-export const MAX_UI_SCALE = 1.5;

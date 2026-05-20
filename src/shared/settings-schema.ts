@@ -35,11 +35,10 @@ export type TerminalThemeId = z.infer<typeof TerminalThemeIdSchema>;
 export type FontFamilyId = z.infer<typeof FontFamilyIdSchema>;
 export type AccentColorId = z.infer<typeof AccentColorIdSchema>;
 
-// Numeric bounds must stay in sync with src/renderer/theme/fonts.ts constants.
-const FONT_SIZE_MIN = 10;
-const FONT_SIZE_MAX = 24;
-const UI_SCALE_MIN = 0.8;
-const UI_SCALE_MAX = 1.5;
+export const MIN_FONT_SIZE = 10;
+export const MAX_FONT_SIZE = 24;
+export const MIN_UI_SCALE = 0.8;
+export const MAX_UI_SCALE = 1.5;
 
 // Surface: simple discriminated union.
 
@@ -140,8 +139,8 @@ const AppearanceSchema = tolerantPartial({
   appThemeId: AppThemeIdSchema,
   terminalThemeId: TerminalThemeIdSchema,
   fontFamily: FontFamilyIdSchema,
-  fontSize: z.number().min(FONT_SIZE_MIN).max(FONT_SIZE_MAX),
-  uiScale: z.number().min(UI_SCALE_MIN).max(UI_SCALE_MAX),
+  fontSize: z.number().min(MIN_FONT_SIZE).max(MAX_FONT_SIZE),
+  uiScale: z.number().min(MIN_UI_SCALE).max(MAX_UI_SCALE),
   accentColorId: AccentColorIdSchema,
 });
 
