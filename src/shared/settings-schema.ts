@@ -38,10 +38,8 @@ export type AccentColorId = z.infer<typeof AccentColorIdSchema>;
 // Numeric bounds must stay in sync with src/renderer/theme/fonts.ts constants.
 const FONT_SIZE_MIN = 10;
 const FONT_SIZE_MAX = 24;
-const FONT_SIZE_DEFAULT = 16;
 const UI_SCALE_MIN = 0.8;
 const UI_SCALE_MAX = 1.5;
-const UI_SCALE_DEFAULT = 1;
 
 // Surface: simple discriminated union.
 
@@ -65,6 +63,26 @@ function dropInvalid<T extends z.ZodTypeAny>(item: T) {
   return z
     .array(item.catch(null as never))
     .transform((arr) => arr.filter((x): x is z.infer<T> => x !== null));
+}
+
+// Per-field tolerance: every field becomes optional and catches its own errors
+// to undefined; undefined keys are stripped from output so a spread over a
+// defaults object won't clobber them. Adding a new field to the shape inherits
+// this tolerance automatically — there is no per-field discipline to forget.
+// The full (resolved) type is recovered with `Required<z.infer<...>>`.
+function tolerantPartial<S extends z.ZodRawShape>(shape: S) {
+  type Out = { [K in keyof S]?: z.infer<S[K]> };
+  const tolerantShape: Record<string, z.ZodTypeAny> = {};
+  for (const [key, field] of Object.entries(shape)) {
+    tolerantShape[key] = (field as z.ZodTypeAny).optional().catch(undefined);
+  }
+  return z.object(tolerantShape).transform((obj): Out => {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined) out[k] = v;
+    }
+    return out as Out;
+  });
 }
 
 // PaneNode: recursive discriminated union with shape-correcting transforms.
@@ -113,37 +131,31 @@ const SplitPaneSchema = z
       o.sizes && o.sizes.length === o.children.length ? o.sizes : undefined,
   }));
 
-// Settings sub-schemas. Each leaf field catches to a default so invalid values
-// degrade in place rather than dropping the whole object.
+// Settings sub-schemas. Built via `tolerantPartial` so the result is a Partial
+// of the resolved type: invalid or missing fields are dropped, and the renderer
+// fills in the rest by spreading over its DEFAULT_* constants. The defaults
+// (not the schemas) own the canonical resolved values.
 
-const AppearanceSchema = z.object({
-  appThemeId: AppThemeIdSchema.catch("dark"),
-  terminalThemeId: TerminalThemeIdSchema.catch("one-half-dark"),
-  fontFamily: FontFamilyIdSchema.catch("jetbrains-mono"),
-  fontSize: z
-    .number()
-    .min(FONT_SIZE_MIN)
-    .max(FONT_SIZE_MAX)
-    .catch(FONT_SIZE_DEFAULT),
-  uiScale: z
-    .number()
-    .min(UI_SCALE_MIN)
-    .max(UI_SCALE_MAX)
-    .catch(UI_SCALE_DEFAULT),
-  accentColorId: AccentColorIdSchema.catch("blue"),
+const AppearanceSchema = tolerantPartial({
+  appThemeId: AppThemeIdSchema,
+  terminalThemeId: TerminalThemeIdSchema,
+  fontFamily: FontFamilyIdSchema,
+  fontSize: z.number().min(FONT_SIZE_MIN).max(FONT_SIZE_MAX),
+  uiScale: z.number().min(UI_SCALE_MIN).max(UI_SCALE_MAX),
+  accentColorId: AccentColorIdSchema,
 });
 
-const NotificationSettingsSchema = z.object({
-  soundEnabled: z.boolean().catch(false),
-  osNotificationsEnabled: z.boolean().catch(false),
+const NotificationSettingsSchema = tolerantPartial({
+  soundEnabled: z.boolean(),
+  osNotificationsEnabled: z.boolean(),
 });
 
-const UpdateSettingsSchema = z.object({
-  autoEnabled: z.boolean().catch(true),
+const UpdateSettingsSchema = tolerantPartial({
+  autoEnabled: z.boolean(),
 });
 
-const TerminalSettingsSchema = z.object({
-  wslDistro: z.string().nullable().catch(null),
+const TerminalSettingsSchema = tolerantPartial({
+  wslDistro: z.string().nullable(),
 });
 
 const WorkspaceSchema = z.object({
@@ -162,8 +174,14 @@ export const PersistedSettingsSchema = z.object({
   terminalSettings: TerminalSettingsSchema.optional().catch(undefined),
 });
 
-export type AppearanceSettings = z.infer<typeof AppearanceSchema>;
-export type NotificationSettings = z.infer<typeof NotificationSettingsSchema>;
-export type UpdateSettings = z.infer<typeof UpdateSettingsSchema>;
-export type TerminalSettings = z.infer<typeof TerminalSettingsSchema>;
+// The schemas produce Partial<...>; the in-memory/state types are the full
+// resolved shape, recovered with Required<>. DEFAULT_* constants in the
+// renderer must satisfy these (compile-time enforced), so adding a new field
+// to a schema shape forces a default to be added too.
+export type AppearanceSettings = Required<z.infer<typeof AppearanceSchema>>;
+export type NotificationSettings = Required<
+  z.infer<typeof NotificationSettingsSchema>
+>;
+export type UpdateSettings = Required<z.infer<typeof UpdateSettingsSchema>>;
+export type TerminalSettings = Required<z.infer<typeof TerminalSettingsSchema>>;
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>;
