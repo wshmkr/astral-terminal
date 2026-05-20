@@ -5,7 +5,8 @@ import { createRoot } from "react-dom/client";
 import type { UpdateState, UpdateStatus } from "../shared/types";
 import { App } from "./App";
 import { BrowserFindApp } from "./browser-find-app";
-import { NotificationsApp } from "./notifications-app";
+import { NotificationsApp } from "./notifications-window/app";
+import { startNotificationsHost } from "./notifications-window/host";
 import { SettingsApp } from "./settings-window/app";
 import { startSettingsHost } from "./settings-window/host";
 import { patchLocalUpdateStatus } from "./settings-window/store";
@@ -94,6 +95,7 @@ function mountMainApp(rootEl: HTMLElement) {
   bootStore()
     .then(() => {
       window.app.setUiZoom(getState().appearance.uiScale);
+      startNotificationsHost();
       startSettingsHost();
       if (import.meta.env.DEV) installMainDevHelpers();
       createRoot(rootEl).render(<ThemedApp />);

@@ -16,7 +16,7 @@ import {
   isBrowserCommand,
   type NotificationFirePayload,
   type NotificationPanelAction,
-  type NotificationPanelItem,
+  type NotificationPanelState,
   type PersistedSettings,
   ptyCwdChannel,
   ptyDataChannel,
@@ -42,7 +42,7 @@ import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
 import {
   hideNotificationPanel,
   openNotificationPanel,
-  setNotificationPanelItems,
+  setNotificationPanelState,
 } from "./notification-window";
 import type { PtyManager } from "./pty-manager";
 import { loadSettings, saveSettings } from "./settings-store";
@@ -220,21 +220,21 @@ export function registerNotificationIpc({ getMainWindow }: WindowDeps): void {
     },
   );
 
-  ipcMain.on(
-    IPC.notification.setPanelItems,
-    (_event, msg: { items: NotificationPanelItem[] }) => {
-      setNotificationPanelItems(msg.items);
-    },
-  );
-
   ipcMain.on(IPC.notification.closePanel, () => {
     hideNotificationPanel();
   });
 
   ipcMain.on(
-    IPC.notification.panelAction,
+    IPC.notification.statePublish,
+    (_event, state: NotificationPanelState) => {
+      setNotificationPanelState(state);
+    },
+  );
+
+  ipcMain.on(
+    IPC.notification.action,
     (_event, action: NotificationPanelAction) => {
-      getMainWindow()?.webContents.send(IPC.notification.panelAction, action);
+      getMainWindow()?.webContents.send(IPC.notification.action, action);
     },
   );
 }

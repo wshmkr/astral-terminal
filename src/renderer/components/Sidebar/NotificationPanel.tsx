@@ -3,21 +3,7 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { VscBell } from "react-icons/vsc";
-import type {
-  Notification,
-  NotificationPanelItem,
-  Workspace,
-} from "../../../shared/types";
-import {
-  clearNotifications,
-  dismissNotification,
-  formatNotificationDisplay,
-  markNotificationRead,
-  setActiveSurface,
-  setActiveWorkspace,
-  unreadCount,
-  useWorkspaceStore,
-} from "../../store";
+import { unreadCount, useWorkspaceStore } from "../../store";
 
 const BELL_BUTTON_SX = { color: "text.disabled" } as const;
 
@@ -30,73 +16,21 @@ const BADGE_SX = {
   },
 } as const;
 
-function toPanelItem(n: Notification): NotificationPanelItem {
-  const { title, body } = formatNotificationDisplay(n);
-  return {
-    id: n.id,
-    workspaceId: n.workspaceId,
-    paneId: n.paneId,
-    surfaceId: n.surfaceId,
-    read: n.read,
-    timestamp: n.timestamp,
-    title,
-    body,
-  };
-}
-
-function buildItems(workspaces: Workspace[]): NotificationPanelItem[] {
-  return workspaces
-    .flatMap((w) => w.notifications)
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .map(toPanelItem);
-}
-
 export function NotificationPanel() {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const wasOpenAtMouseDownRef = useRef(false);
   const [open, setOpen] = useState(false);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
-  const workspacesRef = useRef(workspaces);
-  workspacesRef.current = workspaces;
 
   const totalUnread = useMemo(
     () => workspaces.reduce((n, w) => n + unreadCount(w), 0),
     [workspaces],
   );
 
-  const items = useMemo(
-    () => (open ? buildItems(workspaces) : []),
-    [open, workspaces],
-  );
-
-  useEffect(() => {
-    if (open) window.app.setNotificationPanelItems(items);
-  }, [open, items]);
-
   useEffect(
     () =>
       window.app.onNotificationPanelClosed(() => {
         setOpen(false);
-      }),
-    [],
-  );
-
-  useEffect(
-    () =>
-      window.app.onNotificationPanelAction((action) => {
-        if (action.kind === "select") {
-          markNotificationRead(action.workspaceId, action.notifId);
-          setActiveWorkspace(action.workspaceId);
-          setActiveSurface(action.paneId, action.surfaceId);
-          window.app.closeNotificationPanel();
-        } else if (action.kind === "dismiss") {
-          dismissNotification(action.workspaceId, action.notifId);
-        } else {
-          workspacesRef.current.forEach((w) => {
-            clearNotifications(w.id);
-          });
-          window.app.closeNotificationPanel();
-        }
       }),
     [],
   );

@@ -11,7 +11,7 @@ import type {
   ConfigureAgentHooksResult,
   NotificationFirePayload,
   NotificationPanelAction,
-  NotificationPanelItem,
+  NotificationPanelState,
   PersistedSettings,
   ScreenRect,
   SettingsAction,
@@ -103,11 +103,12 @@ export interface AppAPI {
   ) => () => void;
 
   openNotificationPanel: (anchor: ScreenRect) => void;
-  setNotificationPanelItems: (items: NotificationPanelItem[]) => void;
   closeNotificationPanel: () => void;
+  onNotificationPanelOpened: (callback: () => void) => () => void;
   onNotificationPanelClosed: (callback: () => void) => () => void;
-  onNotificationPanelItems: (
-    callback: (items: NotificationPanelItem[]) => void,
+  publishNotificationPanelState: (state: NotificationPanelState) => void;
+  onNotificationPanelStateChanged: (
+    callback: (state: NotificationPanelState) => void,
   ) => () => void;
   sendNotificationPanelAction: (action: NotificationPanelAction) => void;
   onNotificationPanelAction: (
