@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.5.0](https://github.com/wshmkr/astral-terminal/compare/v0.4.0...v0.5.0) (2026-05-19)
+
+
+### Features
+
+* add browser surface with WebContentsView portal ([#33](https://github.com/wshmkr/astral-terminal/issues/33)) ([9db7dbe](https://github.com/wshmkr/astral-terminal/commit/9db7dbe136f1f71df45d83d3bdd043b75517a305))
+* dim everything behind the settings window ([#60](https://github.com/wshmkr/astral-terminal/issues/60)) ([ea6d315](https://github.com/wshmkr/astral-terminal/commit/ea6d315e6f2e739020674551601f24acfd32fc63))
+* expand theme catalog ([#54](https://github.com/wshmkr/astral-terminal/issues/54)) ([8dc8d29](https://github.com/wshmkr/astral-terminal/commit/8dc8d29d384e46a9e719b9bb02894d1089ba47df))
+* fade settings window and dim in/out ([#61](https://github.com/wshmkr/astral-terminal/issues/61)) ([9e0c0bc](https://github.com/wshmkr/astral-terminal/commit/9e0c0bccc62d33cd944cbe1ec22c7632961f0599))
+* fall back to Google search in browser URL bar ([#52](https://github.com/wshmkr/astral-terminal/issues/52)) ([5e914ac](https://github.com/wshmkr/astral-terminal/commit/5e914ac82d1ac21576ed44a089077c01b3027cb7))
+* notifications popover in a frameless window ([#53](https://github.com/wshmkr/astral-terminal/issues/53)) ([a017348](https://github.com/wshmkr/astral-terminal/commit/a017348446a95974bf3800cab9327d66e3a43ef5))
+* route popup and terminal links into the in-app browser ([#50](https://github.com/wshmkr/astral-terminal/issues/50)) ([6b0cd61](https://github.com/wshmkr/astral-terminal/commit/6b0cd619a2e4d640ba193163d5cf0a8065308ce9))
+* settings dialog in a frameless window ([#59](https://github.com/wshmkr/astral-terminal/issues/59)) ([0a82568](https://github.com/wshmkr/astral-terminal/commit/0a82568b67aa058a362f929a22471b0dbffcb722))
+* tie browser surface to terminal theme ([#51](https://github.com/wshmkr/astral-terminal/issues/51)) ([8dab0fa](https://github.com/wshmkr/astral-terminal/commit/8dab0fa9e70c2fd2d53f2d3b5dc89556dc78bdbd))
+* WSL distro picker ([#63](https://github.com/wshmkr/astral-terminal/issues/63)) ([145ee45](https://github.com/wshmkr/astral-terminal/commit/145ee45fe12a814723ae1f2be3cc5ea0be5ba9ae))
+
+
+### Bug Fixes
+
+* keep titlebar lit when browser surface holds focus ([#55](https://github.com/wshmkr/astral-terminal/issues/55)) ([f619111](https://github.com/wshmkr/astral-terminal/commit/f619111b96b398eff7f810a1f46f441b484bc237))
+* scale browser overlay offsets by ui zoom ([#62](https://github.com/wshmkr/astral-terminal/issues/62)) ([f77fea6](https://github.com/wshmkr/astral-terminal/commit/f77fea654639e98bde07ebff166dad86dd705505))
+
+
+### Performance
+
+* speed up cold start with many surfaces ([#28](https://github.com/wshmkr/astral-terminal/issues/28)) ([b20c4b2](https://github.com/wshmkr/astral-terminal/commit/b20c4b2eafc2837fd4dc3a7f3ed02cd4474b000d))
+
 ## [0.4.0](https://github.com/wshmkr/astral-terminal/compare/v0.3.0...v0.4.0) (2026-05-13)
 
 

@@ -4,7 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { useEffect, useMemo } from "react";
 import { NotificationPanelBody } from "../components/Sidebar/NotificationPanelBody";
 import { resolveAccentHex } from "../theme/accent-colors";
-import { buildTheme } from "../theme/index";
+import { buildTheme, resolveColorScheme } from "../theme/index";
 import { ROOT_SX } from "./app.styles";
 import {
   clearAll,
@@ -34,12 +34,12 @@ export function NotificationsApp() {
   const accentColorId = state?.appearance.accentColorId ?? "blue";
 
   const theme = useMemo(
-    () => buildTheme(resolveAccentHex(accentColorId)),
-    [accentColorId],
+    () => buildTheme(resolveAccentHex(accentColorId), appThemeId),
+    [accentColorId, appThemeId],
   );
 
   return (
-    <ThemeProvider theme={theme} defaultMode={appThemeId}>
+    <ThemeProvider theme={theme} defaultMode={resolveColorScheme(appThemeId)}>
       <CssBaseline />
       <Box sx={ROOT_SX}>
         {state && (

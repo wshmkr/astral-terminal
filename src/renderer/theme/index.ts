@@ -1,4 +1,5 @@
 import { createTheme, type PaletteOptions } from "@mui/material/styles";
+import type { AppThemeId } from "../../shared/types";
 import {
   APP_PALETTES,
   type AppPalette,
@@ -31,13 +32,19 @@ function paletteFromApp(p: AppPalette): PaletteOptions {
   };
 }
 
-export function buildTheme(accentHex: string) {
+export function resolveColorScheme(id: AppThemeId): "dark" | "light" {
+  return id === "light" ? "light" : "dark";
+}
+
+export function buildTheme(accentHex: string, appThemeId: AppThemeId) {
+  const darkPalette =
+    appThemeId === "black" ? APP_PALETTES.black : APP_PALETTES.dark;
   return createTheme({
     cssVariables: { colorSchemeSelector: "data-mui-color-scheme" },
     defaultColorScheme: "dark",
     colorSchemes: {
       dark: {
-        palette: paletteFromApp(withAccent(APP_PALETTES.dark, accentHex)),
+        palette: paletteFromApp(withAccent(darkPalette, accentHex)),
       },
       light: {
         palette: paletteFromApp(withAccent(APP_PALETTES.light, accentHex)),

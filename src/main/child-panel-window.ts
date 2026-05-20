@@ -10,6 +10,7 @@ interface ChildPanelOptions {
   hash: string;
   width: number;
   height: number;
+  transparent?: boolean;
 }
 
 export function createChildPanelWindow({
@@ -17,12 +18,15 @@ export function createChildPanelWindow({
   hash,
   width,
   height,
+  transparent,
 }: ChildPanelOptions): BrowserWindow {
   const win = new BrowserWindow({
     width,
     height,
     show: false,
     frame: false,
+    transparent,
+    backgroundColor: transparent ? "#00000000" : undefined,
     skipTaskbar: true,
     resizable: false,
     movable: false,

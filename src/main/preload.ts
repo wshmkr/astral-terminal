@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import type {
   BrowserAnchorOffsets,
   BrowserCommand,
+  BrowserFindOptions,
+  BrowserFindResult,
   BrowserOpenNewTabPayload,
   BrowserState,
   ConfigureAgentHooksResult,
@@ -13,6 +15,7 @@ import type {
   SettingsAction,
   SettingsState,
   UninstallAgentHooksResult,
+  UpdateStatus,
 } from "../shared/types";
 import {
   browserStateChannel,
@@ -56,7 +59,9 @@ contextBridge.exposeInMainWorld("app", {
     surfaceId: string;
     cols?: number;
     rows?: number;
+    wslDistro?: string | null;
   }) => ipcRenderer.invoke(IPC.pty.create, options),
+  listWslDistros: () => ipcRenderer.invoke(IPC.wsl.listDistros),
   writePty: (ptyId: string, data: string) =>
     ipcRenderer.send(IPC.pty.write, { ptyId, data }),
   resizePty: (ptyId: string, cols: number, rows: number) =>
@@ -140,6 +145,8 @@ contextBridge.exposeInMainWorld("app", {
     subscribe<[SettingsAction]>(IPC.settings.actionApply, callback),
   publishSettingsState: (state: SettingsState) =>
     ipcRenderer.send(IPC.settings.statePublish, state),
+  onSettingsFade: (callback: (visible: boolean) => void) =>
+    subscribe<[boolean]>(IPC.settings.fade, callback),
   invokeSettingsAgentHook: (params: {
     providerName: string;
     enabled: boolean;
@@ -171,4 +178,23 @@ contextBridge.exposeInMainWorld("app", {
   onBrowserOpenNewTab: (
     callback: (payload: BrowserOpenNewTabPayload) => void,
   ) => subscribe<[BrowserOpenNewTabPayload]>(IPC.browser.openNewTab, callback),
+
+  readUpdateStatus: (): Promise<UpdateStatus> =>
+    ipcRenderer.invoke(IPC.update.getStatus),
+  requestUpdateCheck: (): Promise<void> => ipcRenderer.invoke(IPC.update.check),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.update.install),
+  onUpdateStatus: (callback: (status: UpdateStatus) => void) =>
+    subscribe<[UpdateStatus]>(IPC.update.status, callback),
+
+  browserFindRequest: (surfaceId: string, opts: BrowserFindOptions) =>
+    ipcRenderer.send(IPC.browser.findRequest, { surfaceId, opts }),
+  browserFindStop: (surfaceId: string) =>
+    ipcRenderer.send(IPC.browser.findStop, { surfaceId }),
+  closeBrowserFindWindow: () => ipcRenderer.send(IPC.browser.closeFindWindow),
+  onBrowserFindTargetChanged: (
+    callback: (payload: { surfaceId: string }) => void,
+  ) =>
+    subscribe<[{ surfaceId: string }]>(IPC.browser.findTargetChanged, callback),
+  onBrowserFindResult: (callback: (result: BrowserFindResult) => void) =>
+    subscribe<[BrowserFindResult]>(IPC.browser.findResultChanged, callback),
 });

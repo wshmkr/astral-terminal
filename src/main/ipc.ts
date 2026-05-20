@@ -11,6 +11,7 @@ import {
   type AppConfig,
   type BrowserAnchorOffsets,
   type BrowserCommand,
+  type BrowserFindOptions,
   IPC,
   isBrowserCommand,
   type NotificationFirePayload,
@@ -30,6 +31,12 @@ import {
   getAgentHookStatus,
   uninstallAgentHooks,
 } from "./agent-hooks/installer";
+import {
+  checkForUpdatesNow,
+  getUpdateStatus,
+  quitAndInstall,
+} from "./auto-update";
+import { hideBrowserFindWindow } from "./browser-find-window";
 import type { BrowserManager } from "./browser-manager";
 import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
 import {
@@ -46,6 +53,7 @@ import {
   setSettingsState,
 } from "./settings-window";
 import { focusMainWindow } from "./window";
+import { listWslDistros } from "./wsl-distros";
 
 interface PtyDeps {
   getPtyManager: () => Promise<PtyManager>;
@@ -69,6 +77,7 @@ export function registerPtyIpc({
         surfaceId: string;
         cols?: number;
         rows?: number;
+        wslDistro?: string | null;
       },
     ) => {
       if (!isValidSurfaceId(options.surfaceId)) {
@@ -80,6 +89,7 @@ export function registerPtyIpc({
         cwd: options.cwd,
         cols: options.cols,
         rows: options.rows,
+        wslDistro: options.wslDistro,
         config: getConfig(),
         callbacks: (ptyId) => ({
           onData: (data) => {
@@ -137,6 +147,8 @@ export function registerPtyIpc({
       m.kill(msg.ptyId);
     });
   });
+
+  ipcMain.handle(IPC.wsl.listDistros, () => listWslDistros());
 }
 
 interface WindowDeps {
@@ -243,6 +255,16 @@ export function registerSettingsIpc(): void {
       applyTerminalThemeNative(settings.appearance?.terminalThemeId);
     },
   );
+}
+
+export function registerUpdateIpc(): void {
+  ipcMain.handle(IPC.update.getStatus, () => getUpdateStatus());
+  ipcMain.handle(IPC.update.check, () => {
+    checkForUpdatesNow();
+  });
+  ipcMain.handle(IPC.update.install, () => {
+    quitAndInstall();
+  });
 }
 
 export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
@@ -386,4 +408,20 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
       browserManager[msg.cmd](ensureSurfaceId(msg.surfaceId));
     },
   );
+
+  ipcMain.on(
+    IPC.browser.findRequest,
+    (_event, msg: { surfaceId: string; opts: BrowserFindOptions }) => {
+      browserManager.findInPage(ensureSurfaceId(msg.surfaceId), msg.opts);
+    },
+  );
+
+  ipcMain.on(IPC.browser.findStop, (_event, msg: { surfaceId: string }) => {
+    browserManager.stopFindInPage(ensureSurfaceId(msg.surfaceId));
+  });
+
+  ipcMain.on(IPC.browser.closeFindWindow, () => {
+    const previousSurfaceId = hideBrowserFindWindow();
+    if (previousSurfaceId) browserManager.focus(previousSurfaceId);
+  });
 }

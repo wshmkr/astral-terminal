@@ -1,5 +1,7 @@
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import CssBaseline from "@mui/material/CssBaseline";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
@@ -7,13 +9,14 @@ import { ThemeProvider } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import { useEffect, useMemo, useState } from "react";
 import { VscChromeClose } from "react-icons/vsc";
-import { APP_VERSION } from "../../shared/meta";
+import { APP_GITHUB_SLUG, APP_VERSION } from "../../shared/meta";
+import { SETTINGS_FADE_EASING, SETTINGS_FADE_MS } from "../../shared/types";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
+import { AstralSection } from "../components/Settings/AstralSection";
 import { NotificationsSection } from "../components/Settings/NotificationsSection";
-import { UpdatesSection } from "../components/Settings/UpdatesSection";
 import { TitleBarButton } from "../components/ui/TitleBarButton";
 import { resolveAccentHex } from "../theme/accent-colors";
-import { buildTheme } from "../theme/index";
+import { buildTheme, resolveColorScheme } from "../theme/index";
 import {
   BODY_SX,
   CONTENT_SX,
@@ -23,22 +26,28 @@ import {
   NAV_LIST_SX,
   NAV_SX,
   ROOT_SX,
+  UPDATE_BADGE_SX,
   VERSION_SX,
+  VERSION_TEXT_SX,
 } from "./app.styles";
 import { setSettingsStoreState, useSettingsState } from "./store";
 
-type SectionId = "appearance" | "notifications" | "updates";
+type SectionId = "appearance" | "notifications" | "astral";
 
 const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
-  { id: "updates", label: "Updates" },
+  { id: "astral", label: "Astral Terminal" },
 ];
+
+const UPDATE_CHECK_THROTTLE_MS = 5 * 60 * 1000;
 
 export function SettingsApp() {
   const state = useSettingsState();
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => window.app.onSettingsStateChanged(setSettingsStoreState), []);
+  useEffect(() => window.app.onSettingsFade(setVisible), []);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -48,20 +57,41 @@ export function SettingsApp() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  const lastCheckedAt = state?.updateStatus.lastCheckedAt ?? null;
+  useEffect(() => {
+    if (!visible) return;
+    if (
+      lastCheckedAt !== null &&
+      Date.now() - lastCheckedAt < UPDATE_CHECK_THROTTLE_MS
+    ) {
+      return;
+    }
+    window.app.requestUpdateCheck().catch((err) => {
+      console.error("Update check failed:", err);
+    });
+  }, [visible, lastCheckedAt]);
+
   const appThemeId = state?.appearance.appThemeId ?? "dark";
   const accentColorId = state?.appearance.accentColorId ?? "blue";
 
   const theme = useMemo(
-    () => buildTheme(resolveAccentHex(accentColorId)),
-    [accentColorId],
+    () => buildTheme(resolveAccentHex(accentColorId), appThemeId),
+    [accentColorId, appThemeId],
   );
 
   const [section, setSection] = useState<SectionId>("appearance");
 
   return (
-    <ThemeProvider theme={theme} defaultMode={appThemeId}>
+    <ThemeProvider theme={theme} defaultMode={resolveColorScheme(appThemeId)}>
       <CssBaseline />
-      <Box sx={ROOT_SX}>
+      <GlobalStyles styles={{ body: { backgroundColor: "transparent" } }} />
+      <Box
+        sx={{
+          ...ROOT_SX,
+          opacity: visible ? 1 : 0,
+          transition: `opacity ${SETTINGS_FADE_MS}ms ${SETTINGS_FADE_EASING}`,
+        }}
+      >
         <Box sx={HEADER_SX}>
           <Typography variant="caption" sx={HEADER_TITLE_SX}>
             Settings
@@ -93,18 +123,33 @@ export function SettingsApp() {
                   </ListItemButton>
                 ))}
               </List>
-              <Typography
-                variant="caption"
-                color="text.disabled"
-                sx={VERSION_SX}
-              >
-                v{APP_VERSION}
-              </Typography>
+              <Box sx={VERSION_SX}>
+                <Typography
+                  variant="caption"
+                  color="text.disabled"
+                  sx={VERSION_TEXT_SX}
+                  onClick={() =>
+                    window.app.openExternal(
+                      `https://github.com/${APP_GITHUB_SLUG}/releases/tag/v${APP_VERSION}`,
+                    )
+                  }
+                >
+                  v{APP_VERSION}
+                </Typography>
+                {state.updateStatus.state === "downloaded" && (
+                  <Chip
+                    label="update ready"
+                    size="small"
+                    onClick={() => setSection("astral")}
+                    sx={UPDATE_BADGE_SX}
+                  />
+                )}
+              </Box>
             </Box>
             <Box sx={CONTENT_SX}>
               {section === "appearance" && <AppearanceSection />}
               {section === "notifications" && <NotificationsSection />}
-              {section === "updates" && <UpdatesSection />}
+              {section === "astral" && <AstralSection />}
             </Box>
           </Box>
         )}

@@ -12,6 +12,7 @@ export function saveState(state: AppState): void {
     appearance: state.appearance,
     notificationSettings: state.notificationSettings,
     updateSettings: state.updateSettings,
+    terminalSettings: state.terminalSettings,
   };
   window.app.writeSettings(persisted).catch((err) => {
     console.error("Failed to save settings:", err);

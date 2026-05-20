@@ -13,7 +13,7 @@ import {
 } from "../../store";
 import { FONT_BY_ID } from "../../theme/fonts";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
-import { FindBar } from "./FindBar";
+import { FindBar } from "../Find/FindBar";
 import { preloadFont, TerminalController } from "./terminal-lifecycle";
 import "@xterm/xterm/css/xterm.css";
 

@@ -6,15 +6,21 @@ import {
 } from "electron";
 import {
   type BrowserAnchorOffsets,
+  type BrowserFindOptions,
+  type BrowserFindResult,
   type BrowserOpenNewTabPayload,
   type BrowserState,
   defaultBrowserState,
+  type ScreenRect,
+  SETTINGS_FADE_EASING,
+  SETTINGS_FADE_MS,
 } from "../shared/types";
 import {
   attachExternalLinkHandler,
   openInSystemBrowser,
   showLinkContextMenu,
 } from "./external-links";
+import { createFadeController } from "./fade-controller";
 
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
@@ -27,6 +33,7 @@ interface Entry {
   visible: boolean;
   disposed: boolean;
   shiftHeld: boolean;
+  pendingFaviconUrl: string | null;
 }
 
 function readNavState(
@@ -42,8 +49,86 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
     a.title === b.title &&
     a.isLoading === b.isLoading &&
     a.canGoBack === b.canGoBack &&
-    a.canGoForward === b.canGoForward
+    a.canGoForward === b.canGoForward &&
+    a.favicon === b.favicon
   );
+}
+
+const DIM_HTML =
+  "data:text/html;charset=utf-8," +
+  encodeURIComponent(
+    `<style>
+      html,body { margin:0; height:100%; background:transparent; }
+      body { opacity:0; transition:opacity ${SETTINGS_FADE_MS}ms ${SETTINGS_FADE_EASING}; background:rgba(0,0,0,0.5); }
+      body.show { opacity:1; }
+    </style>`,
+  );
+
+const MAX_FAVICON_BYTES = 256 * 1024;
+const FAVICON_SCHEMES = new Set(["http:", "https:", "data:"]);
+const FAVICON_CACHE_MAX = 64;
+const originFaviconCache = new Map<string, string>();
+
+function httpOrigin(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function getOriginFavicon(pageUrl: string): string | null {
+  const origin = httpOrigin(pageUrl);
+  if (!origin) return null;
+  const hit = originFaviconCache.get(origin);
+  if (hit === undefined) return null;
+  originFaviconCache.delete(origin);
+  originFaviconCache.set(origin, hit);
+  return hit;
+}
+
+function setOriginFavicon(pageUrl: string, dataUrl: string): void {
+  const origin = httpOrigin(pageUrl);
+  if (!origin) return;
+  if (originFaviconCache.has(origin)) originFaviconCache.delete(origin);
+  originFaviconCache.set(origin, dataUrl);
+  if (originFaviconCache.size > FAVICON_CACHE_MAX) {
+    const oldest = originFaviconCache.keys().next().value;
+    if (oldest !== undefined) originFaviconCache.delete(oldest);
+  }
+}
+
+async function fetchFaviconDataUrl(url: string): Promise<string | null> {
+  let scheme: string;
+  try {
+    scheme = new URL(url).protocol;
+  } catch {
+    return null;
+  }
+  if (!FAVICON_SCHEMES.has(scheme)) return null;
+  if (scheme === "data:") return url;
+  try {
+    const response = await session.fromPartition(BROWSER_PARTITION).fetch(url);
+    if (!response.ok) {
+      console.warn(`[browser] favicon fetch ${response.status} for ${url}`);
+      return null;
+    }
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_FAVICON_BYTES) {
+      return null;
+    }
+    const mime =
+      response.headers.get("content-type")?.split(";")[0]?.trim() ||
+      "image/x-icon";
+    const base64 = Buffer.from(buffer).toString("base64");
+    return `data:${mime};base64,${base64}`;
+  } catch (err) {
+    console.warn(`[browser] favicon fetch failed for ${url}:`, err);
+    return null;
+  }
 }
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
@@ -62,10 +147,30 @@ function normalizeUrl(raw: string): string {
 export interface BrowserManagerCallbacks {
   onState: (surfaceId: string, state: BrowserState) => void;
   onOpenNewTab: (payload: BrowserOpenNewTabPayload) => void;
+  onFindRequested: (surfaceId: string, anchor: ScreenRect) => void;
+  onFindResult: (surfaceId: string, result: BrowserFindResult) => void;
+  onSurfaceHidden: (surfaceId: string) => void;
+  onSurfaceAnchorChanged: (surfaceId: string, anchor: ScreenRect) => void;
+}
+
+function offsetsEqual(
+  a: BrowserAnchorOffsets,
+  b: BrowserAnchorOffsets,
+): boolean {
+  return (
+    a.left === b.left &&
+    a.top === b.top &&
+    a.right === b.right &&
+    a.bottom === b.bottom
+  );
 }
 
 export class BrowserManager {
   private entries = new Map<string, Entry>();
+  private dimView: WebContentsView | null = null;
+  private dimVisible = false;
+  private dimReady = false;
+  private dimFade = createFadeController(SETTINGS_FADE_MS);
 
   constructor(
     private readonly window: BrowserWindow,
@@ -75,12 +180,57 @@ export class BrowserManager {
       for (const entry of this.entries.values()) {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
+      if (this.dimVisible) this.applyDimBounds();
     };
     this.window.on("resize", reapplyAll);
     this.window.on("maximize", reapplyAll);
     this.window.on("unmaximize", reapplyAll);
     this.window.on("enter-full-screen", reapplyAll);
     this.window.on("leave-full-screen", reapplyAll);
+  }
+
+  private ensureDimView(): WebContentsView {
+    if (this.dimView) return this.dimView;
+    const view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+    view.setBackgroundColor("#00000000");
+    view.setVisible(false);
+    view.webContents.once("did-finish-load", () => {
+      this.dimReady = true;
+      this.applyDimClass();
+    });
+    view.webContents.loadURL(DIM_HTML).catch((err) => {
+      console.error("[browser] dim loadURL failed:", err);
+    });
+    this.window.contentView.addChildView(view);
+    this.dimView = view;
+    return view;
+  }
+
+  private applyDimClass(): void {
+    if (!this.dimView || !this.dimReady) return;
+    this.dimView.webContents
+      .executeJavaScript(
+        `document.body.classList.toggle('show', ${this.dimVisible})`,
+      )
+      .catch(() => {});
+  }
+
+  private applyDimBounds(): void {
+    if (!this.dimView) return;
+    const { width, height } = this.window.getContentBounds();
+    this.dimView.setBounds({ x: 0, y: 0, width, height });
+  }
+
+  private bringDimToTop(): void {
+    if (!this.dimView) return;
+    this.window.contentView.removeChildView(this.dimView);
+    this.window.contentView.addChildView(this.dimView);
   }
 
   create(surfaceId: string, url: string): void {
@@ -97,6 +247,7 @@ export class BrowserManager {
     view.setVisible(false);
     view.setBackgroundColor("#00000000");
     this.window.contentView.addChildView(view);
+    if (this.dimVisible) this.bringDimToTop();
 
     const wc = view.webContents;
     const entry: Entry = {
@@ -106,6 +257,7 @@ export class BrowserManager {
       visible: false,
       disposed: false,
       shiftHeld: false,
+      pendingFaviconUrl: null,
     };
     this.entries.set(surfaceId, entry);
 
@@ -121,8 +273,18 @@ export class BrowserManager {
       });
     });
 
-    wc.on("before-input-event", (_event, input) => {
+    wc.on("before-input-event", (event, input) => {
       entry.shiftHeld = input.shift;
+      if (
+        input.type === "keyDown" &&
+        input.control &&
+        !input.shift &&
+        !input.alt &&
+        input.key.toLowerCase() === "f"
+      ) {
+        event.preventDefault();
+        this.callbacks.onFindRequested(surfaceId, this.computeAnchor(entry));
+      }
     });
     wc.on("blur", () => {
       entry.shiftHeld = false;
@@ -154,14 +316,39 @@ export class BrowserManager {
     wc.on("did-stop-loading", () =>
       update({ isLoading: false, ...readNavState(wc) }),
     );
-    wc.on("did-navigate", (_event, url) =>
-      update({ url, ...readNavState(wc) }),
-    );
+    wc.on("did-navigate", (_event, url) => {
+      entry.pendingFaviconUrl = null;
+      update({ url, favicon: getOriginFavicon(url), ...readNavState(wc) });
+      wc.stopFindInPage("clearSelection");
+    });
     wc.on("did-navigate-in-page", (_event, url, isMainFrame) => {
       if (!isMainFrame) return;
       update({ url, ...readNavState(wc) });
     });
     wc.on("page-title-updated", (_event, title) => update({ title }));
+    wc.on("page-favicon-updated", (_event, favicons) => {
+      const url = favicons[0];
+      const pageUrl = wc.getURL();
+      if (!url) {
+        entry.pendingFaviconUrl = null;
+        update({ favicon: null });
+        return;
+      }
+      entry.pendingFaviconUrl = url;
+      fetchFaviconDataUrl(url).then((dataUrl) => {
+        if (entry.disposed || entry.pendingFaviconUrl !== url) return;
+        entry.pendingFaviconUrl = null;
+        if (dataUrl) setOriginFavicon(pageUrl, dataUrl);
+        update({ favicon: dataUrl });
+      });
+    });
+    wc.on("found-in-page", (_event, result) => {
+      this.callbacks.onFindResult(surfaceId, {
+        activeMatchOrdinal: result.activeMatchOrdinal,
+        matches: result.matches,
+        finalUpdate: result.finalUpdate,
+      });
+    });
 
     wc.loadURL(normalizeUrl(url)).catch((err) => {
       console.error("[browser] initial loadURL failed:", err);
@@ -177,6 +364,7 @@ export class BrowserManager {
       this.window.contentView.removeChildView(entry.view);
       entry.view.webContents.close();
     } catch {}
+    this.callbacks.onSurfaceHidden(surfaceId);
   }
 
   destroyAll(): void {
@@ -186,29 +374,44 @@ export class BrowserManager {
   setAnchorOffsets(surfaceId: string, offsets: BrowserAnchorOffsets): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
+    if (entry.offsets && offsetsEqual(entry.offsets, offsets)) return;
     entry.offsets = offsets;
     this.applyBounds(entry);
+    this.callbacks.onSurfaceAnchorChanged(surfaceId, this.computeAnchor(entry));
   }
 
   private applyBounds(entry: Entry): void {
     if (!entry.offsets) return;
-    const { width, height } = this.window.getContentBounds();
-    const { left, top, right, bottom } = entry.offsets;
-    entry.view.setBounds({
-      x: Math.round(left),
-      y: Math.round(top),
-      width: Math.max(0, Math.round(width - left - right)),
-      height: Math.max(0, Math.round(height - top - bottom)),
-    });
+    entry.view.setBounds(this.contentRect(entry.offsets));
   }
 
   setVisible(surfaceId: string, visible: boolean): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
     const wasVisible = entry.visible;
+    if (wasVisible === visible) return;
     entry.visible = visible;
-    if (visible && !wasVisible) this.applyBounds(entry);
+    if (visible) this.applyBounds(entry);
     entry.view.setVisible(visible);
+    if (!visible) this.callbacks.onSurfaceHidden(surfaceId);
+  }
+
+  setDimmed(dimmed: boolean): void {
+    if (this.dimVisible === dimmed) return;
+    this.dimVisible = dimmed;
+    if (dimmed) {
+      this.dimFade.cancelPendingHide();
+      const view = this.ensureDimView();
+      this.applyDimBounds();
+      this.bringDimToTop();
+      view.setVisible(true);
+      this.applyDimClass();
+    } else {
+      const view = this.dimView;
+      if (!view) return;
+      this.applyDimClass();
+      this.dimFade.scheduleHide(() => view.setVisible(false));
+    }
   }
 
   loadURL(surfaceId: string, url: string): void {
@@ -239,5 +442,44 @@ export class BrowserManager {
 
   focus(surfaceId: string): void {
     this.entries.get(surfaceId)?.view.webContents.focus();
+  }
+
+  findInPage(surfaceId: string, opts: BrowserFindOptions): void {
+    const wc = this.entries.get(surfaceId)?.view.webContents;
+    if (!wc) return;
+    if (!opts.text) {
+      wc.stopFindInPage("clearSelection");
+      return;
+    }
+    wc.findInPage(opts.text, {
+      forward: opts.forward,
+      matchCase: opts.matchCase,
+      findNext: opts.findNext,
+    });
+  }
+
+  stopFindInPage(surfaceId: string): void {
+    this.entries
+      .get(surfaceId)
+      ?.view.webContents.stopFindInPage("clearSelection");
+  }
+
+  private computeAnchor(entry: Entry): ScreenRect {
+    if (!entry.offsets) {
+      const { width, height } = this.window.getContentBounds();
+      return { x: 0, y: 0, width, height };
+    }
+    return this.contentRect(entry.offsets);
+  }
+
+  private contentRect(offsets: BrowserAnchorOffsets): ScreenRect {
+    const { width, height } = this.window.getContentBounds();
+    const { left, top, right, bottom } = offsets;
+    return {
+      x: Math.round(left),
+      y: Math.round(top),
+      width: Math.max(0, Math.round(width - left - right)),
+      height: Math.max(0, Math.round(height - top - bottom)),
+    };
   }
 }

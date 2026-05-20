@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   VscArrowLeft,
   VscArrowRight,
@@ -16,8 +16,10 @@ import {
 } from "../../../shared/types";
 import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
 import {
+  clearBrowserFavicon,
   closeSurface,
   renameSurface,
+  setBrowserFavicon,
   setBrowserSurfaceUrl,
   useWorkspaceStore,
 } from "../../store";
@@ -58,9 +60,15 @@ export function BrowserPane({
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
+  const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
   const fg = terminalTheme.foreground;
   const navButtonStyle = useMemo(() => navButtonSx(fg), [fg]);
   const urlInputStyle = useMemo(() => urlInputSx(fg), [fg]);
+
+  useEffect(() => {
+    const id = surface.id;
+    return () => clearBrowserFavicon(id);
+  }, [surface.id]);
 
   const controllerRef = useSurfaceLifecycle<BrowserController>({
     paneId,
@@ -76,12 +84,13 @@ export function BrowserPane({
         anchor,
         onState: (next) => {
           setState(next);
+          setBrowserFavicon(surfaceId, next.favicon);
           if (next.title) {
             renameSurface(
               workspaceId,
               paneIdRef.current,
               surfaceId,
-              `🌐︎ ${next.title}`,
+              next.title,
             );
           }
           if (next.url && next.url !== "about:blank") {
@@ -96,6 +105,11 @@ export function BrowserPane({
       });
     },
   });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: controllerRef is a stable ref
+  useEffect(() => {
+    controllerRef.current?.remeasure();
+  }, [uiScale]);
 
   const submitUrl = () => {
     const draft = urlDraft;

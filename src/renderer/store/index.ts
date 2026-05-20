@@ -8,6 +8,11 @@ export {
   stepUiScale,
 } from "./appearance";
 export {
+  clearBrowserFavicon,
+  setBrowserFavicon,
+  useBrowserFavicon,
+} from "./browser-favicons";
+export {
   getState,
   getWorkspace,
   selectActiveWorkspace,
@@ -37,9 +42,12 @@ export {
   setSidebarWidth,
   setWelcomeOpen,
   setWindowFocused,
+  setWslDistro,
   updateNotificationSettings,
   updateUpdateSettings,
 } from "./preferences";
+
+export { setUpdateStatus } from "./update-status";
 
 export {
   addSurface,

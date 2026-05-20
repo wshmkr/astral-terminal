@@ -22,9 +22,11 @@ import {
   setActiveWorkspace,
   setAgentHook,
   setAgentHookStatuses,
+  setUpdateStatus,
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
+import { resolveColorScheme } from "./theme";
 
 function refreshAgentHookStatuses() {
   window.app
@@ -64,7 +66,7 @@ export function App() {
   const { setMode } = useColorScheme();
 
   useEffect(() => {
-    setMode(appThemeId);
+    setMode(resolveColorScheme(appThemeId));
   }, [appThemeId, setMode]);
 
   useEffect(() => {
@@ -136,6 +138,17 @@ export function App() {
   useEffect(() => {
     const handle = requestIdleCallback(() => refreshAgentHookStatuses());
     return () => cancelIdleCallback(handle);
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.app.onUpdateStatus(setUpdateStatus);
+    window.app
+      .readUpdateStatus()
+      .then(setUpdateStatus)
+      .catch((err) => {
+        console.error("Failed to read update status:", err);
+      });
+    return unsubscribe;
   }, []);
 
   return (

@@ -3,7 +3,7 @@ import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { cloneElement, useEffect, useLayoutEffect, useState } from "react";
 import {
   VscArrowDown,
   VscArrowUp,
@@ -11,22 +11,30 @@ import {
   VscClose,
 } from "react-icons/vsc";
 import { CloseButton } from "../ui/CloseButton";
-import type { FindMatches, TerminalController } from "./terminal-lifecycle";
+
+export interface FindMatches {
+  resultIndex: number;
+  resultCount: number;
+  pending?: boolean;
+}
+
+export interface FindController {
+  findNext(query: string, caseSensitive: boolean): void;
+  findPrevious(query: string, caseSensitive: boolean): void;
+  clearFind(): void;
+  onFindResults(cb: (m: FindMatches | undefined) => void): () => void;
+}
 
 const ICON_SIZE = 16;
 
 interface Props {
-  controller: TerminalController;
+  controller: FindController;
   onClose: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  variant?: "overlay" | "embedded";
 }
 
-const BAR_SX = {
-  position: "absolute",
-  top: 8,
-  right: 16,
-  maxWidth: "calc(100% - 32px)",
-  zIndex: 10,
+const BAR_BASE_SX = {
   display: "flex",
   alignItems: "center",
   gap: 0.5,
@@ -38,6 +46,25 @@ const BAR_SX = {
   border: 1,
   borderColor: "divider",
   minWidth: 0,
+} as const;
+
+const BAR_OVERLAY_SX = {
+  ...BAR_BASE_SX,
+  position: "absolute",
+  top: 8,
+  right: 16,
+  maxWidth: "calc(100% - 32px)",
+  zIndex: 10,
+} as const;
+
+const BAR_EMBEDDED_SX = {
+  ...BAR_BASE_SX,
+  width: "100%",
+  height: "100%",
+  boxSizing: "border-box",
+  borderRadius: 0,
+  boxShadow: "none",
+  borderWidth: 0,
 } as const;
 
 const INPUT_SX = {
@@ -55,7 +82,7 @@ const BUTTON_ACTIVE_SX = { ...BUTTON_BASE_SX, color: "primary.main" } as const;
 
 const preventFocusSteal = (e: React.MouseEvent) => e.preventDefault();
 
-const COUNT_SX = {
+const COUNT_BASE_SX = {
   fontSize: "12px",
   color: "text.disabled",
   width: 64,
@@ -65,7 +92,16 @@ const COUNT_SX = {
   whiteSpace: "nowrap",
   textAlign: "left" as const,
   fontVariantNumeric: "tabular-nums",
+};
+
+const COUNT_OVERLAY_SX = {
+  ...COUNT_BASE_SX,
   "@container (max-width: 460px)": { display: "none" },
+};
+
+const COUNT_EMBEDDED_SX = {
+  ...COUNT_BASE_SX,
+  "@container (max-width: 260px)": { display: "none" },
 };
 
 function getCountLabel(
@@ -73,11 +109,17 @@ function getCountLabel(
   matches: FindMatches | undefined,
 ): string {
   if (!query) return "";
-  if (!matches || matches.resultCount === 0) return "No results";
+  if (!matches) return "";
+  if (matches.resultCount === 0) return matches.pending ? "" : "No results";
   return `${matches.resultIndex + 1} / ${matches.resultCount}`;
 }
 
-export function FindBar({ controller, onClose, inputRef }: Props) {
+export function FindBar({
+  controller,
+  onClose,
+  inputRef,
+  variant = "overlay",
+}: Props) {
   const [query, setQuery] = useState("");
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [matches, setMatches] = useState<FindMatches | undefined>(undefined);
@@ -125,7 +167,7 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
 
   return (
     <Box
-      sx={BAR_SX}
+      sx={variant === "embedded" ? BAR_EMBEDDED_SX : BAR_OVERLAY_SX}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
@@ -137,8 +179,12 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
         placeholder="Find"
         sx={INPUT_SX}
       />
-      <Typography sx={COUNT_SX}>{countLabel}</Typography>
-      <Tooltip title="Match case">
+      <Typography
+        sx={variant === "embedded" ? COUNT_EMBEDDED_SX : COUNT_OVERLAY_SX}
+      >
+        {countLabel}
+      </Typography>
+      <Hint title="Match case" variant={variant}>
         <IconButton
           size="small"
           onClick={() => setCaseSensitive((v) => !v)}
@@ -147,8 +193,8 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
         >
           <VscCaseSensitive size={ICON_SIZE} />
         </IconButton>
-      </Tooltip>
-      <Tooltip title="Previous (Shift+Enter)">
+      </Hint>
+      <Hint title="Previous (Shift+Enter)" variant={variant}>
         <IconButton
           size="small"
           onClick={findPrev}
@@ -157,8 +203,8 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
         >
           <VscArrowUp size={ICON_SIZE} />
         </IconButton>
-      </Tooltip>
-      <Tooltip title="Next (Enter)">
+      </Hint>
+      <Hint title="Next (Enter)" variant={variant}>
         <IconButton
           size="small"
           onClick={findNext}
@@ -167,8 +213,8 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
         >
           <VscArrowDown size={ICON_SIZE} />
         </IconButton>
-      </Tooltip>
-      <Tooltip title="Close (Esc)">
+      </Hint>
+      <Hint title="Close (Esc)" variant={variant}>
         <CloseButton
           size="small"
           onClick={onClose}
@@ -177,7 +223,22 @@ export function FindBar({ controller, onClose, inputRef }: Props) {
         >
           <VscClose size={ICON_SIZE} />
         </CloseButton>
-      </Tooltip>
+      </Hint>
     </Box>
   );
+}
+
+function Hint({
+  title,
+  variant,
+  children,
+}: {
+  title: string;
+  variant: "overlay" | "embedded";
+  children: React.ReactElement<{ title?: string }>;
+}) {
+  if (variant === "embedded") {
+    return cloneElement(children, { title });
+  }
+  return <Tooltip title={title}>{children}</Tooltip>;
 }

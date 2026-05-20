@@ -61,15 +61,19 @@ function resolveCwd(raw: string | undefined, isWindows: boolean): string {
 function buildShellArgs(opts: {
   isWindows: boolean;
   wslCwd: string;
+  wslDistro: string | null;
   startupCommand: string | undefined;
 }): string[] {
-  const { isWindows, wslCwd, startupCommand } = opts;
+  const { isWindows, wslCwd, wslDistro, startupCommand } = opts;
   // biome-ignore lint/suspicious/noTemplateCurlyInString: POSIX shell parameter expansion
   const sh = '"${SHELL:-/bin/sh}"';
   const inner = startupCommand
     ? `exec ${sh} -lic '${startupCommand.replace(/'/g, "'\\''")}; exec ${sh}'`
     : `exec ${sh} -l`;
-  if (isWindows) return ["--cd", wslCwd, "-e", "sh", "-c", inner];
+  if (isWindows) {
+    const distroArgs = wslDistro ? ["-d", wslDistro] : [];
+    return [...distroArgs, "--cd", wslCwd, "-e", "sh", "-c", inner];
+  }
   return ["-c", inner];
 }
 
@@ -84,6 +88,7 @@ export interface CreatePtyOptions {
   cwd?: string;
   cols?: number;
   rows?: number;
+  wslDistro?: string | null;
   config: AppConfig;
   callbacks?: (id: string) => PtyCallbacks;
 }
@@ -231,6 +236,7 @@ export class PtyManager {
     const args = buildShellArgs({
       isWindows,
       wslCwd,
+      wslDistro: opts.wslDistro ?? null,
       startupCommand: resumeCommandFor(restoredAgentSession),
     });
 

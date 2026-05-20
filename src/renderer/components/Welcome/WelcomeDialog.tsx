@@ -1,10 +1,11 @@
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { VscArrowRight } from "react-icons/vsc";
 import {
   agentProviders,
@@ -14,7 +15,9 @@ import type {
   AccentColorId,
   AppThemeId,
   TerminalThemeId,
+  WslDistro,
 } from "../../../shared/types";
+import { loadAppConfig } from "../../app/config-loader";
 import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {
   dismissWelcome,
@@ -22,6 +25,7 @@ import {
   setAgentHook,
   setAppTheme,
   setTerminalTheme,
+  setWslDistro,
   useWorkspaceStore,
 } from "../../store";
 import { resolveAccentHex } from "../../theme/accent-colors";
@@ -97,6 +101,8 @@ const PREVIEW_COL_SX = {
 
 const ALERT_SX = {
   py: 0,
+  textWrap: "balance",
+  alignItems: "center",
   "& .MuiAlert-message": { py: 0.5, fontSize: 12, lineHeight: 1.4 },
   "& .MuiAlert-icon": { mr: 1, py: 0.5 },
 } as const;
@@ -108,6 +114,8 @@ const BUTTON_SX = {
   letterSpacing: "0.05em",
 } as const;
 
+const DEFAULT_DISTRO_VALUE = "__default__";
+
 export function WelcomeDialog() {
   const persistedAppTheme = useWorkspaceStore((s) => s.appearance.appThemeId);
   const persistedTerminalTheme = useWorkspaceStore(
@@ -115,6 +123,9 @@ export function WelcomeDialog() {
   );
   const persistedAccentColor = useWorkspaceStore(
     (s) => s.appearance.accentColorId,
+  );
+  const persistedWslDistro = useWorkspaceStore(
+    (s) => s.terminalSettings.wslDistro,
   );
   const hookStatuses = useWorkspaceStore((s) => s.agentHookStatuses);
   const { toggle, pending, errors } = useAgentHookToggle(setAgentHook);
@@ -126,16 +137,55 @@ export function WelcomeDialog() {
   );
   const [draftAccentColor, setDraftAccentColor] =
     useState<AccentColorId>(persistedAccentColor);
+  const [draftWslDistro, setDraftWslDistro] = useState<string | null>(
+    persistedWslDistro,
+  );
+  const [isWindows, setIsWindows] = useState<boolean | null>(null);
+  const [distros, setDistros] = useState<WslDistro[] | null>(null);
   const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAppConfig().then((config) => {
+      if (cancelled) return;
+      setIsWindows(config.platform.isWindows);
+      if (!config.platform.isWindows) {
+        setDistros([]);
+        return;
+      }
+      window.app
+        .listWslDistros()
+        .then((list) => {
+          if (cancelled) return;
+          setDistros(list);
+        })
+        .catch((err) => {
+          console.error("listWslDistros failed:", err);
+          if (cancelled) return;
+          setDistros([]);
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const noHooksEnabled = agentProviders.every(
     (p) => !isAgentHookInstalled(hookStatuses[p.name]),
   );
 
+  const shellSupported =
+    isWindows === true && distros !== null && distros.length > 0;
+  const selectedDistro = distros?.find((d) =>
+    draftWslDistro ? d.name === draftWslDistro : d.isDefault,
+  );
+  const selectedIsSystem = selectedDistro?.isSystem ?? false;
+
   const handleGetStarted = () => {
     setAppTheme(draftAppTheme);
     setTerminalTheme(draftTerminalTheme);
     setAccentColor(draftAccentColor);
+    if (shellSupported) setWslDistro(draftWslDistro);
     setOpen(false);
   };
 
@@ -202,13 +252,59 @@ export function WelcomeDialog() {
               </Stack>
             </Stack>
 
+            {shellSupported && distros && (
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "baseline" }}
+                >
+                  <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
+                  <Typography sx={SUBHEAD_LABEL_SX}>Shell</Typography>
+                </Stack>
+                <Stack spacing={1.5} sx={{ pl: 3.25 }}>
+                  <LabeledSelect
+                    label="WSL distro"
+                    value={draftWslDistro ?? DEFAULT_DISTRO_VALUE}
+                    options={[
+                      {
+                        value: DEFAULT_DISTRO_VALUE,
+                        label: distros.find((d) => d.isDefault)
+                          ? `Default (${distros.find((d) => d.isDefault)?.name})`
+                          : "Default",
+                      },
+                      ...distros.map((d) => ({
+                        value: d.name,
+                        label: d.isSystem ? (
+                          <Box component="span" sx={{ color: "text.disabled" }}>
+                            {d.name}
+                          </Box>
+                        ) : (
+                          d.name
+                        ),
+                      })),
+                    ]}
+                    onChange={(value) =>
+                      setDraftWslDistro(
+                        value === DEFAULT_DISTRO_VALUE ? null : value,
+                      )
+                    }
+                    maxWidth={240}
+                    error={selectedIsSystem}
+                  />
+                </Stack>
+              </Stack>
+            )}
+
             <Stack spacing={1.5}>
               <Stack
                 direction="row"
                 spacing={1}
                 sx={{ alignItems: "baseline" }}
               >
-                <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
+                <Typography sx={SUBHEAD_INDEX_SX}>
+                  {shellSupported ? "03" : "02"}
+                </Typography>
                 <Typography sx={SUBHEAD_LABEL_SX}>
                   Install agent hooks
                 </Typography>
@@ -242,9 +338,16 @@ export function WelcomeDialog() {
           </Stack>
 
           <Stack spacing={1.5} sx={{ mt: 1 }}>
-            <NoHooksAlert
-              sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
-            />
+            {selectedIsSystem ? (
+              <Alert severity="error" variant="outlined" sx={ALERT_SX}>
+                {selectedDistro?.name} is a system distro for containers and is
+                not meant as an interactive shell.
+              </Alert>
+            ) : (
+              <NoHooksAlert
+                sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
+              />
+            )}
             <Button
               variant="contained"
               size="large"

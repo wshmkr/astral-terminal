@@ -18,6 +18,7 @@ import {
   MIN_UI_SCALE,
   UI_SCALE_OPTIONS,
 } from "../theme/fonts";
+import { APP_PALETTES } from "../theme/palettes";
 import { TERMINAL_THEMES } from "../theme/terminal-themes";
 import { commit, getState, setState } from "./core";
 
@@ -44,6 +45,9 @@ export function normalizeAppearance(
   loaded: Partial<AppearanceSettings> | undefined,
 ): AppearanceSettings {
   const merged = { ...DEFAULT_APPEARANCE, ...(loaded ?? {}) };
+  if (!(merged.appThemeId in APP_PALETTES)) {
+    merged.appThemeId = DEFAULT_APPEARANCE.appThemeId;
+  }
   if (!(merged.terminalThemeId in TERMINAL_THEMES)) {
     merged.terminalThemeId = DEFAULT_APPEARANCE.terminalThemeId;
   }

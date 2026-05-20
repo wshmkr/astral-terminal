@@ -15,14 +15,14 @@ Heavily inspired by [cmux](https://github.com/manaflow-ai/cmux), which didn't fi
 | ✅ | First class support for Windows + WSL |
 | 🔲 | Cross-platform support for Linux / MacOS |
 | ✅ | Organized workspaces with split panes and tabs |
-| 🚧 | Configurable themes and notifications |
+| ✅ | Configurable themes and notifications |
 | ✅ | Notification inbox with jump-to-unread |
 | ✅ | Built-in Claude Code hook notifications |
 | 🔲 | Hook notifications for other agents |
 | ✅ | Scrollback survives restarts |
-| 🔲 | Agent auto-resume on restarts |
+| ✅ | Agent auto-resume on restarts |
 | 🔲 | Scriptable CLI |
-| 🔲 | In-app browser |
+| ✅ | In-app browser |
 
 ## Getting started
 
@@ -36,5 +36,8 @@ npm run dev
 ## Credits
 
 - Font: [JetBrains Mono](https://www.jetbrains.com/lp/mono/)
-- Terminal theme: [One Half](https://github.com/sonph/onehalf)
 - Icons: [Codicons](https://github.com/microsoft/vscode-codicons), [Simple Icons](https://simpleicons.org/) (via [react-icons](https://github.com/react-icons/react-icons))
+- Terminal themes:
+  - [One Half](https://github.com/sonph/onehalf)
+  - [GitHub](https://github.com/primer/github-vscode-theme)
+  - [Dracula](https://draculatheme.com/spec)

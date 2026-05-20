@@ -18,7 +18,9 @@ export function decodeAppModeArg(argv: readonly string[]): AppMode {
 export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
-export const INITIAL_WINDOW_BG = "#282c34";
+export const INITIAL_WINDOW_BG = "#262624";
+export const SETTINGS_FADE_MS = 200;
+export const SETTINGS_FADE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
 export interface BaseSurface {
   id: string;
@@ -55,7 +57,7 @@ export function surfaceSidebarLabel(s: Surface): string {
     case "terminal":
       return stripUserHostPrefix(s.name);
     case "browser":
-      return s.name;
+      return `🌐︎ ${s.name}`;
   }
 }
 
@@ -65,6 +67,7 @@ export interface BrowserState {
   isLoading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
+  favicon: string | null;
 }
 
 export interface BrowserAnchorOffsets {
@@ -83,6 +86,7 @@ export function defaultBrowserState(url: string): BrowserState {
     isLoading: false,
     canGoBack: false,
     canGoForward: false,
+    favicon: null,
   };
 }
 
@@ -122,7 +126,7 @@ export interface Workspace {
 }
 
 export interface TerminalTheme {
-  colorScheme: AppThemeId;
+  colorScheme: "dark" | "light";
   background: string;
   foreground: string;
   cursor: string;
@@ -157,8 +161,41 @@ export interface UpdateSettings {
   autoEnabled: boolean;
 }
 
-export type AppThemeId = "dark" | "light";
-export type TerminalThemeId = "one-half-dark" | "one-half-light";
+export interface TerminalSettings {
+  // null = use Windows default distro
+  wslDistro: string | null;
+}
+
+export interface WslDistro {
+  name: string;
+  isDefault: boolean;
+  isSystem: boolean;
+  version: number | null;
+}
+
+export type UpdateState =
+  | "idle"
+  | "checking"
+  | "not-available"
+  | "downloading"
+  | "downloaded"
+  | "error";
+
+export interface UpdateStatus {
+  state: UpdateState;
+  lastCheckedAt: number | null;
+  errorMessage?: string;
+  version?: string;
+}
+
+export type AppThemeId = "dark" | "light" | "black";
+export type TerminalThemeId =
+  | "one-half-dark"
+  | "one-half-light"
+  | "dracula"
+  | "alucard"
+  | "github-dark"
+  | "github-light";
 export type FontFamilyId =
   | "jetbrains-mono"
   | "cascadia-code"
@@ -236,7 +273,9 @@ export interface SettingsState {
   appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
   updateSettings: UpdateSettings;
+  terminalSettings: TerminalSettings;
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
+  updateStatus: UpdateStatus;
 }
 
 export type SettingsActionMap = {
@@ -248,6 +287,7 @@ export type SettingsActionMap = {
   setUiScale: (n: number) => void;
   updateNotificationSettings: (patch: Partial<NotificationSettings>) => void;
   updateUpdateSettings: (patch: Partial<UpdateSettings>) => void;
+  setWslDistro: (distro: string | null) => void;
   setAgentHookStatus: (name: AgentName, status: AgentHookStatus) => void;
 };
 
@@ -282,6 +322,7 @@ export interface PersistedSettings {
   appearance?: AppearanceSettings;
   notificationSettings?: NotificationSettings;
   updateSettings?: UpdateSettings;
+  terminalSettings?: TerminalSettings;
 }
 
 export interface AppState {
@@ -292,9 +333,11 @@ export interface AppState {
   appearance: AppearanceSettings;
   notificationSettings: NotificationSettings;
   updateSettings: UpdateSettings;
+  terminalSettings: TerminalSettings;
 
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
+  updateStatus: UpdateStatus;
   windowFocused: boolean;
   welcomeOpen: boolean;
 }
@@ -339,6 +382,7 @@ export const IPC = {
     action: "settings:action",
     actionApply: "settings:action-apply",
     invokeAgentHook: "settings:invoke-agent-hook",
+    fade: "settings:fade",
   },
   agentHooks: {
     configure: "agent-hooks:configure",
@@ -349,6 +393,9 @@ export const IPC = {
     openExternal: "shell:open-external",
     showLinkMenu: "shell:show-link-menu",
   },
+  wsl: {
+    listDistros: "wsl:list-distros",
+  },
   browser: {
     create: "browser:create",
     destroy: "browser:destroy",
@@ -357,6 +404,17 @@ export const IPC = {
     loadURL: "browser:load-url",
     command: "browser:command",
     openNewTab: "browser:open-new-tab",
+    findRequest: "browser:find-request",
+    findStop: "browser:find-stop",
+    closeFindWindow: "browser:close-find-window",
+    findTargetChanged: "browser:find-target-changed",
+    findResultChanged: "browser:find-result-changed",
+  },
+  update: {
+    getStatus: "update:get-status",
+    check: "update:check",
+    install: "update:install",
+    status: "update:status",
   },
 } as const;
 
@@ -378,6 +436,19 @@ const BROWSER_COMMAND_SET: ReadonlySet<string> = new Set(BROWSER_COMMANDS);
 
 export function isBrowserCommand(x: unknown): x is BrowserCommand {
   return typeof x === "string" && BROWSER_COMMAND_SET.has(x);
+}
+
+export interface BrowserFindOptions {
+  text: string;
+  forward: boolean;
+  matchCase: boolean;
+  findNext: boolean;
+}
+
+export interface BrowserFindResult {
+  activeMatchOrdinal: number;
+  matches: number;
+  finalUpdate: boolean;
 }
 
 export const ptyDataChannel = (ptyId: string) => `pty:data:${ptyId}`;

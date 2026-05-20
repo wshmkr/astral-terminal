@@ -55,6 +55,8 @@ function isValidPersisted(v: unknown): v is PersistedSettings {
     return false;
   if (v.updateSettings !== undefined && !isObject(v.updateSettings))
     return false;
+  if (v.terminalSettings !== undefined && !isObject(v.terminalSettings))
+    return false;
   return true;
 }
 

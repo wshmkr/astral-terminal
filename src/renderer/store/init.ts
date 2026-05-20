@@ -10,8 +10,10 @@ import { createDefaultWorkspace, nextWorkspaceName } from "./factories";
 import { loadState } from "./persistence";
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
+  DEFAULT_TERMINAL_SETTINGS,
   DEFAULT_UPDATE_SETTINGS,
 } from "./preferences";
+import { INITIAL_UPDATE_STATUS } from "./update-status";
 
 const INITIAL_WINDOW_FOCUSED =
   typeof document !== "undefined" ? document.hasFocus() : true;
@@ -44,7 +46,12 @@ async function initState(): Promise<AppState> {
         ...DEFAULT_UPDATE_SETTINGS,
         ...(loaded.updateSettings ?? {}),
       },
+      terminalSettings: {
+        ...DEFAULT_TERMINAL_SETTINGS,
+        ...(loaded.terminalSettings ?? {}),
+      },
       agentHookStatuses: {},
+      updateStatus: INITIAL_UPDATE_STATUS,
       windowFocused: INITIAL_WINDOW_FOCUSED,
       welcomeOpen: false,
     };
@@ -58,7 +65,9 @@ async function initState(): Promise<AppState> {
     appearance: DEFAULT_APPEARANCE,
     notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
     updateSettings: DEFAULT_UPDATE_SETTINGS,
+    terminalSettings: DEFAULT_TERMINAL_SETTINGS,
     agentHookStatuses: {},
+    updateStatus: INITIAL_UPDATE_STATUS,
     windowFocused: INITIAL_WINDOW_FOCUSED,
     welcomeOpen: isFirstRun,
   };

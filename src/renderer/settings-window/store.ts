@@ -6,6 +6,7 @@ import type {
   SettingsActionMap,
   SettingsState,
   UninstallAgentHooksResult,
+  UpdateStatus,
 } from "../../shared/types";
 
 let state: SettingsState | null = null;
@@ -30,6 +31,13 @@ function getStateOrNull(): SettingsState | null {
 
 export function setSettingsStoreState(next: SettingsState): void {
   state = next;
+  notify();
+}
+
+// DEV-only escape hatch for window.setUpdateState(...)
+export function patchLocalUpdateStatus(updateStatus: UpdateStatus): void {
+  if (!state) return;
+  state = { ...state, updateStatus };
   notify();
 }
 
@@ -72,6 +80,8 @@ export const updateNotificationSettings: SettingsActionMap["updateNotificationSe
 export const updateUpdateSettings: SettingsActionMap["updateUpdateSettings"] = (
   patch,
 ) => dispatch("updateUpdateSettings", patch);
+export const setWslDistro: SettingsActionMap["setWslDistro"] = (distro) =>
+  dispatch("setWslDistro", distro);
 
 export async function setAgentHook(
   providerName: AgentName,

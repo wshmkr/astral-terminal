@@ -83,16 +83,30 @@ export const FIELD_LABEL_SX = {
   fontWeight: 500,
 } as const;
 
+const FIELD_LABEL_ERROR_SX = {
+  ...FIELD_LABEL_SX,
+  color: "error.main",
+} as const;
+
 const SELECT_SX = {
   "& .MuiSelect-select": { py: 0.5 },
 } as const;
 
+const GROUP_START_SX = { mt: 0.75 } as const;
+
+export interface LabeledSelectOption<T extends string | number> {
+  value: T;
+  label: ReactNode;
+  groupStart?: boolean;
+}
+
 interface LabeledSelectProps<T extends string | number> {
   label: string;
   value: T;
-  options: ReadonlyArray<{ value: T; label: ReactNode }>;
+  options: ReadonlyArray<LabeledSelectOption<T>>;
   onChange: (value: T) => void;
   maxWidth?: number;
+  error?: boolean;
 }
 
 export function LabeledSelect<T extends string | number>({
@@ -101,18 +115,26 @@ export function LabeledSelect<T extends string | number>({
   options,
   onChange,
   maxWidth,
+  error,
 }: LabeledSelectProps<T>) {
   return (
     <Box sx={FIELD_SX}>
-      <Typography sx={FIELD_LABEL_SX}>{label}</Typography>
+      <Typography sx={error ? FIELD_LABEL_ERROR_SX : FIELD_LABEL_SX}>
+        {label}
+      </Typography>
       <Select
         size="small"
         value={value}
+        error={error}
         onChange={(e) => onChange(e.target.value as T)}
         sx={maxWidth ? { ...SELECT_SX, maxWidth } : SELECT_SX}
       >
         {options.map((opt) => (
-          <MenuItem key={String(opt.value)} value={opt.value}>
+          <MenuItem
+            key={String(opt.value)}
+            value={opt.value}
+            sx={opt.groupStart ? GROUP_START_SX : undefined}
+          >
             {opt.label}
           </MenuItem>
         ))}
