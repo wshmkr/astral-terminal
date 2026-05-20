@@ -26,6 +26,16 @@ const ENGINE_OPTIONS: ReadonlyArray<{
 ];
 
 const CUSTOM_FIELD_SX = { maxWidth: 420 } as const;
+const CUSTOM_URL_RE = /^https?:\/\/.+/i;
+
+function validateCustomTemplate(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!CUSTOM_URL_RE.test(trimmed))
+    return "Must start with http:// or https://";
+  if (!trimmed.includes("%s")) return "Must contain %s for the search query";
+  return null;
+}
 
 export function BrowserSection() {
   const searchEngineId = useSettingsStore(
@@ -68,7 +78,11 @@ export function BrowserSection() {
             size="small"
             value={customDraft}
             placeholder="https://example.com/search?q=%s"
-            helperText="Use %s where the search query should go."
+            error={validateCustomTemplate(customDraft) !== null}
+            helperText={
+              validateCustomTemplate(customDraft) ??
+              "Use %s where the search query should go."
+            }
             onChange={(e) => setCustomDraft(e.target.value)}
             onBlur={commitCustom}
             sx={CUSTOM_FIELD_SX}

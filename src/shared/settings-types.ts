@@ -72,6 +72,8 @@ export const SEARCH_ENGINE_TEMPLATES: Record<
   duckduckgo: "https://duckduckgo.com/?q=%s",
 };
 
+const HTTP_URL_RE = /^https?:\/\//i;
+
 export function buildSearchUrl(
   query: string,
   settings: BrowserSettings,
@@ -79,7 +81,9 @@ export function buildSearchUrl(
   const encoded = encodeURIComponent(query);
   if (settings.searchEngineId === "custom") {
     const tpl = settings.customSearchUrl;
-    if (tpl.includes("%s")) return tpl.replace("%s", encoded);
+    if (tpl.includes("%s") && HTTP_URL_RE.test(tpl)) {
+      return tpl.replace("%s", encoded);
+    }
     return SEARCH_ENGINE_TEMPLATES.google.replace("%s", encoded);
   }
   return SEARCH_ENGINE_TEMPLATES[settings.searchEngineId].replace(
