@@ -5,6 +5,7 @@ import type {
   TerminalSettings,
   UpdateSettings,
 } from "../../shared/settings-types";
+import { DEFAULT_BROWSER_SETTINGS } from "../../shared/settings-types";
 import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
@@ -28,10 +29,7 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   wslDistro: null,
 };
 
-export const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
-  searchEngineId: "google",
-  customSearchUrl: "",
-};
+export { DEFAULT_BROWSER_SETTINGS };
 
 export function clampSidebarWidth(
   width: number,

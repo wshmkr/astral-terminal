@@ -41,8 +41,10 @@ export function BrowserSection() {
   }, [customSearchUrl]);
 
   const commitCustom = () => {
-    if (customDraft === customSearchUrl) return;
-    updateBrowserSettings({ customSearchUrl: customDraft });
+    const trimmed = customDraft.trim();
+    if (trimmed !== customDraft) setCustomDraft(trimmed);
+    if (trimmed === customSearchUrl) return;
+    updateBrowserSettings({ customSearchUrl: trimmed });
   };
 
   return (

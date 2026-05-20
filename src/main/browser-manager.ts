@@ -7,6 +7,7 @@ import {
 import {
   type BrowserSettings,
   buildSearchUrl,
+  DEFAULT_BROWSER_SETTINGS,
 } from "../shared/settings-types";
 import {
   type BrowserAnchorOffsets,
@@ -136,11 +137,6 @@ async function fetchFaviconDataUrl(url: string): Promise<string | null> {
 }
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
-
-const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
-  searchEngineId: "google",
-  customSearchUrl: "",
-};
 
 function normalizeUrl(raw: string, settings: BrowserSettings): string {
   const trimmed = raw.trim();
