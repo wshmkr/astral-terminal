@@ -1,9 +1,6 @@
 import { z } from "zod";
 import type { PaneNode, Surface } from "./types";
 
-// Picklist sub-schemas. Exported as types because they're referenced
-// throughout the renderer/main code where individual field types are needed.
-
 const AppThemeIdSchema = z.enum(["dark", "light", "black"]);
 const TerminalThemeIdSchema = z.enum([
   "one-half-dark",
@@ -40,8 +37,6 @@ export const MAX_FONT_SIZE = 24;
 export const MIN_UI_SCALE = 0.8;
 export const MAX_UI_SCALE = 1.5;
 
-// Surface: simple discriminated union.
-
 const SurfaceSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string(),
@@ -57,18 +52,12 @@ const SurfaceSchema = z.discriminatedUnion("type", [
   }),
 ]) satisfies z.ZodType<Surface>;
 
-// Parse each array item independently; replace failures with null and filter.
 function dropInvalid<T extends z.ZodTypeAny>(item: T) {
   return z
     .array(item.catch(null as never))
     .transform((arr) => arr.filter((x): x is z.infer<T> => x !== null));
 }
 
-// Per-field tolerance: every field becomes optional and catches its own errors
-// to undefined; undefined keys are stripped from output so a spread over a
-// defaults object won't clobber them. Adding a new field to the shape inherits
-// this tolerance automatically — there is no per-field discipline to forget.
-// The full (resolved) type is recovered with `Required<z.infer<...>>`.
 function tolerantPartial<S extends z.ZodRawShape>(shape: S) {
   type Out = { [K in keyof S]?: z.infer<S[K]> };
   const tolerantShape: Record<string, z.ZodTypeAny> = {};
@@ -84,8 +73,6 @@ function tolerantPartial<S extends z.ZodRawShape>(shape: S) {
   });
 }
 
-// PaneNode: recursive discriminated union with shape-correcting transforms.
-
 const PaneNodeSchema: z.ZodType<PaneNode> = z.lazy(() =>
   z.union([LeafPaneSchema, SplitPaneSchema]),
 );
@@ -99,7 +86,6 @@ const LeafPaneSchema = z
   })
   .refine((o) => o.surfaces.length > 0)
   .transform((o) => {
-    // refine above guarantees this, but TS can't follow it
     const firstSurface = o.surfaces[0] as Surface;
     return {
       id: o.id,
@@ -129,11 +115,6 @@ const SplitPaneSchema = z
     sizes:
       o.sizes && o.sizes.length === o.children.length ? o.sizes : undefined,
   }));
-
-// Settings sub-schemas. Built via `tolerantPartial` so the result is a Partial
-// of the resolved type: invalid or missing fields are dropped, and the renderer
-// fills in the rest by spreading over its DEFAULT_* constants. The defaults
-// (not the schemas) own the canonical resolved values.
 
 const AppearanceSchema = tolerantPartial({
   appThemeId: AppThemeIdSchema,
@@ -173,10 +154,6 @@ export const PersistedSettingsSchema = z.object({
   terminalSettings: TerminalSettingsSchema.optional().catch(undefined),
 });
 
-// The schemas produce Partial<...>; the in-memory/state types are the full
-// resolved shape, recovered with Required<>. DEFAULT_* constants in the
-// renderer must satisfy these (compile-time enforced), so adding a new field
-// to a schema shape forces a default to be added too.
 export type AppearanceSettings = Required<z.infer<typeof AppearanceSchema>>;
 export type NotificationSettings = Required<
   z.infer<typeof NotificationSettingsSchema>
