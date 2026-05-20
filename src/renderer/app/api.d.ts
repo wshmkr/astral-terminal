@@ -89,6 +89,7 @@ export interface AppAPI {
 
   openNotificationPanel: (anchor: ScreenRect) => void;
   closeNotificationPanel: () => void;
+  onNotificationPanelOpened: (callback: () => void) => () => void;
   onNotificationPanelClosed: (callback: () => void) => () => void;
   publishNotificationPanelState: (state: NotificationPanelState) => void;
   onNotificationPanelStateChanged: (

@@ -313,6 +313,7 @@ export const IPC = {
     click: "notification:click",
     openPanel: "notification:open-panel",
     closePanel: "notification:close-panel",
+    panelOpened: "notification:panel-opened",
     panelClosed: "notification:panel-closed",
     stateChanged: "notification:state-changed",
     statePublish: "notification:state-publish",

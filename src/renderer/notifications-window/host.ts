@@ -39,10 +39,17 @@ function buildItems(workspaces: Workspace[]): NotificationPanelItem[] {
     .map(toPanelItem);
 }
 
+let itemsCacheKey: Workspace[] | null = null;
+let itemsCache: NotificationPanelItem[] = [];
+
 function deriveNotificationPanelState(s: AppState): NotificationPanelState {
+  if (itemsCacheKey !== s.workspaces) {
+    itemsCacheKey = s.workspaces;
+    itemsCache = buildItems(s.workspaces);
+  }
   return {
     appearance: s.appearance,
-    items: buildItems(s.workspaces),
+    items: itemsCache,
   };
 }
 
@@ -69,20 +76,31 @@ function applyAction(action: NotificationPanelAction): void {
 }
 
 export function startNotificationsHost(): void {
-  let lastAppearance = getState().appearance;
-  let lastWorkspaces = getState().workspaces;
-  window.app.publishNotificationPanelState(
-    deriveNotificationPanelState(getState()),
-  );
+  let last = deriveNotificationPanelState(getState());
+  let isOpen = false;
+
+  function publish(): void {
+    last = deriveNotificationPanelState(getState());
+    window.app.publishNotificationPanelState(last);
+  }
+
+  window.app.onNotificationPanelOpened(() => {
+    isOpen = true;
+    publish();
+  });
+
+  window.app.onNotificationPanelClosed(() => {
+    isOpen = false;
+  });
 
   subscribeWorkspaceStore(() => {
-    const s = getState();
-    if (s.appearance === lastAppearance && s.workspaces === lastWorkspaces) {
+    if (!isOpen) return;
+    const next = deriveNotificationPanelState(getState());
+    if (next.appearance === last.appearance && next.items === last.items) {
       return;
     }
-    lastAppearance = s.appearance;
-    lastWorkspaces = s.workspaces;
-    window.app.publishNotificationPanelState(deriveNotificationPanelState(s));
+    last = next;
+    window.app.publishNotificationPanelState(next);
   });
 
   window.app.onNotificationPanelAction((action) => {

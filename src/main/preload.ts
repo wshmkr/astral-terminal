@@ -111,6 +111,8 @@ contextBridge.exposeInMainWorld("app", {
   openNotificationPanel: (anchor: ScreenRect) =>
     ipcRenderer.send(IPC.notification.openPanel, { anchor }),
   closeNotificationPanel: () => ipcRenderer.send(IPC.notification.closePanel),
+  onNotificationPanelOpened: (callback: () => void) =>
+    subscribe<[]>(IPC.notification.panelOpened, callback),
   onNotificationPanelClosed: (callback: () => void) =>
     subscribe<[]>(IPC.notification.panelClosed, callback),
   publishNotificationPanelState: (state: NotificationPanelState) =>

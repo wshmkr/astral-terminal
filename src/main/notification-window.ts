@@ -38,6 +38,7 @@ function placeAndShow(parent: BrowserWindow, anchor: ScreenRect): void {
   notifWindow.setBounds({ x, y, width, height });
   notifWindow.show();
   notifWindow.focus();
+  parent.webContents.send(IPC.notification.panelOpened);
   pushState();
 }
 
