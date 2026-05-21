@@ -52,6 +52,7 @@ export default defineConfig({
                 "node-pty",
                 "@xterm/headless",
                 "@xterm/addon-serialize",
+                "@ghostery/adblocker-electron",
               ],
             },
           },

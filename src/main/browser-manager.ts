@@ -20,6 +20,7 @@ import {
   SETTINGS_FADE_EASING,
   SETTINGS_FADE_MS,
 } from "../shared/types";
+import { disableAdBlock, enableAdBlock } from "./ad-blocker";
 import {
   attachExternalLinkHandler,
   openInSystemBrowser,
@@ -177,9 +178,23 @@ export class BrowserManager {
   private dimReady = false;
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
+  private adBlockApplied = false;
 
   setBrowserSettings(settings: BrowserSettings): void {
+    const previous = this.browserSettings;
     this.browserSettings = settings;
+    if (
+      settings.adBlockEnabled !== previous.adBlockEnabled ||
+      !this.adBlockApplied
+    ) {
+      const browserSession = session.fromPartition(BROWSER_PARTITION);
+      if (settings.adBlockEnabled) {
+        void enableAdBlock(browserSession);
+      } else {
+        void disableAdBlock(browserSession);
+      }
+      this.adBlockApplied = true;
+    }
   }
 
   constructor(
