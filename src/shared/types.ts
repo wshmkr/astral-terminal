@@ -3,6 +3,7 @@ import type {
   AccentColorId,
   AppearanceSettings,
   AppThemeId,
+  BrowserSettings,
   FontFamilyId,
   NotificationSettings,
   TerminalSettings,
@@ -238,6 +239,7 @@ export interface SettingsState {
   notificationSettings: NotificationSettings;
   updateSettings: UpdateSettings;
   terminalSettings: TerminalSettings;
+  browserSettings: BrowserSettings;
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
   updateStatus: UpdateStatus;
 }
@@ -252,6 +254,7 @@ export type SettingsActionMap = {
   updateNotificationSettings: (patch: Partial<NotificationSettings>) => void;
   updateUpdateSettings: (patch: Partial<UpdateSettings>) => void;
   setWslDistro: (distro: string | null) => void;
+  updateBrowserSettings: (patch: Partial<BrowserSettings>) => void;
   setAgentHookStatus: (name: AgentName, status: AgentHookStatus) => void;
 };
 
@@ -288,6 +291,7 @@ export interface AppState {
   notificationSettings: NotificationSettings;
   updateSettings: UpdateSettings;
   terminalSettings: TerminalSettings;
+  browserSettings: BrowserSettings;
 
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;

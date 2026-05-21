@@ -5,6 +5,11 @@ import {
   WebContentsView,
 } from "electron";
 import {
+  type BrowserSettings,
+  buildSearchUrl,
+  DEFAULT_BROWSER_SETTINGS,
+} from "../shared/settings-types";
+import {
   type BrowserAnchorOffsets,
   type BrowserFindOptions,
   type BrowserFindResult,
@@ -133,7 +138,7 @@ async function fetchFaviconDataUrl(url: string): Promise<string | null> {
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
 
-function normalizeUrl(raw: string): string {
+function normalizeUrl(raw: string, settings: BrowserSettings): string {
   const trimmed = raw.trim();
   if (!trimmed) return "about:blank";
   const scheme = trimmed.match(/^([a-z][a-z0-9+.-]*):/i)?.[1];
@@ -141,7 +146,7 @@ function normalizeUrl(raw: string): string {
     return ALLOWED_SCHEMES.has(scheme.toLowerCase()) ? trimmed : "about:blank";
   }
   if (/^[^\s/]+\.[^\s/]+/.test(trimmed)) return `https://${trimmed}`;
-  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
+  return buildSearchUrl(trimmed, settings);
 }
 
 export interface BrowserManagerCallbacks {
@@ -171,6 +176,11 @@ export class BrowserManager {
   private dimVisible = false;
   private dimReady = false;
   private dimFade = createFadeController(SETTINGS_FADE_MS);
+  private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
+
+  setBrowserSettings(settings: BrowserSettings): void {
+    this.browserSettings = settings;
+  }
 
   constructor(
     private readonly window: BrowserWindow,
@@ -350,7 +360,7 @@ export class BrowserManager {
       });
     });
 
-    wc.loadURL(normalizeUrl(url)).catch((err) => {
+    wc.loadURL(normalizeUrl(url, this.browserSettings)).catch((err) => {
       console.error("[browser] initial loadURL failed:", err);
     });
   }
@@ -417,9 +427,11 @@ export class BrowserManager {
   loadURL(surfaceId: string, url: string): void {
     const entry = this.entries.get(surfaceId);
     if (!entry) return;
-    entry.view.webContents.loadURL(normalizeUrl(url)).catch((err) => {
-      console.error("[browser] loadURL failed:", err);
-    });
+    entry.view.webContents
+      .loadURL(normalizeUrl(url, this.browserSettings))
+      .catch((err) => {
+        console.error("[browser] loadURL failed:", err);
+      });
   }
 
   goBack(surfaceId: string): void {

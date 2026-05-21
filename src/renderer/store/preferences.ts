@@ -1,9 +1,11 @@
 import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
+  BrowserSettings,
   NotificationSettings,
   TerminalSettings,
   UpdateSettings,
 } from "../../shared/settings-types";
+import { DEFAULT_BROWSER_SETTINGS } from "../../shared/settings-types";
 import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
@@ -26,6 +28,8 @@ export const DEFAULT_UPDATE_SETTINGS: UpdateSettings = {
 export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   wslDistro: null,
 };
+
+export { DEFAULT_BROWSER_SETTINGS };
 
 export function clampSidebarWidth(
   width: number,
@@ -82,6 +86,22 @@ export function updateUpdateSettings(settings: Partial<UpdateSettings>): void {
   setState({
     ...s,
     updateSettings: { ...current, ...settings },
+  });
+  commit();
+}
+
+export function updateBrowserSettings(
+  settings: Partial<BrowserSettings>,
+): void {
+  const s = getState();
+  const current = s.browserSettings;
+  const changed = (Object.keys(settings) as (keyof BrowserSettings)[]).some(
+    (k) => settings[k] !== current[k],
+  );
+  if (!changed) return;
+  setState({
+    ...s,
+    browserSettings: { ...current, ...settings },
   });
   commit();
 }

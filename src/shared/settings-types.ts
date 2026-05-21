@@ -50,6 +50,55 @@ export interface TerminalSettings {
   wslDistro: string | null;
 }
 
+export type SearchEngineId = "google" | "bing" | "duckduckgo" | "custom";
+
+export interface BrowserSettings {
+  searchEngineId: SearchEngineId;
+  // template with %s placeholder; empty/no-%s falls back to Google
+  customSearchUrl: string;
+}
+
+export const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
+  searchEngineId: "google",
+  customSearchUrl: "",
+};
+
+export const SEARCH_ENGINE_TEMPLATES: Record<
+  Exclude<SearchEngineId, "custom">,
+  string
+> = {
+  google: "https://www.google.com/search?q=%s",
+  bing: "https://www.bing.com/search?q=%s",
+  duckduckgo: "https://duckduckgo.com/?q=%s",
+};
+
+export type CustomTemplateIssue = "missing-scheme" | "missing-placeholder";
+
+export function checkCustomTemplate(tpl: string): CustomTemplateIssue | null {
+  const trimmed = tpl.trim();
+  if (!/^https?:\/\/.+/i.test(trimmed)) return "missing-scheme";
+  if (!trimmed.includes("%s")) return "missing-placeholder";
+  return null;
+}
+
+export function buildSearchUrl(
+  query: string,
+  settings: BrowserSettings,
+): string {
+  const encoded = encodeURIComponent(query);
+  if (settings.searchEngineId === "custom") {
+    const tpl = settings.customSearchUrl;
+    if (checkCustomTemplate(tpl) === null) {
+      return tpl.replaceAll("%s", encoded);
+    }
+    return SEARCH_ENGINE_TEMPLATES.google.replaceAll("%s", encoded);
+  }
+  return SEARCH_ENGINE_TEMPLATES[settings.searchEngineId].replaceAll(
+    "%s",
+    encoded,
+  );
+}
+
 export interface PersistedSettings {
   workspaces: Array<Omit<Workspace, "notifications">>;
   activeWorkspaceId: string | null;
@@ -58,4 +107,5 @@ export interface PersistedSettings {
   notificationSettings?: Partial<NotificationSettings>;
   updateSettings?: Partial<UpdateSettings>;
   terminalSettings?: Partial<TerminalSettings>;
+  browserSettings?: Partial<BrowserSettings>;
 }

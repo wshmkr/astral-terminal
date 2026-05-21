@@ -2,6 +2,7 @@ import path from "node:path";
 import { app, BrowserWindow, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
+import { DEFAULT_BROWSER_SETTINGS } from "../shared/settings-types";
 import { type AppConfig, browserStateChannel, IPC } from "../shared/types";
 import { checkForUpdatesOnStartup, initAutoUpdater } from "./auto-update";
 import {
@@ -106,7 +107,7 @@ app.whenReady().then(() => {
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
   registerWindowIpc({ getMainWindow });
   registerNotificationIpc({ getMainWindow });
-  registerSettingsIpc();
+  registerSettingsIpc({ getBrowserManager: () => browserManager });
   registerSettingsWindowIpc({ getMainWindow });
   registerAgentHookIpc();
   registerUpdateIpc();
@@ -142,6 +143,10 @@ app.whenReady().then(() => {
       onSurfaceAnchorChanged: (surfaceId, anchor) => {
         updateBrowserFindAnchor(surfaceId, anchor);
       },
+    });
+    browserManager.setBrowserSettings({
+      ...DEFAULT_BROWSER_SETTINGS,
+      ...loadSettings()?.browserSettings,
     });
     registerBrowserIpc({ browserManager });
     onSettingsVisibilityChange((visible) => {

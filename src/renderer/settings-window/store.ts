@@ -82,6 +82,8 @@ export const updateUpdateSettings: SettingsActionMap["updateUpdateSettings"] = (
 ) => dispatch("updateUpdateSettings", patch);
 export const setWslDistro: SettingsActionMap["setWslDistro"] = (distro) =>
   dispatch("setWslDistro", distro);
+export const updateBrowserSettings: SettingsActionMap["updateBrowserSettings"] =
+  (patch) => dispatch("updateBrowserSettings", patch);
 
 export async function setAgentHook(
   providerName: AgentName,

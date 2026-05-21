@@ -9,6 +9,7 @@ import { initializeStore } from "./core";
 import { createDefaultWorkspace, nextWorkspaceName } from "./factories";
 import { loadState } from "./persistence";
 import {
+  DEFAULT_BROWSER_SETTINGS,
   DEFAULT_NOTIFICATION_SETTINGS,
   DEFAULT_TERMINAL_SETTINGS,
   DEFAULT_UPDATE_SETTINGS,
@@ -53,6 +54,10 @@ async function initState(): Promise<AppState> {
         ...DEFAULT_TERMINAL_SETTINGS,
         ...(loaded.terminalSettings ?? {}),
       },
+      browserSettings: {
+        ...DEFAULT_BROWSER_SETTINGS,
+        ...(loaded.browserSettings ?? {}),
+      },
       agentHookStatuses: {},
       updateStatus: INITIAL_UPDATE_STATUS,
       windowFocused: INITIAL_WINDOW_FOCUSED,
@@ -69,6 +74,7 @@ async function initState(): Promise<AppState> {
     notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
     updateSettings: DEFAULT_UPDATE_SETTINGS,
     terminalSettings: DEFAULT_TERMINAL_SETTINGS,
+    browserSettings: DEFAULT_BROWSER_SETTINGS,
     agentHookStatuses: {},
     updateStatus: INITIAL_UPDATE_STATUS,
     windowFocused: INITIAL_WINDOW_FOCUSED,
