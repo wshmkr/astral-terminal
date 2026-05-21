@@ -154,15 +154,33 @@ export function BrowserSection() {
           value={homepageDraft}
           placeholder="https://example.com"
           error={homepageDraftError !== null}
-          helperText={
-            homepageDraftError ??
-            "Leave empty to open new tabs to a blank page."
-          }
+          helperText={homepageDraftError ?? undefined}
           onChange={(e) => setHomepageDraft(e.target.value)}
           onBlur={commitHomepage}
           sx={CUSTOM_FIELD_SX}
         />
       </Box>
+
+      <Divider sx={DIVIDER_SX} />
+
+      <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+        Browsing data
+      </Typography>
+
+      <Button
+        variant="outlined"
+        size="small"
+        color={clearStatus === "cleared" ? "success" : "primary"}
+        disabled={clearStatus === "clearing"}
+        onClick={handleClearData}
+        sx={CLEAR_BUTTON_SX}
+      >
+        {clearStatus === "clearing"
+          ? "Clearing…"
+          : clearStatus === "cleared"
+            ? "Cleared"
+            : "Clear all browsing data"}
+      </Button>
 
       <Divider sx={DIVIDER_SX} />
 
@@ -187,7 +205,7 @@ export function BrowserSection() {
 
       <SettingRow
         title="Send Global Privacy Control signal"
-        description="Adds Sec-GPC: 1 to outgoing requests. Honored by sites under CCPA and similar laws."
+        description="Asks sites to not sell or share your data. (Sec-GPC)"
         control={
           <Switch
             size="small"
@@ -199,31 +217,6 @@ export function BrowserSection() {
           />
         }
       />
-
-      <Divider sx={DIVIDER_SX} />
-
-      <Typography variant="subtitle1" sx={SUBHEAD_SX}>
-        Browsing data
-      </Typography>
-
-      <Button
-        variant="outlined"
-        size="small"
-        color={clearStatus === "cleared" ? "success" : "primary"}
-        disabled={clearStatus === "clearing"}
-        onClick={handleClearData}
-        sx={CLEAR_BUTTON_SX}
-      >
-        {clearStatus === "clearing"
-          ? "Clearing…"
-          : clearStatus === "cleared"
-            ? "Cleared"
-            : "Clear browsing data"}
-      </Button>
-      <Typography sx={FIELD_LABEL_SX}>
-        Removes cookies, cache, site storage, and history from the in-app
-        browser.
-      </Typography>
     </Box>
   );
 }

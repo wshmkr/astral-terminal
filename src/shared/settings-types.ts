@@ -67,7 +67,7 @@ export const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
   customSearchUrl: "",
   homepage: "",
   adBlockEnabled: true,
-  sendGpc: false,
+  sendGpc: true,
 };
 
 export const SEARCH_ENGINE_TEMPLATES: Record<
