@@ -59,6 +59,7 @@ export function BrowserSection() {
     const trimmed = customDraft.trim();
     if (trimmed !== customDraft) setCustomDraft(trimmed);
     if (trimmed === customSearchUrl) return;
+    if (customTemplateError(trimmed) !== null) return;
     updateBrowserSettings({ customSearchUrl: trimmed });
   };
 
