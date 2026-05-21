@@ -12,6 +12,7 @@ import {
   type TerminalThemeId,
 } from "../shared/settings-types";
 import { isValidSurfaceId } from "../shared/surface-id";
+import type { PersistedWorkspaces } from "../shared/types";
 import {
   type AppConfig,
   type BrowserAnchorOffsets,
@@ -56,6 +57,7 @@ import {
   setSettingsState,
 } from "./settings-window";
 import { focusMainWindow } from "./window";
+import { loadWorkspaces, saveWorkspaces } from "./workspaces-store";
 import { listWslDistros } from "./wsl-distros";
 
 interface PtyDeps {
@@ -265,6 +267,10 @@ export function registerSettingsIpc(deps: {
         });
       }
     },
+  );
+  ipcMain.handle(IPC.workspaces.read, () => loadWorkspaces());
+  ipcMain.handle(IPC.workspaces.write, (_event, value: PersistedWorkspaces) =>
+    saveWorkspaces(value),
   );
 }
 

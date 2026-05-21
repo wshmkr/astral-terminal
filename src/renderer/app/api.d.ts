@@ -13,6 +13,7 @@ import type {
   NotificationFirePayload,
   NotificationPanelAction,
   NotificationPanelState,
+  PersistedWorkspaces,
   ScreenRect,
   SettingsAction,
   SettingsState,
@@ -26,6 +27,8 @@ export interface AppAPI {
   readConfig: () => Promise<AppConfig>;
   readSettings: () => Promise<PersistedSettings | null>;
   writeSettings: (settings: PersistedSettings) => Promise<void>;
+  readWorkspaces: () => Promise<PersistedWorkspaces | null>;
+  writeWorkspaces: (value: PersistedWorkspaces) => Promise<void>;
   createPty: (options: {
     cwd?: string;
     surfaceId: string;

@@ -136,6 +136,12 @@ export interface Workspace {
   notifications: Notification[];
 }
 
+export interface PersistedWorkspaces {
+  workspaces: Array<Omit<Workspace, "notifications">>;
+  activeWorkspaceId: string | null;
+  sidebarWidth?: number;
+}
+
 export interface TerminalTheme {
   colorScheme: "dark" | "light";
   background: string;
@@ -329,6 +335,10 @@ export const IPC = {
   },
   config: {
     read: "config:read",
+  },
+  workspaces: {
+    read: "workspaces:read",
+    write: "workspaces:write",
   },
   settings: {
     read: "settings:read",

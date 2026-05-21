@@ -1,5 +1,3 @@
-import type { Workspace } from "./types";
-
 export type AppThemeId = "dark" | "light" | "black";
 export type TerminalThemeId =
   | "one-half-dark"
@@ -100,9 +98,6 @@ export function buildSearchUrl(
 }
 
 export interface PersistedSettings {
-  workspaces: Array<Omit<Workspace, "notifications">>;
-  activeWorkspaceId: string | null;
-  sidebarWidth?: number;
   appearance?: Partial<AppearanceSettings>;
   notificationSettings?: Partial<NotificationSettings>;
   updateSettings?: Partial<UpdateSettings>;
