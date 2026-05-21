@@ -4,8 +4,7 @@ import { PersistedWorkspacesSchema } from "./workspaces-schema";
 
 const FILE_NAME = "workspaces.json";
 
-// TODO: remove the legacy settings.json fallback after the next release ships —
-// by then all installs will have written workspaces.json at least once.
+// TODO: remove legacy fallback after the next release
 const LEGACY_FILE_NAME = "settings.json";
 
 function parse(raw: unknown): PersistedWorkspaces | null {
