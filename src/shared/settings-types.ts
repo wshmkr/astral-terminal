@@ -72,7 +72,14 @@ export const SEARCH_ENGINE_TEMPLATES: Record<
   duckduckgo: "https://duckduckgo.com/?q=%s",
 };
 
-const HTTP_URL_RE = /^https?:\/\//i;
+export type CustomTemplateIssue = "missing-scheme" | "missing-placeholder";
+
+export function checkCustomTemplate(tpl: string): CustomTemplateIssue | null {
+  const trimmed = tpl.trim();
+  if (!/^https?:\/\/.+/i.test(trimmed)) return "missing-scheme";
+  if (!trimmed.includes("%s")) return "missing-placeholder";
+  return null;
+}
 
 export function buildSearchUrl(
   query: string,
@@ -81,7 +88,7 @@ export function buildSearchUrl(
   const encoded = encodeURIComponent(query);
   if (settings.searchEngineId === "custom") {
     const tpl = settings.customSearchUrl;
-    if (tpl.includes("%s") && HTTP_URL_RE.test(tpl)) {
+    if (checkCustomTemplate(tpl) === null) {
       return tpl.replaceAll("%s", encoded);
     }
     return SEARCH_ENGINE_TEMPLATES.google.replaceAll("%s", encoded);
