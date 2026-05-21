@@ -5,7 +5,7 @@ import {
   MIN_FONT_SIZE,
   MIN_UI_SCALE,
 } from "./settings-bounds";
-import type { PaneNode, Surface } from "./types";
+import type { PaneNode, Surface, Workspace } from "./types";
 
 const AppThemeIdSchema = z.enum(["dark", "light", "black"]);
 const TerminalThemeIdSchema = z.enum([
@@ -167,6 +167,16 @@ const WorkspaceSchema = z.object({
   layout: PaneNodeSchema,
 });
 
+export interface PersistedSettings {
+  workspaces: Array<Omit<Workspace, "notifications">>;
+  activeWorkspaceId: string | null;
+  sidebarWidth?: number;
+  appearance?: Partial<AppearanceSettings>;
+  notificationSettings?: Partial<NotificationSettings>;
+  updateSettings?: Partial<UpdateSettings>;
+  terminalSettings?: Partial<TerminalSettings>;
+}
+
 export const PersistedSettingsSchema = z.object({
   workspaces: dropInvalid(WorkspaceSchema),
   activeWorkspaceId: z.string().nullable().catch(null),
@@ -175,6 +185,4 @@ export const PersistedSettingsSchema = z.object({
   notificationSettings: NotificationSettingsSchema.optional().catch(undefined),
   updateSettings: UpdateSettingsSchema.optional().catch(undefined),
   terminalSettings: TerminalSettingsSchema.optional().catch(undefined),
-});
-
-export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>;
+}) satisfies z.ZodType<PersistedSettings>;
