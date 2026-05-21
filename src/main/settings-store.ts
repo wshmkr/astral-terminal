@@ -5,9 +5,9 @@ import { readUserDataJson, writeUserDataJsonAtomic } from "./user-data-json";
 const FILE_NAME = "settings.json";
 
 let loaded = false;
-let cached: PersistedSettings | null = null;
+let cached: Readonly<PersistedSettings> | null = null;
 
-export function loadSettings(): PersistedSettings | null {
+export function loadSettings(): Readonly<PersistedSettings> | null {
   if (loaded) return cached;
   cached = readUserDataJson(FILE_NAME, (raw) => {
     const result = PersistedSettingsSchema.safeParse(raw);
