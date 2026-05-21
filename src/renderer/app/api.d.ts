@@ -104,6 +104,7 @@ export interface AppAPI {
   onBrowserFindResult: (
     callback: (result: BrowserFindResult) => void,
   ) => () => void;
+  clearBrowsingData: () => Promise<void>;
 
   openNotificationPanel: (anchor: ScreenRect) => void;
   closeNotificationPanel: () => void;

@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
@@ -35,6 +36,17 @@ const ENGINE_OPTIONS: ReadonlyArray<{
 
 const CUSTOM_FIELD_SX = { maxWidth: 420 } as const;
 
+const CLEAR_BUTTON_SX = { alignSelf: "flex-start" } as const;
+
+function homepageError(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^https?:\/\/.+/i.test(trimmed) && /\s/.test(trimmed)) {
+    return "Must be a URL";
+  }
+  return null;
+}
+
 function customTemplateError(value: string): string | null {
   if (!value.trim()) return null;
   switch (checkCustomTemplate(value)) {
@@ -57,11 +69,22 @@ export function BrowserSection() {
   const adBlockEnabled = useSettingsStore(
     (s) => s.browserSettings.adBlockEnabled,
   );
+  const sendGpc = useSettingsStore((s) => s.browserSettings.sendGpc);
+  const homepage = useSettingsStore((s) => s.browserSettings.homepage);
 
   const [customDraft, setCustomDraft] = useState(customSearchUrl);
   useEffect(() => {
     setCustomDraft(customSearchUrl);
   }, [customSearchUrl]);
+
+  const [homepageDraft, setHomepageDraft] = useState(homepage);
+  useEffect(() => {
+    setHomepageDraft(homepage);
+  }, [homepage]);
+
+  const [clearStatus, setClearStatus] = useState<
+    "idle" | "clearing" | "cleared"
+  >("idle");
 
   const commitCustom = () => {
     const trimmed = customDraft.trim();
@@ -71,7 +94,26 @@ export function BrowserSection() {
     updateBrowserSettings({ customSearchUrl: trimmed });
   };
 
+  const commitHomepage = () => {
+    const trimmed = homepageDraft.trim();
+    if (trimmed !== homepageDraft) setHomepageDraft(trimmed);
+    if (trimmed === homepage) return;
+    if (homepageError(trimmed) !== null) return;
+    updateBrowserSettings({ homepage: trimmed });
+  };
+
+  const handleClearData = async () => {
+    setClearStatus("clearing");
+    try {
+      await window.app.clearBrowsingData();
+      setClearStatus("cleared");
+    } catch {
+      setClearStatus("idle");
+    }
+  };
+
   const customError = customTemplateError(customDraft);
+  const homepageDraftError = homepageError(homepageDraft);
 
   return (
     <Box sx={ROOT_SX}>
@@ -105,6 +147,23 @@ export function BrowserSection() {
         </Box>
       )}
 
+      <Box sx={FIELD_SX}>
+        <Typography sx={FIELD_LABEL_SX}>Homepage</Typography>
+        <TextField
+          size="small"
+          value={homepageDraft}
+          placeholder="https://example.com"
+          error={homepageDraftError !== null}
+          helperText={
+            homepageDraftError ??
+            "Leave empty to open new tabs to a blank page."
+          }
+          onChange={(e) => setHomepageDraft(e.target.value)}
+          onBlur={commitHomepage}
+          sx={CUSTOM_FIELD_SX}
+        />
+      </Box>
+
       <Divider sx={DIVIDER_SX} />
 
       <Typography variant="subtitle1" sx={SUBHEAD_SX}>
@@ -125,6 +184,46 @@ export function BrowserSection() {
           />
         }
       />
+
+      <SettingRow
+        title="Send Global Privacy Control signal"
+        description="Adds Sec-GPC: 1 to outgoing requests. Honored by sites under CCPA and similar laws."
+        control={
+          <Switch
+            size="small"
+            sx={SWITCH_SX}
+            checked={sendGpc}
+            onChange={(_, checked) =>
+              updateBrowserSettings({ sendGpc: checked })
+            }
+          />
+        }
+      />
+
+      <Divider sx={DIVIDER_SX} />
+
+      <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+        Browsing data
+      </Typography>
+
+      <Button
+        variant="outlined"
+        size="small"
+        color={clearStatus === "cleared" ? "success" : "primary"}
+        disabled={clearStatus === "clearing"}
+        onClick={handleClearData}
+        sx={CLEAR_BUTTON_SX}
+      >
+        {clearStatus === "clearing"
+          ? "Clearing…"
+          : clearStatus === "cleared"
+            ? "Cleared"
+            : "Clear browsing data"}
+      </Button>
+      <Typography sx={FIELD_LABEL_SX}>
+        Removes cookies, cache, site storage, and history from the in-app
+        browser.
+      </Typography>
     </Box>
   );
 }

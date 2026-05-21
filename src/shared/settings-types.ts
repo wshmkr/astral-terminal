@@ -57,13 +57,17 @@ export interface BrowserSettings {
   searchEngineId: SearchEngineId;
   // template with %s placeholder; empty/no-%s falls back to Google
   customSearchUrl: string;
+  homepage: string;
   adBlockEnabled: boolean;
+  sendGpc: boolean;
 }
 
 export const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
   searchEngineId: "google",
   customSearchUrl: "",
+  homepage: "",
   adBlockEnabled: true,
+  sendGpc: false,
 };
 
 export const SEARCH_ENGINE_TEMPLATES: Record<

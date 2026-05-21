@@ -441,4 +441,8 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
     const previousSurfaceId = hideBrowserFindWindow();
     if (previousSurfaceId) browserManager.focus(previousSurfaceId);
   });
+
+  ipcMain.handle(IPC.browser.clearData, async () => {
+    await browserManager.clearBrowsingData();
+  });
 }

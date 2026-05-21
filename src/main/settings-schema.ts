@@ -83,7 +83,9 @@ const SearchEngineIdSchema = z.enum(["google", "bing", "duckduckgo", "custom"]);
 const BrowserSettingsSchema = tolerantPartial({
   searchEngineId: SearchEngineIdSchema,
   customSearchUrl: z.string(),
+  homepage: z.string(),
   adBlockEnabled: z.boolean(),
+  sendGpc: z.boolean(),
 }) satisfies z.ZodType<Partial<BrowserSettings>>;
 
 export const PersistedSettingsSchema = z.object({

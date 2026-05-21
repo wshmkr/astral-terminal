@@ -150,6 +150,21 @@ function normalizeUrl(raw: string, settings: BrowserSettings): string {
   return buildSearchUrl(trimmed, settings);
 }
 
+function installPrivacyHooks(
+  browserSession: Electron.Session,
+  getSettings: () => BrowserSettings,
+): void {
+  browserSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const headers = { ...details.requestHeaders };
+    if (getSettings().sendGpc) {
+      headers["Sec-GPC"] = "1";
+    } else {
+      delete headers["Sec-GPC"];
+    }
+    callback({ requestHeaders: headers });
+  });
+}
+
 export interface BrowserManagerCallbacks {
   onState: (surfaceId: string, state: BrowserState) => void;
   onOpenNewTab: (payload: BrowserOpenNewTabPayload) => void;
@@ -179,21 +194,26 @@ export class BrowserManager {
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
   private adBlockApplied = false;
+  private privacyHooksInstalled = false;
 
   setBrowserSettings(settings: BrowserSettings): void {
     const previous = this.browserSettings;
     this.browserSettings = settings;
+    const browserSession = session.fromPartition(BROWSER_PARTITION);
     if (
       settings.adBlockEnabled !== previous.adBlockEnabled ||
       !this.adBlockApplied
     ) {
-      const browserSession = session.fromPartition(BROWSER_PARTITION);
       if (settings.adBlockEnabled) {
         void enableAdBlock(browserSession);
       } else {
         void disableAdBlock(browserSession);
       }
       this.adBlockApplied = true;
+    }
+    if (!this.privacyHooksInstalled) {
+      installPrivacyHooks(browserSession, () => this.browserSettings);
+      this.privacyHooksInstalled = true;
     }
   }
 
@@ -394,6 +414,20 @@ export class BrowserManager {
 
   destroyAll(): void {
     for (const id of [...this.entries.keys()]) this.destroy(id);
+  }
+
+  async clearBrowsingData(): Promise<void> {
+    const browserSession = session.fromPartition(BROWSER_PARTITION);
+    originFaviconCache.clear();
+    for (const entry of this.entries.values()) {
+      if (entry.disposed) continue;
+      entry.view.webContents.navigationHistory.clear();
+    }
+    await Promise.all([
+      browserSession.clearStorageData(),
+      browserSession.clearCache(),
+      browserSession.clearAuthCache(),
+    ]);
   }
 
   setAnchorOffsets(surfaceId: string, offsets: BrowserAnchorOffsets): void {
