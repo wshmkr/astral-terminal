@@ -102,6 +102,20 @@ function installCsp() {
 
 applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
 
+// Warm up rarely-needed child windows + run the update check after the main
+// window paints, so they don't compete with first-frame work
+const DEFERRED_STARTUP_DELAY_MS = 2000;
+
+function scheduleDeferredStartup(): void {
+  setTimeout(() => {
+    const win = getMainWindow();
+    if (!win || win.isDestroyed()) return;
+    initNotificationWindow(win);
+    initSettingsWindow(win);
+    checkForUpdatesOnStartup();
+  }, DEFERRED_STARTUP_DELAY_MS);
+}
+
 app.whenReady().then(() => {
   installCsp();
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
@@ -112,13 +126,10 @@ app.whenReady().then(() => {
   registerAgentHookIpc();
   registerUpdateIpc();
   initAutoUpdater(getMainWindow);
-  createWindow();
-  checkForUpdatesOnStartup();
+  createWindow(scheduleDeferredStartup);
 
   const win = getMainWindow();
   if (win) {
-    initNotificationWindow(win);
-    initSettingsWindow(win);
     initBrowserFindWindow(win);
     browserManager = new BrowserManager(win, {
       onState: (surfaceId, state) => {
