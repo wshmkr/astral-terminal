@@ -54,6 +54,7 @@ export function TerminalPane({
   );
   const fontFamilyId = useWorkspaceStore((s) => s.appearance.fontFamily);
   const fontSize = useWorkspaceStore((s) => s.appearance.fontSize);
+  const lineHeight = useWorkspaceStore((s) => s.appearance.terminalLineHeight);
   const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
 
   const canFocus = useCallback(() => !findOpen, [findOpen]);
@@ -83,6 +84,7 @@ export function TerminalPane({
         theme: TERMINAL_THEMES[initial.terminalThemeId],
         fontFamily: initialFont.stack,
         fontSize: initial.fontSize,
+        lineHeight: initial.terminalLineHeight,
         surfaceId,
         cwd,
         getLiveSurface: () => surfaceRef.current,
@@ -126,6 +128,10 @@ export function TerminalPane({
       .catch((err) => console.warn("Font preload failed:", err))
       .finally(() => controllerRef.current?.setFont(font.stack, fontSize));
   }, [fontFamilyId, fontSize, controllerRef]);
+
+  useEffect(() => {
+    controllerRef.current?.setLineHeight(lineHeight);
+  }, [lineHeight, controllerRef]);
 
   useEffect(() => {
     const el = containerRef.current;

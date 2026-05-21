@@ -27,12 +27,15 @@ export const MIN_FONT_SIZE = 10;
 export const MAX_FONT_SIZE = 24;
 export const MIN_UI_SCALE = 0.8;
 export const MAX_UI_SCALE = 1.5;
+export const MIN_LINE_HEIGHT = 1.0;
+export const MAX_LINE_HEIGHT = 2.0;
 
 export interface AppearanceSettings {
   appThemeId: AppThemeId;
   terminalThemeId: TerminalThemeId;
   fontFamily: FontFamilyId;
   fontSize: number;
+  terminalLineHeight: number;
   uiScale: number;
   accentColorId: AccentColorId;
 }

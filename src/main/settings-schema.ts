@@ -3,8 +3,10 @@ import {
   type AppearanceSettings,
   type BrowserSettings,
   MAX_FONT_SIZE,
+  MAX_LINE_HEIGHT,
   MAX_UI_SCALE,
   MIN_FONT_SIZE,
+  MIN_LINE_HEIGHT,
   MIN_UI_SCALE,
   type NotificationSettings,
   type PersistedSettings,
@@ -123,6 +125,7 @@ const AppearanceSchema = tolerantPartial({
   terminalThemeId: TerminalThemeIdSchema,
   fontFamily: FontFamilyIdSchema,
   fontSize: z.number().min(MIN_FONT_SIZE).max(MAX_FONT_SIZE),
+  terminalLineHeight: z.number().min(MIN_LINE_HEIGHT).max(MAX_LINE_HEIGHT),
   uiScale: z.number().min(MIN_UI_SCALE).max(MAX_UI_SCALE),
   accentColorId: AccentColorIdSchema,
 }) satisfies z.ZodType<Partial<AppearanceSettings>>;

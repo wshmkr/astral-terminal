@@ -87,6 +87,7 @@ function createTerminal(
     theme: TerminalTheme;
     fontFamily: string;
     fontSize: number;
+    lineHeight: number;
     surfaceId: string;
     linkHover: LinkHoverState;
   },
@@ -96,7 +97,7 @@ function createTerminal(
   const term = new Terminal({
     fontFamily: opts.fontFamily,
     fontSize: opts.fontSize,
-    lineHeight: 1.2,
+    lineHeight: opts.lineHeight,
     cursorBlink: true,
     cursorStyle: "bar",
     scrollback: 10000,
@@ -195,6 +196,7 @@ export interface TerminalControllerOptions {
   theme: TerminalTheme;
   fontFamily: string;
   fontSize: number;
+  lineHeight: number;
   surfaceId: string;
   cwd: string;
   getLiveSurface: () => { cwd: string };
@@ -230,6 +232,7 @@ export class TerminalController implements SurfaceController, FindController {
       theme: opts.theme,
       fontFamily: opts.fontFamily,
       fontSize: opts.fontSize,
+      lineHeight: opts.lineHeight,
       surfaceId: opts.surfaceId,
       linkHover,
     });
@@ -293,6 +296,12 @@ export class TerminalController implements SurfaceController, FindController {
     if (this.disposed) return;
     this.term.options.fontFamily = fontFamily;
     this.term.options.fontSize = fontSize;
+    this.safeFit();
+  }
+
+  setLineHeight(lineHeight: number): void {
+    if (this.disposed) return;
+    this.term.options.lineHeight = lineHeight;
     this.safeFit();
   }
 

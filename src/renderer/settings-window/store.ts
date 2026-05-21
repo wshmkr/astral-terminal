@@ -73,6 +73,8 @@ export const setFontFamily: SettingsActionMap["setFontFamily"] = (id) =>
   dispatch("setFontFamily", id);
 export const setFontSize: SettingsActionMap["setFontSize"] = (n) =>
   dispatch("setFontSize", n);
+export const setTerminalLineHeight: SettingsActionMap["setTerminalLineHeight"] =
+  (n) => dispatch("setTerminalLineHeight", n);
 export const setUiScale: SettingsActionMap["setUiScale"] = (n) =>
   dispatch("setUiScale", n);
 export const updateNotificationSettings: SettingsActionMap["updateNotificationSettings"] =
