@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { MAX_FONT_SIZE, MIN_FONT_SIZE } from "../../../shared/settings-types";
 import {
   setAccentColor,
   setAppTheme,
@@ -11,12 +12,7 @@ import {
   setUiScale,
   useSettingsStore,
 } from "../../settings-window/store";
-import {
-  FONT_OPTIONS,
-  MAX_FONT_SIZE,
-  MIN_FONT_SIZE,
-  UI_SCALE_OPTIONS,
-} from "../../theme/fonts";
+import { FONT_OPTIONS, UI_SCALE_OPTIONS } from "../../theme/fonts";
 import { APP_THEME_OPTIONS } from "../../theme/palettes";
 import { TERMINAL_THEME_OPTIONS } from "../../theme/terminal-themes";
 import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";

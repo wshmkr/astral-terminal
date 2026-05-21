@@ -8,7 +8,7 @@ function userDataPath(fileName: string): string {
 
 export function readUserDataJson<T>(
   fileName: string,
-  validate: (v: unknown) => v is T,
+  parse: (v: unknown) => T | null,
 ): T | null {
   let raw: string;
   try {
@@ -23,11 +23,11 @@ export function readUserDataJson<T>(
     console.warn(`${fileName}: invalid JSON, discarding:`, err);
     return null;
   }
-  if (!validate(parsed)) {
+  const result = parse(parsed);
+  if (result === null) {
     console.warn(`${fileName}: malformed shape, discarding`);
-    return null;
   }
-  return parsed;
+  return result;
 }
 
 export function writeUserDataJsonSync(fileName: string, value: unknown): void {

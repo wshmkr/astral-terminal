@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
+import type { PersistedSettings } from "../shared/settings-types";
 import type {
   BrowserAnchorOffsets,
   BrowserCommand,
@@ -10,7 +11,6 @@ import type {
   NotificationFirePayload,
   NotificationPanelAction,
   NotificationPanelState,
-  PersistedSettings,
   ScreenRect,
   SettingsAction,
   SettingsState,

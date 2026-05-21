@@ -1,4 +1,5 @@
 import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
+import type { PersistedSettings } from "../../shared/settings-types";
 import type {
   AppConfig,
   AppMode,
@@ -12,7 +13,6 @@ import type {
   NotificationFirePayload,
   NotificationPanelAction,
   NotificationPanelState,
-  PersistedSettings,
   ScreenRect,
   SettingsAction,
   SettingsState,

@@ -1,25 +1,20 @@
-import type {
-  AccentColorId,
-  AppearanceSettings,
-  AppThemeId,
-  FontFamilyId,
-  TerminalThemeId,
-} from "../../shared/types";
 import {
-  ACCENT_COLOR_BY_ID,
-  DEFAULT_ACCENT_COLOR_ID,
-} from "../theme/accent-colors";
-import {
-  DEFAULT_FONT_SIZE,
-  DEFAULT_UI_SCALE,
+  type AccentColorId,
+  type AppearanceSettings,
+  type AppThemeId,
+  type FontFamilyId,
   MAX_FONT_SIZE,
   MAX_UI_SCALE,
   MIN_FONT_SIZE,
   MIN_UI_SCALE,
+  type TerminalThemeId,
+} from "../../shared/settings-types";
+import { DEFAULT_ACCENT_COLOR_ID } from "../theme/accent-colors";
+import {
+  DEFAULT_FONT_SIZE,
+  DEFAULT_UI_SCALE,
   UI_SCALE_OPTIONS,
 } from "../theme/fonts";
-import { APP_PALETTES } from "../theme/palettes";
-import { TERMINAL_THEMES } from "../theme/terminal-themes";
 import { commit, getState, setState } from "./core";
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
@@ -39,22 +34,6 @@ function clampFontSize(n: number): number {
 function clampUiScale(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_UI_SCALE;
   return Math.max(MIN_UI_SCALE, Math.min(MAX_UI_SCALE, n));
-}
-
-export function normalizeAppearance(
-  loaded: Partial<AppearanceSettings> | undefined,
-): AppearanceSettings {
-  const merged = { ...DEFAULT_APPEARANCE, ...(loaded ?? {}) };
-  if (!(merged.appThemeId in APP_PALETTES)) {
-    merged.appThemeId = DEFAULT_APPEARANCE.appThemeId;
-  }
-  if (!(merged.terminalThemeId in TERMINAL_THEMES)) {
-    merged.terminalThemeId = DEFAULT_APPEARANCE.terminalThemeId;
-  }
-  if (!(merged.accentColorId in ACCENT_COLOR_BY_ID)) {
-    merged.accentColorId = DEFAULT_APPEARANCE.accentColorId;
-  }
-  return merged;
 }
 
 function update(patch: Partial<AppearanceSettings>): void {

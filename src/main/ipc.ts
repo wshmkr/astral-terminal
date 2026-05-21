@@ -6,6 +6,10 @@ import {
   type AgentName,
   agentProviders,
 } from "../shared/agent-hooks";
+import type {
+  PersistedSettings,
+  TerminalThemeId,
+} from "../shared/settings-types";
 import { isValidSurfaceId } from "../shared/surface-id";
 import {
   type AppConfig,
@@ -17,14 +21,12 @@ import {
   type NotificationFirePayload,
   type NotificationPanelAction,
   type NotificationPanelState,
-  type PersistedSettings,
   ptyCwdChannel,
   ptyDataChannel,
   ptyExitChannel,
   type ScreenRect,
   type SettingsAction,
   type SettingsState,
-  type TerminalThemeId,
 } from "../shared/types";
 import {
   configureAgentHooks,

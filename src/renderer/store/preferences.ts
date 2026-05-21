@@ -1,10 +1,12 @@
 import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type {
-  ConfigureAgentHooksResult,
   NotificationSettings,
   TerminalSettings,
-  UninstallAgentHooksResult,
   UpdateSettings,
+} from "../../shared/settings-types";
+import type {
+  ConfigureAgentHooksResult,
+  UninstallAgentHooksResult,
 } from "../../shared/types";
 import {
   SIDEBAR_MAX_WIDTH_PX,

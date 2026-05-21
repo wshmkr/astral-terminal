@@ -1,4 +1,5 @@
-import type { TerminalTheme, TerminalThemeId } from "../../shared/types";
+import type { TerminalThemeId } from "../../shared/settings-types";
+import type { TerminalTheme } from "../../shared/types";
 
 export const ONE_HALF_DARK: TerminalTheme = {
   colorScheme: "dark",
