@@ -83,8 +83,16 @@ export function BrowserSection() {
   }, [homepage]);
 
   const [clearStatus, setClearStatus] = useState<
-    "idle" | "clearing" | "cleared"
+    "idle" | "confirming" | "clearing" | "cleared"
   >("idle");
+
+  useEffect(
+    () =>
+      window.app.onSettingsFade((visible) => {
+        if (!visible) setClearStatus("idle");
+      }),
+    [],
+  );
 
   const commitCustom = () => {
     const trimmed = customDraft.trim();
@@ -103,6 +111,11 @@ export function BrowserSection() {
   };
 
   const handleClearData = async () => {
+    if (clearStatus === "idle" || clearStatus === "cleared") {
+      setClearStatus("confirming");
+      return;
+    }
+    if (clearStatus !== "confirming") return;
     setClearStatus("clearing");
     try {
       await window.app.clearBrowsingData();
@@ -170,16 +183,24 @@ export function BrowserSection() {
       <Button
         variant="outlined"
         size="small"
-        color={clearStatus === "cleared" ? "success" : "primary"}
+        color={
+          clearStatus === "cleared"
+            ? "success"
+            : clearStatus === "confirming"
+              ? "error"
+              : "primary"
+        }
         disabled={clearStatus === "clearing"}
         onClick={handleClearData}
         sx={CLEAR_BUTTON_SX}
       >
         {clearStatus === "clearing"
-          ? "Clearing…"
+          ? "Clearing browsing data..."
           : clearStatus === "cleared"
-            ? "Cleared"
-            : "Clear all browsing data"}
+            ? "Browsing data cleared"
+            : clearStatus === "confirming"
+              ? "Click again to confirm"
+              : "Clear all browsing data"}
       </Button>
 
       <Divider sx={DIVIDER_SX} />
