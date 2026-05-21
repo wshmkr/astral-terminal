@@ -20,6 +20,7 @@ import {
   ROOT_SX,
   SettingRow,
   SUBHEAD_SX,
+  SWITCH_SX,
 } from "./shared";
 
 const ENGINE_OPTIONS: ReadonlyArray<{
@@ -33,7 +34,6 @@ const ENGINE_OPTIONS: ReadonlyArray<{
 ];
 
 const CUSTOM_FIELD_SX = { maxWidth: 420 } as const;
-const SWITCH_SX = { ml: -1 } as const;
 
 function customTemplateError(value: string): string | null {
   if (!value.trim()) return null;

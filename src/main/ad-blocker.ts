@@ -40,5 +40,7 @@ export async function disableAdBlock(session: Session): Promise<void> {
     if (blocker.isBlockingEnabled(session)) {
       blocker.disableBlockingInSession(session);
     }
-  } catch {}
+  } catch (err) {
+    console.error("[ad-blocker] failed to disable:", err);
+  }
 }

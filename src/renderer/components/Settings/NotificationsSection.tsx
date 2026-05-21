@@ -21,9 +21,13 @@ import {
   updateNotificationSettings,
   useSettingsStore,
 } from "../../settings-window/store";
-import { DIVIDER_SX, ROOT_SX, SettingRow, SUBHEAD_SX } from "./shared";
-
-const SWITCH_SX = { ml: -1 } as const;
+import {
+  DIVIDER_SX,
+  ROOT_SX,
+  SettingRow,
+  SUBHEAD_SX,
+  SWITCH_SX,
+} from "./shared";
 
 const CHECKBOX_SX = { p: 0.5 } as const;
 
