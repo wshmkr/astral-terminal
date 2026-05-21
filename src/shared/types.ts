@@ -256,6 +256,7 @@ export type SettingsActionMap = {
   setAccentColor: (id: AccentColorId) => void;
   setFontFamily: (id: FontFamilyId) => void;
   setFontSize: (n: number) => void;
+  setTerminalLineHeight: (n: number) => void;
   setUiScale: (n: number) => void;
   updateNotificationSettings: (patch: Partial<NotificationSettings>) => void;
   updateUpdateSettings: (patch: Partial<UpdateSettings>) => void;

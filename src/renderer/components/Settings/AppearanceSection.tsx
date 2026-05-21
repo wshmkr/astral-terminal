@@ -8,11 +8,16 @@ import {
   setAppTheme,
   setFontFamily,
   setFontSize,
+  setTerminalLineHeight,
   setTerminalTheme,
   setUiScale,
   useSettingsStore,
 } from "../../settings-window/store";
-import { FONT_OPTIONS, UI_SCALE_OPTIONS } from "../../theme/fonts";
+import {
+  FONT_OPTIONS,
+  LINE_HEIGHT_OPTIONS,
+  UI_SCALE_OPTIONS,
+} from "../../theme/fonts";
 import { APP_THEME_OPTIONS } from "../../theme/palettes";
 import { TERMINAL_THEME_OPTIONS } from "../../theme/terminal-themes";
 import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";
@@ -109,6 +114,14 @@ export function AppearanceSection() {
           sx={{ ...TEXTFIELD_SX, maxWidth: 120 }}
         />
       </Box>
+
+      <LabeledSelect
+        label="Line height"
+        value={appearance.terminalLineHeight}
+        options={LINE_HEIGHT_OPTIONS}
+        onChange={setTerminalLineHeight}
+        maxWidth={120}
+      />
     </Box>
   );
 }

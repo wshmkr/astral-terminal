@@ -3,6 +3,7 @@ export {
   setAppTheme,
   setFontFamily,
   setFontSize,
+  setTerminalLineHeight,
   setTerminalTheme,
   setUiScale,
   stepUiScale,
