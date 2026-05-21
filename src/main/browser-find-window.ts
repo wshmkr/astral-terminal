@@ -5,6 +5,7 @@ import {
   encodeAppModeArg,
   IPC,
   type ScreenRect,
+  WINDOW_HASH,
 } from "../shared/types";
 import { APP_MODE, IS_DEV } from "./env";
 
@@ -76,10 +77,10 @@ function createFindWindow(parent: BrowserWindow): BrowserWindow {
   });
 
   if (DEV_URL) {
-    win.loadURL(`${DEV_URL}#browser-find`);
+    win.loadURL(`${DEV_URL}#${WINDOW_HASH.browserFind}`);
   } else {
     win.loadFile(path.join(__dirname, "../index.html"), {
-      hash: "browser-find",
+      hash: WINDOW_HASH.browserFind,
     });
   }
 

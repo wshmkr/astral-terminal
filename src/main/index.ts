@@ -100,8 +100,6 @@ function installCsp() {
   });
 }
 
-applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
-
 // Warm up rarely-needed child windows + run the update check after the main
 // window paints, so they don't compete with first-frame work
 const DEFERRED_STARTUP_DELAY_MS = 2000;
@@ -118,6 +116,7 @@ function scheduleDeferredStartup(): void {
 
 app.whenReady().then(() => {
   installCsp();
+  applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
   registerWindowIpc({ getMainWindow });
   registerNotificationIpc({ getMainWindow });

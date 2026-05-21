@@ -38,7 +38,6 @@ function installDevHelpers() {
 }
 
 export function mount(rootEl: HTMLElement): void {
-  rootEl.style.height = "100vh";
   if (import.meta.env.DEV) installDevHelpers();
   createRoot(rootEl).render(<SettingsApp />);
 }
