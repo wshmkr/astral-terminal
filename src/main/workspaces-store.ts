@@ -16,12 +16,7 @@ export function loadWorkspaces(): PersistedWorkspaces | null {
   const parsed = readUserDataJson(FILE_NAME, parse);
   if (parsed) return parsed;
   const legacy = readUserDataJson(LEGACY_FILE_NAME, parse);
-  if (legacy && legacy.workspaces.length > 0) {
-    saveWorkspaces(legacy).catch((err) => {
-      console.error("workspaces.json: legacy migration write failed:", err);
-    });
-    return legacy;
-  }
+  if (legacy && legacy.workspaces.length > 0) return legacy;
   return null;
 }
 
