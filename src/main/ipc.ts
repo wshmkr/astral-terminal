@@ -6,9 +6,10 @@ import {
   type AgentName,
   agentProviders,
 } from "../shared/agent-hooks";
-import type {
-  PersistedSettings,
-  TerminalThemeId,
+import {
+  DEFAULT_BROWSER_SETTINGS,
+  type PersistedSettings,
+  type TerminalThemeId,
 } from "../shared/settings-types";
 import { isValidSurfaceId } from "../shared/surface-id";
 import {
@@ -258,7 +259,10 @@ export function registerSettingsIpc(deps: {
       await saveSettings(settings);
       applyTerminalThemeNative(settings.appearance?.terminalThemeId);
       if (settings.browserSettings) {
-        deps.getBrowserManager()?.setBrowserSettings(settings.browserSettings);
+        deps.getBrowserManager()?.setBrowserSettings({
+          ...DEFAULT_BROWSER_SETTINGS,
+          ...settings.browserSettings,
+        });
       }
     },
   );

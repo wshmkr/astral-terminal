@@ -178,8 +178,8 @@ export class BrowserManager {
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
 
-  setBrowserSettings(settings: Partial<BrowserSettings>): void {
-    this.browserSettings = { ...DEFAULT_BROWSER_SETTINGS, ...settings };
+  setBrowserSettings(settings: BrowserSettings): void {
+    this.browserSettings = settings;
   }
 
   constructor(
