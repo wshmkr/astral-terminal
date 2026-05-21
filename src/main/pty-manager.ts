@@ -258,6 +258,8 @@ export class PtyManager {
       rows: targetRows,
       cwd: spawnCwd,
       env,
+      // ConPTY emits ESC[2J on startup otherwise, wiping replayed scrollback
+      conptyInheritCursor: true,
     });
 
     const initialCols = restored?.cols ?? targetCols;
