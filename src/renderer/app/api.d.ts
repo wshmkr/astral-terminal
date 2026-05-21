@@ -1,5 +1,5 @@
 import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
-import type { PersistedSettings } from "../../shared/settings-schema";
+import type { PersistedSettings } from "../../shared/settings-types";
 import type {
   AppConfig,
   AppMode,

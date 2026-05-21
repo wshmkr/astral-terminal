@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { MAX_FONT_SIZE, MIN_FONT_SIZE } from "../../../shared/settings-bounds";
+import { MAX_FONT_SIZE, MIN_FONT_SIZE } from "../../../shared/settings-types";
 import {
   setAccentColor,
   setAppTheme,

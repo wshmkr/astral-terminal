@@ -8,7 +8,7 @@ import type {
   TerminalSettings,
   TerminalThemeId,
   UpdateSettings,
-} from "./settings-schema";
+} from "./settings-types";
 
 export type AppMode = "packaged" | "dev";
 

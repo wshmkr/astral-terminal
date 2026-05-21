@@ -1,7 +1,5 @@
-import {
-  type PersistedSettings,
-  PersistedSettingsSchema,
-} from "../shared/settings-schema";
+import type { PersistedSettings } from "../shared/settings-types";
+import { PersistedSettingsSchema } from "./settings-schema";
 import { readUserDataJson, writeUserDataJsonAtomic } from "./user-data-json";
 
 const FILE_NAME = "settings.json";

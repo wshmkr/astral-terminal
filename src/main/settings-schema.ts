@@ -1,11 +1,16 @@
 import { z } from "zod";
 import {
+  type AppearanceSettings,
   MAX_FONT_SIZE,
   MAX_UI_SCALE,
   MIN_FONT_SIZE,
   MIN_UI_SCALE,
-} from "./settings-bounds";
-import type { PaneNode, Surface, Workspace } from "./types";
+  type NotificationSettings,
+  type PersistedSettings,
+  type TerminalSettings,
+  type UpdateSettings,
+} from "../shared/settings-types";
+import type { PaneNode, Surface } from "../shared/types";
 
 const AppThemeIdSchema = z.enum(["dark", "light", "black"]);
 const TerminalThemeIdSchema = z.enum([
@@ -32,11 +37,6 @@ const AccentColorIdSchema = z.enum([
   "green",
   "teal",
 ]);
-
-export type AppThemeId = z.infer<typeof AppThemeIdSchema>;
-export type TerminalThemeId = z.infer<typeof TerminalThemeIdSchema>;
-export type FontFamilyId = z.infer<typeof FontFamilyIdSchema>;
-export type AccentColorId = z.infer<typeof AccentColorIdSchema>;
 
 const SurfaceSchema = z.discriminatedUnion("type", [
   z.object({
@@ -117,28 +117,6 @@ const SplitPaneSchema = z
       o.sizes && o.sizes.length === o.children.length ? o.sizes : undefined,
   }));
 
-export interface AppearanceSettings {
-  appThemeId: AppThemeId;
-  terminalThemeId: TerminalThemeId;
-  fontFamily: FontFamilyId;
-  fontSize: number;
-  uiScale: number;
-  accentColorId: AccentColorId;
-}
-
-export interface NotificationSettings {
-  soundEnabled: boolean;
-  osNotificationsEnabled: boolean;
-}
-
-export interface UpdateSettings {
-  autoEnabled: boolean;
-}
-
-export interface TerminalSettings {
-  wslDistro: string | null;
-}
-
 const AppearanceSchema = tolerantPartial({
   appThemeId: AppThemeIdSchema,
   terminalThemeId: TerminalThemeIdSchema,
@@ -166,16 +144,6 @@ const WorkspaceSchema = z.object({
   name: z.string(),
   layout: PaneNodeSchema,
 });
-
-export interface PersistedSettings {
-  workspaces: Array<Omit<Workspace, "notifications">>;
-  activeWorkspaceId: string | null;
-  sidebarWidth?: number;
-  appearance?: Partial<AppearanceSettings>;
-  notificationSettings?: Partial<NotificationSettings>;
-  updateSettings?: Partial<UpdateSettings>;
-  terminalSettings?: Partial<TerminalSettings>;
-}
 
 export const PersistedSettingsSchema = z.object({
   workspaces: dropInvalid(WorkspaceSchema),

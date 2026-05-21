@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
-import type { PersistedSettings } from "../shared/settings-schema";
+import type { PersistedSettings } from "../shared/settings-types";
 import type {
   BrowserAnchorOffsets,
   BrowserCommand,

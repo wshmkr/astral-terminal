@@ -1,4 +1,4 @@
-import type { PersistedSettings } from "../../shared/settings-schema";
+import type { PersistedSettings } from "../../shared/settings-types";
 import type { AppState } from "../../shared/types";
 
 export function saveState(state: AppState): void {

@@ -1,16 +1,14 @@
 import {
+  type AccentColorId,
+  type AppearanceSettings,
+  type AppThemeId,
+  type FontFamilyId,
   MAX_FONT_SIZE,
   MAX_UI_SCALE,
   MIN_FONT_SIZE,
   MIN_UI_SCALE,
-} from "../../shared/settings-bounds";
-import type {
-  AccentColorId,
-  AppearanceSettings,
-  AppThemeId,
-  FontFamilyId,
-  TerminalThemeId,
-} from "../../shared/settings-schema";
+  type TerminalThemeId,
+} from "../../shared/settings-types";
 import { DEFAULT_ACCENT_COLOR_ID } from "../theme/accent-colors";
 import {
   DEFAULT_FONT_SIZE,

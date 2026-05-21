@@ -3,7 +3,7 @@ import type {
   NotificationSettings,
   TerminalSettings,
   UpdateSettings,
-} from "../../shared/settings-schema";
+} from "../../shared/settings-types";
 import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,

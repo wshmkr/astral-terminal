@@ -9,7 +9,7 @@ import {
 import type {
   PersistedSettings,
   TerminalThemeId,
-} from "../shared/settings-schema";
+} from "../shared/settings-types";
 import { isValidSurfaceId } from "../shared/surface-id";
 import {
   type AppConfig,

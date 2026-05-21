@@ -1,4 +1,4 @@
-import type { AccentColorId } from "../../shared/settings-schema";
+import type { AccentColorId } from "../../shared/settings-types";
 
 export type { AccentColorId };
 

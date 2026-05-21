@@ -1,4 +1,4 @@
-import type { AppThemeId } from "../../shared/settings-schema";
+import type { AppThemeId } from "../../shared/settings-types";
 
 export interface AppPaletteCustom {
   subtleDivider: string;

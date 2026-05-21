@@ -1,7 +1,7 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AppearanceSettings } from "../shared/settings-schema";
+import type { AppearanceSettings } from "../shared/settings-types";
 import type { BrowserFindOptions, BrowserFindResult } from "../shared/types";
 import type { FindController, FindMatches } from "./components/Find/FindBar";
 import { FindBar } from "./components/Find/FindBar";
