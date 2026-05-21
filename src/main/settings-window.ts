@@ -1,5 +1,10 @@
 import type { BrowserWindow } from "electron";
-import { IPC, SETTINGS_FADE_MS, type SettingsState } from "../shared/types";
+import {
+  IPC,
+  SETTINGS_FADE_MS,
+  type SettingsState,
+  WINDOW_HASH,
+} from "../shared/types";
 import { createChildPanelWindow } from "./child-panel-window";
 import { createFadeController } from "./fade-controller";
 
@@ -78,7 +83,7 @@ export function applySettingsUiScale(
 function createSettingsWindow(parent: BrowserWindow): BrowserWindow {
   const win = createChildPanelWindow({
     parent,
-    hash: "settings",
+    hash: WINDOW_HASH.settings,
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
     transparent: true,

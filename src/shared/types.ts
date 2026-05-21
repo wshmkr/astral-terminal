@@ -33,6 +33,13 @@ export const INITIAL_WINDOW_BG = "#262624";
 export const SETTINGS_FADE_MS = 200;
 export const SETTINGS_FADE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
+export const WINDOW_HASH = {
+  notifications: "notifications",
+  settings: "settings",
+  browserFind: "browser-find",
+} as const;
+export type WindowHash = (typeof WINDOW_HASH)[keyof typeof WINDOW_HASH];
+
 export interface BaseSurface {
   id: string;
   name: string;

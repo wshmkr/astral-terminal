@@ -35,7 +35,7 @@ export function focusMainWindow(win: BrowserWindow): void {
   }
 }
 
-export function createWindow(): void {
+export function createWindow(onShown?: () => void): void {
   const savedState = loadWindowState();
   mainWindow = new BrowserWindow({
     width: savedState.width,
@@ -63,6 +63,7 @@ export function createWindow(): void {
   }
   mainWindow.once("ready-to-show", () => {
     mainWindow?.show();
+    onShown?.();
   });
 
   trackWindowState(mainWindow);

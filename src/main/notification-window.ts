@@ -3,6 +3,7 @@ import {
   IPC,
   type NotificationPanelState,
   type ScreenRect,
+  WINDOW_HASH,
 } from "../shared/types";
 import { createChildPanelWindow } from "./child-panel-window";
 
@@ -45,7 +46,7 @@ function placeAndShow(parent: BrowserWindow, anchor: ScreenRect): void {
 function createNotificationWindow(parent: BrowserWindow): BrowserWindow {
   const win = createChildPanelWindow({
     parent,
-    hash: "notifications",
+    hash: WINDOW_HASH.notifications,
     width: PANEL_WIDTH,
     height: PANEL_HEIGHT,
   });
