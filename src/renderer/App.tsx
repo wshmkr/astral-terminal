@@ -136,9 +136,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (welcomeOpen) return;
     const handle = requestIdleCallback(() => refreshAgentHookStatuses());
     return () => cancelIdleCallback(handle);
-  }, []);
+  }, [welcomeOpen]);
 
   useEffect(() => {
     const unsubscribe = window.app.onUpdateStatus(setUpdateStatus);

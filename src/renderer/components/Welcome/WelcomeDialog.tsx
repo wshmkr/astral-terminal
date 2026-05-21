@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
+import Fade from "@mui/material/Fade";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
@@ -23,6 +24,7 @@ import {
   dismissWelcome,
   setAccentColor,
   setAgentHook,
+  setAgentHookStatuses,
   setAppTheme,
   setTerminalTheme,
   setWslDistro,
@@ -140,31 +142,33 @@ export function WelcomeDialog() {
   const [draftWslDistro, setDraftWslDistro] = useState<string | null>(
     persistedWslDistro,
   );
-  const [isWindows, setIsWindows] = useState<boolean | null>(null);
-  const [distros, setDistros] = useState<WslDistro[] | null>(null);
+  const [distros, setDistros] = useState<WslDistro[]>([]);
+  const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    loadAppConfig().then((config) => {
-      if (cancelled) return;
-      setIsWindows(config.platform.isWindows);
-      if (!config.platform.isWindows) {
-        setDistros([]);
-        return;
-      }
-      window.app
-        .listWslDistros()
-        .then((list) => {
-          if (cancelled) return;
-          setDistros(list);
-        })
-        .catch((err) => {
+    (async () => {
+      const config = await loadAppConfig();
+      let loadedDistros: WslDistro[] = [];
+      if (config.platform.isWindows) {
+        try {
+          loadedDistros = await window.app.listWslDistros();
+        } catch (err) {
           console.error("listWslDistros failed:", err);
-          if (cancelled) return;
-          setDistros([]);
-        });
-    });
+        }
+      }
+      try {
+        const statuses = await window.app.getAgentHookStatuses();
+        if (cancelled) return;
+        setAgentHookStatuses(statuses);
+      } catch (err) {
+        console.error("Failed to read agent hook statuses:", err);
+      }
+      if (cancelled) return;
+      setDistros(loadedDistros);
+      setReady(true);
+    })();
     return () => {
       cancelled = true;
     };
@@ -174,9 +178,8 @@ export function WelcomeDialog() {
     (p) => !isAgentHookInstalled(hookStatuses[p.name]),
   );
 
-  const shellSupported =
-    isWindows === true && distros !== null && distros.length > 0;
-  const selectedDistro = distros?.find((d) =>
+  const shellSupported = distros.length > 0;
+  const selectedDistro = distros.find((d) =>
     draftWslDistro ? d.name === draftWslDistro : d.isDefault,
   );
   const selectedIsSystem = selectedDistro?.isSystem ?? false;
@@ -202,176 +205,181 @@ export function WelcomeDialog() {
       sx={{ top: TITLE_BAR_HEIGHT }}
       aria-labelledby="welcome-title"
     >
-      <Stack direction="row" spacing={4} sx={CONTENT_STACK_SX}>
-        <Stack sx={{ width: 388, flexShrink: 0 }}>
-          <Box sx={{ mb: 4 }}>
-            <Typography id="welcome-title" variant="h4" sx={HEADER_TITLE_SX}>
-              Welcome to{" "}
-              <Box component="span" sx={{ color: "primary.main" }}>
-                Astral
-              </Box>
-              .
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Configure defaults. Editable anytime via settings.
-            </Typography>
-          </Box>
-
-          <Stack spacing={4}>
-            <Stack spacing={1.5}>
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{ alignItems: "baseline" }}
-              >
-                <Typography sx={SUBHEAD_INDEX_SX}>01</Typography>
-                <Typography sx={SUBHEAD_LABEL_SX}>Appearance</Typography>
-              </Stack>
-              <Stack spacing={1.5} sx={{ pl: 3.25 }}>
-                <LabeledSelect
-                  label="App theme"
-                  value={draftAppTheme}
-                  options={APP_THEME_OPTIONS}
-                  onChange={setDraftAppTheme}
-                  maxWidth={240}
-                />
-                <LabeledSelect
-                  label="Terminal theme"
-                  value={draftTerminalTheme}
-                  options={TERMINAL_THEME_OPTIONS}
-                  onChange={setDraftTerminalTheme}
-                  maxWidth={240}
-                />
-                <Box sx={FIELD_SX}>
-                  <Typography sx={FIELD_LABEL_SX}>Accent color</Typography>
-                  <AccentSwatchPicker
-                    value={draftAccentColor}
-                    onChange={setDraftAccentColor}
-                  />
+      <Fade in={ready} timeout={300}>
+        <Stack direction="row" spacing={4} sx={CONTENT_STACK_SX}>
+          <Stack sx={{ width: 388, flexShrink: 0 }}>
+            <Box sx={{ mb: 4 }}>
+              <Typography id="welcome-title" variant="h4" sx={HEADER_TITLE_SX}>
+                Welcome to{" "}
+                <Box component="span" sx={{ color: "primary.main" }}>
+                  Astral
                 </Box>
-              </Stack>
-            </Stack>
+                .
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                Configure defaults. Editable anytime via settings.
+              </Typography>
+            </Box>
 
-            {shellSupported && distros && (
+            <Stack spacing={4}>
               <Stack spacing={1.5}>
                 <Stack
                   direction="row"
                   spacing={1}
                   sx={{ alignItems: "baseline" }}
                 >
-                  <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
-                  <Typography sx={SUBHEAD_LABEL_SX}>Shell</Typography>
+                  <Typography sx={SUBHEAD_INDEX_SX}>01</Typography>
+                  <Typography sx={SUBHEAD_LABEL_SX}>Appearance</Typography>
                 </Stack>
                 <Stack spacing={1.5} sx={{ pl: 3.25 }}>
                   <LabeledSelect
-                    label="WSL distro"
-                    value={draftWslDistro ?? DEFAULT_DISTRO_VALUE}
-                    options={[
-                      {
-                        value: DEFAULT_DISTRO_VALUE,
-                        label: distros.find((d) => d.isDefault)
-                          ? `Default (${distros.find((d) => d.isDefault)?.name})`
-                          : "Default",
-                      },
-                      ...distros.map((d) => ({
-                        value: d.name,
-                        label: d.isSystem ? (
-                          <Box component="span" sx={{ color: "text.disabled" }}>
-                            {d.name}
-                          </Box>
-                        ) : (
-                          d.name
-                        ),
-                      })),
-                    ]}
-                    onChange={(value) =>
-                      setDraftWslDistro(
-                        value === DEFAULT_DISTRO_VALUE ? null : value,
-                      )
-                    }
+                    label="App theme"
+                    value={draftAppTheme}
+                    options={APP_THEME_OPTIONS}
+                    onChange={setDraftAppTheme}
                     maxWidth={240}
-                    error={selectedIsSystem}
                   />
+                  <LabeledSelect
+                    label="Terminal theme"
+                    value={draftTerminalTheme}
+                    options={TERMINAL_THEME_OPTIONS}
+                    onChange={setDraftTerminalTheme}
+                    maxWidth={240}
+                  />
+                  <Box sx={FIELD_SX}>
+                    <Typography sx={FIELD_LABEL_SX}>Accent color</Typography>
+                    <AccentSwatchPicker
+                      value={draftAccentColor}
+                      onChange={setDraftAccentColor}
+                    />
+                  </Box>
                 </Stack>
               </Stack>
-            )}
 
-            <Stack spacing={1.5}>
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{ alignItems: "baseline" }}
-              >
-                <Typography sx={SUBHEAD_INDEX_SX}>
-                  {shellSupported ? "03" : "02"}
-                </Typography>
-                <Typography sx={SUBHEAD_LABEL_SX}>
-                  Install agent hooks
-                </Typography>
-                <HooksHelpIcon sx={{ alignSelf: "center" }} />
-              </Stack>
-              <Stack spacing={1.5} sx={{ pl: 3.25 }}>
-                {agentProviders.map((p) => {
-                  const { icon: Icon, color } = PROVIDER_ICONS[p.name];
-                  const error = errors[p.name];
-                  return (
-                    <SettingRow
-                      key={p.name}
-                      title={p.name}
-                      icon={<Icon size={16} color={color} />}
-                      description={error}
-                      descriptionTone={error ? "error" : "default"}
-                      control={
-                        <Checkbox
-                          size="small"
-                          sx={{ p: 0.5 }}
-                          checked={isAgentHookInstalled(hookStatuses[p.name])}
-                          disabled={!!pending[p.name]}
-                          onChange={(_, checked) => toggle(p.name, checked)}
-                        />
+              {shellSupported && (
+                <Stack spacing={1.5}>
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: "baseline" }}
+                  >
+                    <Typography sx={SUBHEAD_INDEX_SX}>02</Typography>
+                    <Typography sx={SUBHEAD_LABEL_SX}>Shell</Typography>
+                  </Stack>
+                  <Stack spacing={1.5} sx={{ pl: 3.25 }}>
+                    <LabeledSelect
+                      label="WSL distro"
+                      value={draftWslDistro ?? DEFAULT_DISTRO_VALUE}
+                      options={[
+                        {
+                          value: DEFAULT_DISTRO_VALUE,
+                          label: distros.find((d) => d.isDefault)
+                            ? `Default (${distros.find((d) => d.isDefault)?.name})`
+                            : "Default",
+                        },
+                        ...distros.map((d) => ({
+                          value: d.name,
+                          label: d.isSystem ? (
+                            <Box
+                              component="span"
+                              sx={{ color: "text.disabled" }}
+                            >
+                              {d.name}
+                            </Box>
+                          ) : (
+                            d.name
+                          ),
+                        })),
+                      ]}
+                      onChange={(value) =>
+                        setDraftWslDistro(
+                          value === DEFAULT_DISTRO_VALUE ? null : value,
+                        )
                       }
+                      maxWidth={240}
+                      error={selectedIsSystem}
                     />
-                  );
-                })}
+                  </Stack>
+                </Stack>
+              )}
+
+              <Stack spacing={1.5}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ alignItems: "baseline" }}
+                >
+                  <Typography sx={SUBHEAD_INDEX_SX}>
+                    {shellSupported ? "03" : "02"}
+                  </Typography>
+                  <Typography sx={SUBHEAD_LABEL_SX}>
+                    Install agent hooks
+                  </Typography>
+                  <HooksHelpIcon sx={{ alignSelf: "center" }} />
+                </Stack>
+                <Stack spacing={1.5} sx={{ pl: 3.25 }}>
+                  {agentProviders.map((p) => {
+                    const { icon: Icon, color } = PROVIDER_ICONS[p.name];
+                    const error = errors[p.name];
+                    return (
+                      <SettingRow
+                        key={p.name}
+                        title={p.name}
+                        icon={<Icon size={16} color={color} />}
+                        description={error}
+                        descriptionTone={error ? "error" : "default"}
+                        control={
+                          <Checkbox
+                            size="small"
+                            sx={{ p: 0.5 }}
+                            checked={isAgentHookInstalled(hookStatuses[p.name])}
+                            disabled={!!pending[p.name]}
+                            onChange={(_, checked) => toggle(p.name, checked)}
+                          />
+                        }
+                      />
+                    );
+                  })}
+                </Stack>
               </Stack>
+            </Stack>
+
+            <Stack spacing={1.5} sx={{ mt: 1 }}>
+              {selectedIsSystem ? (
+                <Alert severity="error" variant="outlined" sx={ALERT_SX}>
+                  {selectedDistro?.name} is a system distro for containers and
+                  is not meant as an interactive shell.
+                </Alert>
+              ) : (
+                <NoHooksAlert
+                  sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
+                />
+              )}
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                onClick={handleGetStarted}
+                autoFocus
+                endIcon={<VscArrowRight />}
+                sx={BUTTON_SX}
+              >
+                Get started
+              </Button>
             </Stack>
           </Stack>
 
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
-            {selectedIsSystem ? (
-              <Alert severity="error" variant="outlined" sx={ALERT_SX}>
-                {selectedDistro?.name} is a system distro for containers and is
-                not meant as an interactive shell.
-              </Alert>
-            ) : (
-              <NoHooksAlert
-                sx={[ALERT_SX, !noHooksEnabled && { visibility: "hidden" }]}
-              />
-            )}
-            <Button
-              variant="contained"
-              size="large"
-              fullWidth
-              onClick={handleGetStarted}
-              autoFocus
-              endIcon={<VscArrowRight />}
-              sx={BUTTON_SX}
-            >
-              Get started
-            </Button>
-          </Stack>
+          <Box sx={PREVIEW_COL_SX}>
+            <ThemePreview
+              appPalette={withAccent(
+                APP_PALETTES[draftAppTheme],
+                resolveAccentHex(draftAccentColor),
+              )}
+              terminalTheme={TERMINAL_THEMES[draftTerminalTheme]}
+            />
+          </Box>
         </Stack>
-
-        <Box sx={PREVIEW_COL_SX}>
-          <ThemePreview
-            appPalette={withAccent(
-              APP_PALETTES[draftAppTheme],
-              resolveAccentHex(draftAccentColor),
-            )}
-            terminalTheme={TERMINAL_THEMES[draftTerminalTheme]}
-          />
-        </Box>
-      </Stack>
+      </Fade>
     </Dialog>
   );
 }
