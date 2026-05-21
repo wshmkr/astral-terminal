@@ -67,7 +67,7 @@ export function surfaceSidebarLabel(s: Surface): string {
     case "terminal":
       return stripUserHostPrefix(s.name);
     case "browser":
-      return s.name;
+      return `🌐︎ ${s.name}`;
   }
 }
 
@@ -77,6 +77,7 @@ export interface BrowserState {
   isLoading: boolean;
   canGoBack: boolean;
   canGoForward: boolean;
+  favicon: string | null;
 }
 
 export interface BrowserAnchorOffsets {
@@ -95,6 +96,7 @@ export function defaultBrowserState(url: string): BrowserState {
     isLoading: false,
     canGoBack: false,
     canGoForward: false,
+    favicon: null,
   };
 }
 
@@ -208,16 +210,28 @@ export interface ScreenRect {
   height: number;
 }
 
-export type NotificationPanelAction =
-  | {
-      kind: "select";
-      workspaceId: string;
-      paneId: string;
-      surfaceId: string;
-      notifId: string;
-    }
-  | { kind: "dismiss"; workspaceId: string; notifId: string }
-  | { kind: "clearAll" };
+export interface NotificationPanelState {
+  appearance: AppearanceSettings;
+  items: NotificationPanelItem[];
+}
+
+export type NotificationPanelActionMap = {
+  select: (
+    workspaceId: string,
+    paneId: string,
+    surfaceId: string,
+    notifId: string,
+  ) => void;
+  dismiss: (workspaceId: string, notifId: string) => void;
+  clearAll: () => void;
+};
+
+export type NotificationPanelAction = {
+  [K in keyof NotificationPanelActionMap]: {
+    kind: K;
+    args: Parameters<NotificationPanelActionMap[K]>;
+  };
+}[keyof NotificationPanelActionMap];
 
 export interface SettingsState {
   appearance: AppearanceSettings;
@@ -296,10 +310,11 @@ export const IPC = {
     click: "notification:click",
     openPanel: "notification:open-panel",
     closePanel: "notification:close-panel",
-    setPanelItems: "notification:set-panel-items",
-    panelItemsChanged: "notification:panel-items-changed",
-    panelAction: "notification:panel-action",
+    panelOpened: "notification:panel-opened",
     panelClosed: "notification:panel-closed",
+    stateChanged: "notification:state-changed",
+    statePublish: "notification:state-publish",
+    action: "notification:action",
   },
   window: {
     minimize: "window:minimize",

@@ -33,6 +33,7 @@ interface Entry {
   visible: boolean;
   disposed: boolean;
   shiftHeld: boolean;
+  pendingFaviconUrl: string | null;
 }
 
 function readNavState(
@@ -48,7 +49,8 @@ function statesEqual(a: BrowserState, b: BrowserState): boolean {
     a.title === b.title &&
     a.isLoading === b.isLoading &&
     a.canGoBack === b.canGoBack &&
-    a.canGoForward === b.canGoForward
+    a.canGoForward === b.canGoForward &&
+    a.favicon === b.favicon
   );
 }
 
@@ -61,6 +63,73 @@ const DIM_HTML =
       body.show { opacity:1; }
     </style>`,
   );
+
+const MAX_FAVICON_BYTES = 256 * 1024;
+const FAVICON_SCHEMES = new Set(["http:", "https:", "data:"]);
+const FAVICON_CACHE_MAX = 64;
+const originFaviconCache = new Map<string, string>();
+
+function httpOrigin(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function getOriginFavicon(pageUrl: string): string | null {
+  const origin = httpOrigin(pageUrl);
+  if (!origin) return null;
+  const hit = originFaviconCache.get(origin);
+  if (hit === undefined) return null;
+  originFaviconCache.delete(origin);
+  originFaviconCache.set(origin, hit);
+  return hit;
+}
+
+function setOriginFavicon(pageUrl: string, dataUrl: string): void {
+  const origin = httpOrigin(pageUrl);
+  if (!origin) return;
+  if (originFaviconCache.has(origin)) originFaviconCache.delete(origin);
+  originFaviconCache.set(origin, dataUrl);
+  if (originFaviconCache.size > FAVICON_CACHE_MAX) {
+    const oldest = originFaviconCache.keys().next().value;
+    if (oldest !== undefined) originFaviconCache.delete(oldest);
+  }
+}
+
+async function fetchFaviconDataUrl(url: string): Promise<string | null> {
+  let scheme: string;
+  try {
+    scheme = new URL(url).protocol;
+  } catch {
+    return null;
+  }
+  if (!FAVICON_SCHEMES.has(scheme)) return null;
+  if (scheme === "data:") return url;
+  try {
+    const response = await session.fromPartition(BROWSER_PARTITION).fetch(url);
+    if (!response.ok) {
+      console.warn(`[browser] favicon fetch ${response.status} for ${url}`);
+      return null;
+    }
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_FAVICON_BYTES) {
+      return null;
+    }
+    const mime =
+      response.headers.get("content-type")?.split(";")[0]?.trim() ||
+      "image/x-icon";
+    const base64 = Buffer.from(buffer).toString("base64");
+    return `data:${mime};base64,${base64}`;
+  } catch (err) {
+    console.warn(`[browser] favicon fetch failed for ${url}:`, err);
+    return null;
+  }
+}
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "about"]);
 
@@ -188,6 +257,7 @@ export class BrowserManager {
       visible: false,
       disposed: false,
       shiftHeld: false,
+      pendingFaviconUrl: null,
     };
     this.entries.set(surfaceId, entry);
 
@@ -247,7 +317,8 @@ export class BrowserManager {
       update({ isLoading: false, ...readNavState(wc) }),
     );
     wc.on("did-navigate", (_event, url) => {
-      update({ url, ...readNavState(wc) });
+      entry.pendingFaviconUrl = null;
+      update({ url, favicon: getOriginFavicon(url), ...readNavState(wc) });
       wc.stopFindInPage("clearSelection");
     });
     wc.on("did-navigate-in-page", (_event, url, isMainFrame) => {
@@ -255,6 +326,22 @@ export class BrowserManager {
       update({ url, ...readNavState(wc) });
     });
     wc.on("page-title-updated", (_event, title) => update({ title }));
+    wc.on("page-favicon-updated", (_event, favicons) => {
+      const url = favicons[0];
+      const pageUrl = wc.getURL();
+      if (!url) {
+        entry.pendingFaviconUrl = null;
+        update({ favicon: null });
+        return;
+      }
+      entry.pendingFaviconUrl = url;
+      fetchFaviconDataUrl(url).then((dataUrl) => {
+        if (entry.disposed || entry.pendingFaviconUrl !== url) return;
+        entry.pendingFaviconUrl = null;
+        if (dataUrl) setOriginFavicon(pageUrl, dataUrl);
+        update({ favicon: dataUrl });
+      });
+    });
     wc.on("found-in-page", (_event, result) => {
       this.callbacks.onFindResult(surfaceId, {
         activeMatchOrdinal: result.activeMatchOrdinal,

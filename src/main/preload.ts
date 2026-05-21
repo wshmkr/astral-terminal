@@ -10,7 +10,7 @@ import type {
   ConfigureAgentHooksResult,
   NotificationFirePayload,
   NotificationPanelAction,
-  NotificationPanelItem,
+  NotificationPanelState,
   ScreenRect,
   SettingsAction,
   SettingsState,
@@ -115,27 +115,25 @@ contextBridge.exposeInMainWorld("app", {
 
   openNotificationPanel: (anchor: ScreenRect) =>
     ipcRenderer.send(IPC.notification.openPanel, { anchor }),
-  setNotificationPanelItems: (items: NotificationPanelItem[]) =>
-    ipcRenderer.send(IPC.notification.setPanelItems, { items }),
   closeNotificationPanel: () => ipcRenderer.send(IPC.notification.closePanel),
+  onNotificationPanelOpened: (callback: () => void) =>
+    subscribe<[]>(IPC.notification.panelOpened, callback),
   onNotificationPanelClosed: (callback: () => void) =>
     subscribe<[]>(IPC.notification.panelClosed, callback),
-  onNotificationPanelItems: (
-    callback: (items: NotificationPanelItem[]) => void,
+  publishNotificationPanelState: (state: NotificationPanelState) =>
+    ipcRenderer.send(IPC.notification.statePublish, state),
+  onNotificationPanelStateChanged: (
+    callback: (state: NotificationPanelState) => void,
   ) =>
-    subscribe<[NotificationPanelItem[]]>(
-      IPC.notification.panelItemsChanged,
+    subscribe<[NotificationPanelState]>(
+      IPC.notification.stateChanged,
       callback,
     ),
   sendNotificationPanelAction: (action: NotificationPanelAction) =>
-    ipcRenderer.send(IPC.notification.panelAction, action),
+    ipcRenderer.send(IPC.notification.action, action),
   onNotificationPanelAction: (
     callback: (action: NotificationPanelAction) => void,
-  ) =>
-    subscribe<[NotificationPanelAction]>(
-      IPC.notification.panelAction,
-      callback,
-    ),
+  ) => subscribe<[NotificationPanelAction]>(IPC.notification.action, callback),
 
   openSettingsWindow: () => ipcRenderer.send(IPC.settings.open),
   closeSettingsWindow: () => ipcRenderer.send(IPC.settings.close),
