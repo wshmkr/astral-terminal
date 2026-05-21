@@ -58,11 +58,11 @@ export interface LineHeightOption {
   label: string;
 }
 
-// Default 1.0 keeps block glyphs (▀▄█, QR codes, ASCII art) seamless
 export const LINE_HEIGHT_OPTIONS: LineHeightOption[] = [
   { value: 1.0, label: "1.0" },
   { value: 1.2, label: "1.2" },
   { value: 1.5, label: "1.5" },
 ];
 
+// 1.0 keeps block glyphs (▀▄█, QR codes, ASCII art) seamless
 export const DEFAULT_LINE_HEIGHT = 1.0;

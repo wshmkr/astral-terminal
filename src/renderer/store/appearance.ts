@@ -77,8 +77,8 @@ export function setFontSize(size: number): void {
   update({ fontSize: clamped });
 }
 
-export function setTerminalLineHeight(value: number): void {
-  const clamped = clampLineHeight(value);
+export function setTerminalLineHeight(lineHeight: number): void {
+  const clamped = clampLineHeight(lineHeight);
   if (getState().appearance.terminalLineHeight === clamped) return;
   update({ terminalLineHeight: clamped });
 }
