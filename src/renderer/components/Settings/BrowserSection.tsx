@@ -62,6 +62,8 @@ export function BrowserSection() {
     updateBrowserSettings({ customSearchUrl: trimmed });
   };
 
+  const customError = customTemplateError(customDraft);
+
   return (
     <Box sx={ROOT_SX}>
       <Typography variant="subtitle1" sx={SUBHEAD_SX}>
@@ -83,10 +85,9 @@ export function BrowserSection() {
             size="small"
             value={customDraft}
             placeholder="https://example.com/search?q=%s"
-            error={customTemplateError(customDraft) !== null}
+            error={customError !== null}
             helperText={
-              customTemplateError(customDraft) ??
-              "Use %s where the search query should go."
+              customError ?? "Use %s where the search query should go."
             }
             onChange={(e) => setCustomDraft(e.target.value)}
             onBlur={commitCustom}
