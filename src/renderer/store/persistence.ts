@@ -7,6 +7,8 @@ export interface LoadedState {
 }
 
 export function saveState(state: AppState): void {
+  // keep first-run signal alive until the user clicks through the welcome
+  if (state.welcomeOpen) return;
   const settings: PersistedSettings = {
     appearance: state.appearance,
     notificationSettings: state.notificationSettings,
