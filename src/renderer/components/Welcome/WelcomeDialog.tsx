@@ -142,8 +142,7 @@ export function WelcomeDialog() {
   const [draftWslDistro, setDraftWslDistro] = useState<string | null>(
     persistedWslDistro,
   );
-  const [isWindows, setIsWindows] = useState<boolean | null>(null);
-  const [distros, setDistros] = useState<WslDistro[] | null>(null);
+  const [distros, setDistros] = useState<WslDistro[]>([]);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(true);
 
@@ -167,7 +166,6 @@ export function WelcomeDialog() {
         console.error("Failed to read agent hook statuses:", err);
       }
       if (cancelled) return;
-      setIsWindows(config.platform.isWindows);
       setDistros(loadedDistros);
       setReady(true);
     })();
@@ -180,9 +178,8 @@ export function WelcomeDialog() {
     (p) => !isAgentHookInstalled(hookStatuses[p.name]),
   );
 
-  const shellSupported =
-    isWindows === true && distros !== null && distros.length > 0;
-  const selectedDistro = distros?.find((d) =>
+  const shellSupported = distros.length > 0;
+  const selectedDistro = distros.find((d) =>
     draftWslDistro ? d.name === draftWslDistro : d.isDefault,
   );
   const selectedIsSystem = selectedDistro?.isSystem ?? false;
@@ -259,7 +256,7 @@ export function WelcomeDialog() {
                 </Stack>
               </Stack>
 
-              {shellSupported && distros && (
+              {shellSupported && (
                 <Stack spacing={1.5}>
                   <Stack
                     direction="row"

@@ -135,9 +135,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (welcomeOpen) return;
     const handle = requestIdleCallback(() => refreshAgentHookStatuses());
     return () => cancelIdleCallback(handle);
-  }, []);
+  }, [welcomeOpen]);
 
   return (
     <AppDndContext>
