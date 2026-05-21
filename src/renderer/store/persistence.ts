@@ -1,8 +1,22 @@
 import type { PersistedSettings } from "../../shared/settings-types";
-import type { AppState } from "../../shared/types";
+import type { AppState, PersistedWorkspaces } from "../../shared/types";
+
+export interface LoadedState {
+  settings: PersistedSettings | null;
+  workspaces: PersistedWorkspaces | null;
+}
 
 export function saveState(state: AppState): void {
-  const persisted: PersistedSettings = {
+  // keep first-run signal alive until the user clicks through the welcome
+  if (state.welcomeOpen) return;
+  const settings: PersistedSettings = {
+    appearance: state.appearance,
+    notificationSettings: state.notificationSettings,
+    updateSettings: state.updateSettings,
+    terminalSettings: state.terminalSettings,
+    browserSettings: state.browserSettings,
+  };
+  const workspaces: PersistedWorkspaces = {
     workspaces: state.workspaces.map((w) => ({
       id: w.id,
       name: w.name,
@@ -10,17 +24,19 @@ export function saveState(state: AppState): void {
     })),
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,
-    appearance: state.appearance,
-    notificationSettings: state.notificationSettings,
-    updateSettings: state.updateSettings,
-    terminalSettings: state.terminalSettings,
-    browserSettings: state.browserSettings,
   };
-  window.app.writeSettings(persisted).catch((err) => {
+  window.app.writeSettings(settings).catch((err) => {
     console.error("Failed to save settings:", err);
+  });
+  window.app.writeWorkspaces(workspaces).catch((err) => {
+    console.error("Failed to save workspaces:", err);
   });
 }
 
-export function loadState(): Promise<PersistedSettings | null> {
-  return window.app.readSettings();
+export async function loadState(): Promise<LoadedState> {
+  const [settings, workspaces] = await Promise.all([
+    window.app.readSettings(),
+    window.app.readWorkspaces(),
+  ]);
+  return { settings, workspaces };
 }

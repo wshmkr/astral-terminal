@@ -20,44 +20,51 @@ const INITIAL_WINDOW_FOCUSED =
   typeof document !== "undefined" ? document.hasFocus() : true;
 
 async function initState(): Promise<AppState> {
-  const loaded = await loadState();
-  const isFirstRun = loaded === null;
-  if (loaded && loaded.workspaces.length > 0) {
-    const workspaces: Workspace[] = loaded.workspaces.map((pw) => ({
+  const { settings, workspaces: loadedWorkspaces } = await loadState();
+  const isFirstRun = settings === null && loadedWorkspaces === null;
+
+  const appearance = {
+    ...DEFAULT_APPEARANCE,
+    ...(settings?.appearance ?? {}),
+  };
+  const notificationSettings = {
+    ...DEFAULT_NOTIFICATION_SETTINGS,
+    ...(settings?.notificationSettings ?? {}),
+  };
+  const updateSettings = {
+    ...DEFAULT_UPDATE_SETTINGS,
+    ...(settings?.updateSettings ?? {}),
+  };
+  const terminalSettings = {
+    ...DEFAULT_TERMINAL_SETTINGS,
+    ...(settings?.terminalSettings ?? {}),
+  };
+  const browserSettings = {
+    ...DEFAULT_BROWSER_SETTINGS,
+    ...(settings?.browserSettings ?? {}),
+  };
+
+  if (loadedWorkspaces && loadedWorkspaces.workspaces.length > 0) {
+    const workspaces: Workspace[] = loadedWorkspaces.workspaces.map((pw) => ({
       id: pw.id,
       name: pw.name,
       layout: pw.layout,
       notifications: [],
     }));
-    const activeWs = loaded.activeWorkspaceId
-      ? (workspaces.find((w) => w.id === loaded.activeWorkspaceId) ??
+    const activeWs = loadedWorkspaces.activeWorkspaceId
+      ? (workspaces.find((w) => w.id === loadedWorkspaces.activeWorkspaceId) ??
         workspaces[0])
       : null;
     return {
       workspaces,
       activeWorkspaceId: activeWs?.id ?? null,
       focusedPaneId: activeWs ? findFirstLeaf(activeWs.layout) : null,
-      sidebarWidth: loaded.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH_PX,
-      appearance: {
-        ...DEFAULT_APPEARANCE,
-        ...(loaded.appearance ?? {}),
-      },
-      notificationSettings: {
-        ...DEFAULT_NOTIFICATION_SETTINGS,
-        ...(loaded.notificationSettings ?? {}),
-      },
-      updateSettings: {
-        ...DEFAULT_UPDATE_SETTINGS,
-        ...(loaded.updateSettings ?? {}),
-      },
-      terminalSettings: {
-        ...DEFAULT_TERMINAL_SETTINGS,
-        ...(loaded.terminalSettings ?? {}),
-      },
-      browserSettings: {
-        ...DEFAULT_BROWSER_SETTINGS,
-        ...(loaded.browserSettings ?? {}),
-      },
+      sidebarWidth: loadedWorkspaces.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH_PX,
+      appearance,
+      notificationSettings,
+      updateSettings,
+      terminalSettings,
+      browserSettings,
       agentHookStatuses: {},
       updateStatus: INITIAL_UPDATE_STATUS,
       windowFocused: INITIAL_WINDOW_FOCUSED,
@@ -70,11 +77,11 @@ async function initState(): Promise<AppState> {
     activeWorkspaceId: seed.id,
     focusedPaneId: seed.layout.id,
     sidebarWidth: DEFAULT_SIDEBAR_WIDTH_PX,
-    appearance: DEFAULT_APPEARANCE,
-    notificationSettings: DEFAULT_NOTIFICATION_SETTINGS,
-    updateSettings: DEFAULT_UPDATE_SETTINGS,
-    terminalSettings: DEFAULT_TERMINAL_SETTINGS,
-    browserSettings: DEFAULT_BROWSER_SETTINGS,
+    appearance,
+    notificationSettings,
+    updateSettings,
+    terminalSettings,
+    browserSettings,
     agentHookStatuses: {},
     updateStatus: INITIAL_UPDATE_STATUS,
     windowFocused: INITIAL_WINDOW_FOCUSED,

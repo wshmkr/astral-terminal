@@ -11,6 +11,7 @@ import type {
   NotificationFirePayload,
   NotificationPanelAction,
   NotificationPanelState,
+  PersistedWorkspaces,
   ScreenRect,
   SettingsAction,
   SettingsState,
@@ -30,6 +31,8 @@ const mode = decodeAppModeArg(process.argv);
 
 let prefetchedSettings: Promise<PersistedSettings | null> | null =
   ipcRenderer.invoke(IPC.settings.read);
+let prefetchedWorkspaces: Promise<PersistedWorkspaces | null> | null =
+  ipcRenderer.invoke(IPC.workspaces.read);
 
 function subscribe<Args extends unknown[]>(
   channel: string,
@@ -53,6 +56,14 @@ contextBridge.exposeInMainWorld("app", {
   },
   writeSettings: (settings: PersistedSettings): Promise<void> =>
     ipcRenderer.invoke(IPC.settings.write, settings),
+
+  readWorkspaces: (): Promise<PersistedWorkspaces | null> => {
+    const p = prefetchedWorkspaces ?? ipcRenderer.invoke(IPC.workspaces.read);
+    prefetchedWorkspaces = null;
+    return p;
+  },
+  writeWorkspaces: (value: PersistedWorkspaces): Promise<void> =>
+    ipcRenderer.invoke(IPC.workspaces.write, value),
 
   createPty: (options: {
     cwd?: string;

@@ -32,7 +32,7 @@ export function readUserDataJson<T>(
 
 export function writeUserDataJsonSync(fileName: string, value: unknown): void {
   try {
-    fs.writeFileSync(userDataPath(fileName), JSON.stringify(value));
+    fs.writeFileSync(userDataPath(fileName), JSON.stringify(value, null, 2));
   } catch (err) {
     console.error(`${fileName}: save failed:`, err);
   }
@@ -44,6 +44,6 @@ export async function writeUserDataJsonAtomic(
 ): Promise<void> {
   const finalPath = userDataPath(fileName);
   const tmpPath = `${finalPath}.tmp`;
-  await fs.promises.writeFile(tmpPath, JSON.stringify(value));
+  await fs.promises.writeFile(tmpPath, JSON.stringify(value, null, 2));
   await fs.promises.rename(tmpPath, finalPath);
 }
