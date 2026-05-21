@@ -145,6 +145,7 @@ const SearchEngineIdSchema = z.enum(["google", "bing", "duckduckgo", "custom"]);
 const BrowserSettingsSchema = tolerantPartial({
   searchEngineId: SearchEngineIdSchema,
   customSearchUrl: z.string(),
+  adBlockEnabled: z.boolean(),
 }) satisfies z.ZodType<Partial<BrowserSettings>>;
 
 const WorkspaceSchema = z.object({

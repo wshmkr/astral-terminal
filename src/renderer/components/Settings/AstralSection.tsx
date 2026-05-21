@@ -23,14 +23,13 @@ import {
   ROOT_SX,
   SettingRow,
   SUBHEAD_SX,
+  SWITCH_SX,
 } from "./shared";
 
 const HELP_SX = {
   color: "text.secondary",
   fontSize: 12,
 } as const;
-
-const SWITCH_SX = { ml: -1 } as const;
 
 const SYSTEM_DISTRO_SX = { color: "text.disabled" } as const;
 

@@ -19,6 +19,8 @@ export const SUBHEAD_SX = {
 
 export const DIVIDER_SX = { my: 1 } as const;
 
+export const SWITCH_SX = { ml: -1 } as const;
+
 const ROW_SX = {
   display: "flex",
   alignItems: "center",

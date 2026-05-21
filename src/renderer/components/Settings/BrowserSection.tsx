@@ -1,4 +1,6 @@
 import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
@@ -11,11 +13,14 @@ import {
   useSettingsStore,
 } from "../../settings-window/store";
 import {
+  DIVIDER_SX,
   FIELD_LABEL_SX,
   FIELD_SX,
   LabeledSelect,
   ROOT_SX,
+  SettingRow,
   SUBHEAD_SX,
+  SWITCH_SX,
 } from "./shared";
 
 const ENGINE_OPTIONS: ReadonlyArray<{
@@ -48,6 +53,9 @@ export function BrowserSection() {
   );
   const customSearchUrl = useSettingsStore(
     (s) => s.browserSettings.customSearchUrl,
+  );
+  const adBlockEnabled = useSettingsStore(
+    (s) => s.browserSettings.adBlockEnabled,
   );
 
   const [customDraft, setCustomDraft] = useState(customSearchUrl);
@@ -96,6 +104,27 @@ export function BrowserSection() {
           />
         </Box>
       )}
+
+      <Divider sx={DIVIDER_SX} />
+
+      <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+        Privacy
+      </Typography>
+
+      <SettingRow
+        title="Block ads and trackers"
+        description="Filter network requests and hide ad placeholders on web pages."
+        control={
+          <Switch
+            size="small"
+            sx={SWITCH_SX}
+            checked={adBlockEnabled}
+            onChange={(_, checked) =>
+              updateBrowserSettings({ adBlockEnabled: checked })
+            }
+          />
+        }
+      />
     </Box>
   );
 }

@@ -41,3 +41,4 @@ npm run dev
   - [One Half](https://github.com/sonph/onehalf)
   - [GitHub](https://github.com/primer/github-vscode-theme)
   - [Dracula](https://draculatheme.com/spec)
+- In-app browser ad blocking: [Ghostery Adblocker](https://github.com/ghostery/adblocker)
