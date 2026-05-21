@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  MAX_FONT_SIZE,
+  MAX_UI_SCALE,
+  MIN_FONT_SIZE,
+  MIN_UI_SCALE,
+} from "./settings-bounds";
 import type { PaneNode, Surface } from "./types";
 
 const AppThemeIdSchema = z.enum(["dark", "light", "black"]);
@@ -32,11 +38,6 @@ export type TerminalThemeId = z.infer<typeof TerminalThemeIdSchema>;
 export type FontFamilyId = z.infer<typeof FontFamilyIdSchema>;
 export type AccentColorId = z.infer<typeof AccentColorIdSchema>;
 
-export const MIN_FONT_SIZE = 10;
-export const MAX_FONT_SIZE = 24;
-export const MIN_UI_SCALE = 0.8;
-export const MAX_UI_SCALE = 1.5;
-
 const SurfaceSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string(),
@@ -54,7 +55,7 @@ const SurfaceSchema = z.discriminatedUnion("type", [
 
 function dropInvalid<T extends z.ZodTypeAny>(item: T) {
   return z
-    .array(item.catch(null as never))
+    .array(item.nullable().catch(null))
     .transform((arr) => arr.filter((x): x is z.infer<T> => x !== null));
 }
 
@@ -116,6 +117,28 @@ const SplitPaneSchema = z
       o.sizes && o.sizes.length === o.children.length ? o.sizes : undefined,
   }));
 
+export interface AppearanceSettings {
+  appThemeId: AppThemeId;
+  terminalThemeId: TerminalThemeId;
+  fontFamily: FontFamilyId;
+  fontSize: number;
+  uiScale: number;
+  accentColorId: AccentColorId;
+}
+
+export interface NotificationSettings {
+  soundEnabled: boolean;
+  osNotificationsEnabled: boolean;
+}
+
+export interface UpdateSettings {
+  autoEnabled: boolean;
+}
+
+export interface TerminalSettings {
+  wslDistro: string | null;
+}
+
 const AppearanceSchema = tolerantPartial({
   appThemeId: AppThemeIdSchema,
   terminalThemeId: TerminalThemeIdSchema,
@@ -123,20 +146,20 @@ const AppearanceSchema = tolerantPartial({
   fontSize: z.number().min(MIN_FONT_SIZE).max(MAX_FONT_SIZE),
   uiScale: z.number().min(MIN_UI_SCALE).max(MAX_UI_SCALE),
   accentColorId: AccentColorIdSchema,
-});
+}) satisfies z.ZodType<Partial<AppearanceSettings>>;
 
 const NotificationSettingsSchema = tolerantPartial({
   soundEnabled: z.boolean(),
   osNotificationsEnabled: z.boolean(),
-});
+}) satisfies z.ZodType<Partial<NotificationSettings>>;
 
 const UpdateSettingsSchema = tolerantPartial({
   autoEnabled: z.boolean(),
-});
+}) satisfies z.ZodType<Partial<UpdateSettings>>;
 
 const TerminalSettingsSchema = tolerantPartial({
   wslDistro: z.string().nullable(),
-});
+}) satisfies z.ZodType<Partial<TerminalSettings>>;
 
 const WorkspaceSchema = z.object({
   id: z.string(),
@@ -154,10 +177,4 @@ export const PersistedSettingsSchema = z.object({
   terminalSettings: TerminalSettingsSchema.optional().catch(undefined),
 });
 
-export type AppearanceSettings = Required<z.infer<typeof AppearanceSchema>>;
-export type NotificationSettings = Required<
-  z.infer<typeof NotificationSettingsSchema>
->;
-export type UpdateSettings = Required<z.infer<typeof UpdateSettingsSchema>>;
-export type TerminalSettings = Required<z.infer<typeof TerminalSettingsSchema>>;
 export type PersistedSettings = z.infer<typeof PersistedSettingsSchema>;
