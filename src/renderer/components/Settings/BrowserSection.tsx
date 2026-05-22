@@ -139,7 +139,7 @@ export function BrowserSection() {
   return (
     <Box sx={ROOT_SX}>
       <Typography variant="subtitle1" sx={SUBHEAD_SX}>
-        Search
+        General
       </Typography>
 
       <LabeledSelect
