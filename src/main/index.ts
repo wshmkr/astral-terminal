@@ -14,6 +14,9 @@ import {
   updateBrowserFindAnchor,
 } from "./browser-find-window";
 import { BrowserManager } from "./browser-manager";
+import { registerActiveRefIpc } from "./cli/active-ref";
+import { registerAppIdentify } from "./cli/methods/app-identify";
+import { getCliServer } from "./cli/server";
 import { loadConfig } from "./config";
 import { IS_DEV } from "./env";
 import {
@@ -124,6 +127,12 @@ app.whenReady().then(() => {
   registerSettingsWindowIpc({ getMainWindow });
   registerAgentHookIpc();
   registerUpdateIpc();
+  registerActiveRefIpc();
+  const cliServer = getCliServer();
+  registerAppIdentify(cliServer);
+  cliServer.start().catch((err) => {
+    console.error("[cli] listen failed", err);
+  });
   initAutoUpdater(getMainWindow);
   createWindow(scheduleDeferredStartup);
 
@@ -166,6 +175,7 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", () => {
+  void getCliServer().close();
   ptyManager?.saveAndKillAll();
   browserManager?.destroyAll();
   destroyNotificationWindow();

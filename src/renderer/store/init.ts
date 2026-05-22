@@ -5,6 +5,7 @@ import {
   findFirstLeaf,
 } from "../components/Layout/pane-tree";
 import { DEFAULT_APPEARANCE } from "./appearance";
+import { startCliActiveRefBridge } from "./cli-bridge";
 import { initializeStore } from "./core";
 import { createDefaultWorkspace, nextWorkspaceName } from "./factories";
 import { loadState } from "./persistence";
@@ -92,6 +93,7 @@ async function initState(): Promise<AppState> {
 export async function bootStore(): Promise<void> {
   const initial = await initState();
   initializeStore(initial);
+  startCliActiveRefBridge();
 
   if (typeof window !== "undefined" && window.app?.pruneTerminalBuffers) {
     const valid = initial.workspaces.flatMap((ws) =>

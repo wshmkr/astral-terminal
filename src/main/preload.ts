@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
 import type { PersistedSettings } from "../shared/settings-types";
 import type {
+  ActiveRef,
   BrowserAnchorOffsets,
   BrowserCommand,
   BrowserFindOptions,
@@ -196,6 +197,9 @@ contextBridge.exposeInMainWorld("app", {
   installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.update.install),
   onUpdateStatus: (callback: (status: UpdateStatus) => void) =>
     subscribe<[UpdateStatus]>(IPC.update.status, callback),
+
+  sendCliActiveRef: (ref: ActiveRef) =>
+    ipcRenderer.send(IPC.cli.activeRefUpdate, ref),
 
   browserFindRequest: (surfaceId: string, opts: BrowserFindOptions) =>
     ipcRenderer.send(IPC.browser.findRequest, { surfaceId, opts }),
