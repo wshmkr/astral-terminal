@@ -41,10 +41,9 @@ const CLEAR_BUTTON_SX = { alignSelf: "flex-start" } as const;
 function homepageError(value: string): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  if (!/^https?:\/\/.+/i.test(trimmed) && /\s/.test(trimmed)) {
-    return "Must be a URL";
-  }
-  return null;
+  if (/^https?:\/\/.+/i.test(trimmed)) return null;
+  if (/^[^\s/]+\.[^\s/]+/.test(trimmed)) return null;
+  return "Must be a URL";
 }
 
 function customTemplateError(value: string): string | null {
