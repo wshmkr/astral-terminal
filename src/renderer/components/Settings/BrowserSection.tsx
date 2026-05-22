@@ -41,7 +41,9 @@ const CLEAR_BUTTON_SX = { alignSelf: "flex-start" } as const;
 
 function homepageError(value: string): string | null {
   if (!value.trim()) return null;
-  return looksLikeUrl(value) ? null : "Must be a URL";
+  return looksLikeUrl(value)
+    ? null
+    : "Homepage must be a URL like https://example.com";
 }
 
 type ClearStatus = "idle" | "confirming" | "clearing" | "cleared";
