@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.0](https://github.com/wshmkr/astral-terminal/compare/v0.5.0...v0.6.0) (2026-05-22)
+
+
+### Features
+
+* block ads and trackers in the browser ([#71](https://github.com/wshmkr/astral-terminal/issues/71)) ([531edb5](https://github.com/wshmkr/astral-terminal/commit/531edb5657a2c7a93330f9b6213c6d2688f00d94))
+* browser homepage, GPC, and clear data ([#74](https://github.com/wshmkr/astral-terminal/issues/74)) ([6cbb65e](https://github.com/wshmkr/astral-terminal/commit/6cbb65e7f0f6596770aae875ca599ed457a478c1))
+* browser search engine setting ([#67](https://github.com/wshmkr/astral-terminal/issues/67)) ([e107ce9](https://github.com/wshmkr/astral-terminal/commit/e107ce94ab26eaac131733bde018b96aa1fd1925))
+* extend Ctrl-F find to browser panes ([#56](https://github.com/wshmkr/astral-terminal/issues/56)) ([9b8adcf](https://github.com/wshmkr/astral-terminal/commit/9b8adcf6c603153ad45dc98a5375a3630c027ce7))
+* show site favicon in browser tabs ([#57](https://github.com/wshmkr/astral-terminal/issues/57)) ([8874f82](https://github.com/wshmkr/astral-terminal/commit/8874f8202f774160af5a7e20afa2af3184f68a4d))
+* surface auto-update status in settings ([#47](https://github.com/wshmkr/astral-terminal/issues/47)) ([91b233c](https://github.com/wshmkr/astral-terminal/commit/91b233cccbb1280fbebe55fc1c26504d3e4c82d5))
+* terminal line height setting ([#73](https://github.com/wshmkr/astral-terminal/issues/73)) ([554ed3d](https://github.com/wshmkr/astral-terminal/commit/554ed3df2abd10d0027bc7ac318dafc4401ceac9))
+
+
+### Bug Fixes
+
+* init settings and notification windows eagerly ([#75](https://github.com/wshmkr/astral-terminal/issues/75)) ([c6d7c94](https://github.com/wshmkr/astral-terminal/commit/c6d7c94890d1c7327febcc745dfa010426915e50))
+* prevent ConPTY clearing replayed scrollback on restore ([#72](https://github.com/wshmkr/astral-terminal/issues/72)) ([f52ffcb](https://github.com/wshmkr/astral-terminal/commit/f52ffcbfde29af8b50564669509c2a3277ca47e1))
+* prevent welcome dialog content from popping in ([#68](https://github.com/wshmkr/astral-terminal/issues/68)) ([ea1aea0](https://github.com/wshmkr/astral-terminal/commit/ea1aea0b821e60a16d8b85cad6ef20ad410985f3))
+* validate persisted settings with zod ([#58](https://github.com/wshmkr/astral-terminal/issues/58)) ([12f328d](https://github.com/wshmkr/astral-terminal/commit/12f328d0d0ca057e139e95e662fd301e8ae1b2d7))
+
+
+### Performance
+
+* defer child window warm-up and code-split renderer entry ([#69](https://github.com/wshmkr/astral-terminal/issues/69)) ([53c6625](https://github.com/wshmkr/astral-terminal/commit/53c66252d7c3008aa71e10914007d8220da342ae))
+
 ## [0.5.0](https://github.com/wshmkr/astral-terminal/compare/v0.4.0...v0.5.0) (2026-05-19)
 
 
