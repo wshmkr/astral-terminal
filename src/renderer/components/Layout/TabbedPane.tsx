@@ -222,7 +222,7 @@ function NewTabButton({ paneId }: { paneId: string }) {
         <Divider
           orientation="vertical"
           flexItem
-          sx={{ borderColor: "text.disabled" }}
+          sx={{ borderColor: "custom.subtleDivider" }}
         />
         <Tooltip title="Browser" placement="top">
           <IconButton

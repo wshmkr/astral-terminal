@@ -208,4 +208,6 @@ contextBridge.exposeInMainWorld("app", {
     subscribe<[{ surfaceId: string }]>(IPC.browser.findTargetChanged, callback),
   onBrowserFindResult: (callback: (result: BrowserFindResult) => void) =>
     subscribe<[BrowserFindResult]>(IPC.browser.findResultChanged, callback),
+  clearBrowsingData: (): Promise<void> =>
+    ipcRenderer.invoke(IPC.browser.clearData),
 });

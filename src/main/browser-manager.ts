@@ -5,6 +5,7 @@ import {
   WebContentsView,
 } from "electron";
 import {
+  BARE_DOMAIN_RE,
   type BrowserSettings,
   buildSearchUrl,
   DEFAULT_BROWSER_SETTINGS,
@@ -146,8 +147,20 @@ function normalizeUrl(raw: string, settings: BrowserSettings): string {
   if (scheme) {
     return ALLOWED_SCHEMES.has(scheme.toLowerCase()) ? trimmed : "about:blank";
   }
-  if (/^[^\s/]+\.[^\s/]+/.test(trimmed)) return `https://${trimmed}`;
+  if (BARE_DOMAIN_RE.test(trimmed)) return `https://${trimmed}`;
   return buildSearchUrl(trimmed, settings);
+}
+
+const SEC_GPC_HEADER = "Sec-GPC";
+
+function installPrivacyHooks(
+  browserSession: Electron.Session,
+  getSettings: () => BrowserSettings,
+): void {
+  browserSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    if (getSettings().sendGpc) details.requestHeaders[SEC_GPC_HEADER] = "1";
+    callback({ requestHeaders: details.requestHeaders });
+  });
 }
 
 export interface BrowserManagerCallbacks {
@@ -179,21 +192,26 @@ export class BrowserManager {
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
   private adBlockApplied = false;
+  private privacyHooksInstalled = false;
 
   setBrowserSettings(settings: BrowserSettings): void {
     const previous = this.browserSettings;
     this.browserSettings = settings;
+    const browserSession = session.fromPartition(BROWSER_PARTITION);
     if (
       settings.adBlockEnabled !== previous.adBlockEnabled ||
       !this.adBlockApplied
     ) {
-      const browserSession = session.fromPartition(BROWSER_PARTITION);
       if (settings.adBlockEnabled) {
         void enableAdBlock(browserSession);
       } else {
         void disableAdBlock(browserSession);
       }
       this.adBlockApplied = true;
+    }
+    if (!this.privacyHooksInstalled) {
+      installPrivacyHooks(browserSession, () => this.browserSettings);
+      this.privacyHooksInstalled = true;
     }
   }
 
@@ -394,6 +412,29 @@ export class BrowserManager {
 
   destroyAll(): void {
     for (const id of [...this.entries.keys()]) this.destroy(id);
+  }
+
+  async clearBrowsingData(): Promise<void> {
+    const browserSession = session.fromPartition(BROWSER_PARTITION);
+    originFaviconCache.clear();
+    for (const [surfaceId, entry] of this.entries) {
+      if (entry.disposed) continue;
+      const wc = entry.view.webContents;
+      wc.navigationHistory.clear();
+      const next: BrowserState = {
+        ...entry.state,
+        ...readNavState(wc),
+        favicon: null,
+      };
+      if (statesEqual(entry.state, next)) continue;
+      entry.state = next;
+      this.callbacks.onState(surfaceId, next);
+    }
+    await Promise.all([
+      browserSession.clearStorageData(),
+      browserSession.clearCache(),
+      browserSession.clearAuthCache(),
+    ]);
   }
 
   setAnchorOffsets(surfaceId: string, offsets: BrowserAnchorOffsets): void {

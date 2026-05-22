@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Divider from "@mui/material/Divider";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
@@ -6,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import {
   checkCustomTemplate,
+  looksLikeUrl,
   type SearchEngineId,
 } from "../../../shared/settings-types";
 import {
@@ -35,6 +37,27 @@ const ENGINE_OPTIONS: ReadonlyArray<{
 
 const CUSTOM_FIELD_SX = { maxWidth: 420 } as const;
 
+const CLEAR_BUTTON_SX = { alignSelf: "flex-start" } as const;
+
+function homepageError(value: string): string | null {
+  if (!value.trim()) return null;
+  return looksLikeUrl(value)
+    ? null
+    : "Homepage must be a URL like https://example.com";
+}
+
+type ClearStatus = "idle" | "confirming" | "clearing" | "cleared";
+
+const CLEAR_BUTTON_BY_STATUS: Record<
+  ClearStatus,
+  { color: "primary" | "error" | "success"; label: string }
+> = {
+  idle: { color: "primary", label: "Clear all browsing data" },
+  confirming: { color: "error", label: "Click again to confirm" },
+  clearing: { color: "primary", label: "Clearing browsing data..." },
+  cleared: { color: "success", label: "Browsing data cleared" },
+};
+
 function customTemplateError(value: string): string | null {
   if (!value.trim()) return null;
   switch (checkCustomTemplate(value)) {
@@ -57,11 +80,28 @@ export function BrowserSection() {
   const adBlockEnabled = useSettingsStore(
     (s) => s.browserSettings.adBlockEnabled,
   );
+  const sendGpc = useSettingsStore((s) => s.browserSettings.sendGpc);
+  const homepage = useSettingsStore((s) => s.browserSettings.homepage);
 
   const [customDraft, setCustomDraft] = useState(customSearchUrl);
   useEffect(() => {
     setCustomDraft(customSearchUrl);
   }, [customSearchUrl]);
+
+  const [homepageDraft, setHomepageDraft] = useState(homepage);
+  useEffect(() => {
+    setHomepageDraft(homepage);
+  }, [homepage]);
+
+  const [clearStatus, setClearStatus] = useState<ClearStatus>("idle");
+
+  useEffect(
+    () =>
+      window.app.onSettingsFade((visible) => {
+        if (!visible) setClearStatus("idle");
+      }),
+    [],
+  );
 
   const commitCustom = () => {
     const trimmed = customDraft.trim();
@@ -71,12 +111,35 @@ export function BrowserSection() {
     updateBrowserSettings({ customSearchUrl: trimmed });
   };
 
+  const commitHomepage = () => {
+    const trimmed = homepageDraft.trim();
+    if (trimmed !== homepageDraft) setHomepageDraft(trimmed);
+    if (trimmed === homepage) return;
+    if (homepageError(trimmed) !== null) return;
+    updateBrowserSettings({ homepage: trimmed });
+  };
+
+  const handleClearData = async () => {
+    if (clearStatus !== "confirming") {
+      setClearStatus("confirming");
+      return;
+    }
+    setClearStatus("clearing");
+    try {
+      await window.app.clearBrowsingData();
+      setClearStatus("cleared");
+    } catch {
+      setClearStatus("idle");
+    }
+  };
+
   const customError = customTemplateError(customDraft);
+  const homepageDraftError = homepageError(homepageDraft);
 
   return (
     <Box sx={ROOT_SX}>
       <Typography variant="subtitle1" sx={SUBHEAD_SX}>
-        Search
+        General
       </Typography>
 
       <LabeledSelect
@@ -105,6 +168,37 @@ export function BrowserSection() {
         </Box>
       )}
 
+      <Box sx={FIELD_SX}>
+        <Typography sx={FIELD_LABEL_SX}>Homepage</Typography>
+        <TextField
+          size="small"
+          value={homepageDraft}
+          placeholder="https://example.com"
+          error={homepageDraftError !== null}
+          helperText={homepageDraftError ?? undefined}
+          onChange={(e) => setHomepageDraft(e.target.value)}
+          onBlur={commitHomepage}
+          sx={CUSTOM_FIELD_SX}
+        />
+      </Box>
+
+      <Divider sx={DIVIDER_SX} />
+
+      <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+        Browsing data
+      </Typography>
+
+      <Button
+        variant="outlined"
+        size="small"
+        color={CLEAR_BUTTON_BY_STATUS[clearStatus].color}
+        disabled={clearStatus === "clearing"}
+        onClick={handleClearData}
+        sx={CLEAR_BUTTON_SX}
+      >
+        {CLEAR_BUTTON_BY_STATUS[clearStatus].label}
+      </Button>
+
       <Divider sx={DIVIDER_SX} />
 
       <Typography variant="subtitle1" sx={SUBHEAD_SX}>
@@ -121,6 +215,21 @@ export function BrowserSection() {
             checked={adBlockEnabled}
             onChange={(_, checked) =>
               updateBrowserSettings({ adBlockEnabled: checked })
+            }
+          />
+        }
+      />
+
+      <SettingRow
+        title="Send Global Privacy Control signal"
+        description="Asks sites to not sell or share your data. (Sec-GPC)"
+        control={
+          <Switch
+            size="small"
+            sx={SWITCH_SX}
+            checked={sendGpc}
+            onChange={(_, checked) =>
+              updateBrowserSettings({ sendGpc: checked })
             }
           />
         }

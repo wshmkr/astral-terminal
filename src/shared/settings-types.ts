@@ -57,13 +57,17 @@ export interface BrowserSettings {
   searchEngineId: SearchEngineId;
   // template with %s placeholder; empty/no-%s falls back to Google
   customSearchUrl: string;
+  homepage: string;
   adBlockEnabled: boolean;
+  sendGpc: boolean;
 }
 
 export const DEFAULT_BROWSER_SETTINGS: BrowserSettings = {
   searchEngineId: "google",
   customSearchUrl: "",
+  homepage: "",
   adBlockEnabled: true,
+  sendGpc: true,
 };
 
 export const SEARCH_ENGINE_TEMPLATES: Record<
@@ -75,11 +79,20 @@ export const SEARCH_ENGINE_TEMPLATES: Record<
   duckduckgo: "https://duckduckgo.com/?q=%s",
 };
 
+export const HTTP_URL_RE = /^https?:\/\/.+/i;
+export const BARE_DOMAIN_RE = /^[^\s/]+\.[^\s/]+/;
+
+export function looksLikeUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return HTTP_URL_RE.test(trimmed) || BARE_DOMAIN_RE.test(trimmed);
+}
+
 export type CustomTemplateIssue = "missing-scheme" | "missing-placeholder";
 
 export function checkCustomTemplate(tpl: string): CustomTemplateIssue | null {
   const trimmed = tpl.trim();
-  if (!/^https?:\/\/.+/i.test(trimmed)) return "missing-scheme";
+  if (!HTTP_URL_RE.test(trimmed)) return "missing-scheme";
   if (!trimmed.includes("%s")) return "missing-placeholder";
   return null;
 }

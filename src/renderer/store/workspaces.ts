@@ -271,13 +271,18 @@ export function addSurface(
   const ws = getActiveWorkspace();
   if (!ws) return null;
   const activate = options?.activate ?? true;
+  const browserUrl =
+    kind === "browser"
+      ? (options?.url ??
+        (getState().browserSettings.homepage.trim() || undefined))
+      : undefined;
   let newSurfaceId: string | null = null;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const active = getActiveSurface(leaf);
     const cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
     const surface =
       kind === "browser"
-        ? createBrowserSurface(options?.url)
+        ? createBrowserSurface(browserUrl)
         : createTerminalSurface(cwd);
     newSurfaceId = surface.id;
     return {
