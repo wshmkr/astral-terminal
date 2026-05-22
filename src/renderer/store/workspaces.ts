@@ -271,8 +271,11 @@ export function addSurface(
   const ws = getActiveWorkspace();
   if (!ws) return null;
   const activate = options?.activate ?? true;
-  const homepage = getState().browserSettings.homepage.trim();
-  const browserUrl = options?.url ?? (homepage || undefined);
+  const browserUrl =
+    kind === "browser"
+      ? (options?.url ??
+        (getState().browserSettings.homepage.trim() || undefined))
+      : undefined;
   let newSurfaceId: string | null = null;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const active = getActiveSurface(leaf);

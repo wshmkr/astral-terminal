@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 import {
   checkCustomTemplate,
+  looksLikeUrl,
   type SearchEngineId,
 } from "../../../shared/settings-types";
 import {
@@ -39,12 +40,21 @@ const CUSTOM_FIELD_SX = { maxWidth: 420 } as const;
 const CLEAR_BUTTON_SX = { alignSelf: "flex-start" } as const;
 
 function homepageError(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (/^https?:\/\/.+/i.test(trimmed)) return null;
-  if (/^[^\s/]+\.[^\s/]+/.test(trimmed)) return null;
-  return "Must be a URL";
+  if (!value.trim()) return null;
+  return looksLikeUrl(value) ? null : "Must be a URL";
 }
+
+type ClearStatus = "idle" | "confirming" | "clearing" | "cleared";
+
+const CLEAR_BUTTON_BY_STATUS: Record<
+  ClearStatus,
+  { color: "primary" | "error" | "success"; label: string }
+> = {
+  idle: { color: "primary", label: "Clear all browsing data" },
+  confirming: { color: "error", label: "Click again to confirm" },
+  clearing: { color: "primary", label: "Clearing browsing data..." },
+  cleared: { color: "success", label: "Browsing data cleared" },
+};
 
 function customTemplateError(value: string): string | null {
   if (!value.trim()) return null;
@@ -81,9 +91,7 @@ export function BrowserSection() {
     setHomepageDraft(homepage);
   }, [homepage]);
 
-  const [clearStatus, setClearStatus] = useState<
-    "idle" | "confirming" | "clearing" | "cleared"
-  >("idle");
+  const [clearStatus, setClearStatus] = useState<ClearStatus>("idle");
 
   useEffect(
     () =>
@@ -110,11 +118,10 @@ export function BrowserSection() {
   };
 
   const handleClearData = async () => {
-    if (clearStatus === "idle" || clearStatus === "cleared") {
+    if (clearStatus !== "confirming") {
       setClearStatus("confirming");
       return;
     }
-    if (clearStatus !== "confirming") return;
     setClearStatus("clearing");
     try {
       await window.app.clearBrowsingData();
@@ -182,24 +189,12 @@ export function BrowserSection() {
       <Button
         variant="outlined"
         size="small"
-        color={
-          clearStatus === "cleared"
-            ? "success"
-            : clearStatus === "confirming"
-              ? "error"
-              : "primary"
-        }
+        color={CLEAR_BUTTON_BY_STATUS[clearStatus].color}
         disabled={clearStatus === "clearing"}
         onClick={handleClearData}
         sx={CLEAR_BUTTON_SX}
       >
-        {clearStatus === "clearing"
-          ? "Clearing browsing data..."
-          : clearStatus === "cleared"
-            ? "Browsing data cleared"
-            : clearStatus === "confirming"
-              ? "Click again to confirm"
-              : "Clear all browsing data"}
+        {CLEAR_BUTTON_BY_STATUS[clearStatus].label}
       </Button>
 
       <Divider sx={DIVIDER_SX} />
