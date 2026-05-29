@@ -18,6 +18,7 @@ import {
 import type { FindController, FindMatches } from "../Find/FindBar";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
+import { pasteText } from "./paste";
 
 const RESIZE_DEBOUNCE_MS = 100;
 
@@ -142,12 +143,21 @@ function attachClipboardHandlers(
     navigator.clipboard
       .readText()
       .then((text) => {
-        if (text) term.paste(text);
+        pasteText(term, text);
       })
       .catch((err) => {
         console.warn("Clipboard read failed:", err);
       });
   };
+
+  const onPaste = (e: ClipboardEvent) => {
+    const text = e.clipboardData?.getData("text/plain");
+    if (!text) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pasteText(term, text);
+  };
+  container.addEventListener("paste", onPaste, true);
 
   term.attachCustomKeyEventHandler((e) => {
     if (e.type !== "keydown") return true;
@@ -190,7 +200,10 @@ function attachClipboardHandlers(
   };
   container.addEventListener("contextmenu", onContextMenu);
 
-  return () => container.removeEventListener("contextmenu", onContextMenu);
+  return () => {
+    container.removeEventListener("paste", onPaste, true);
+    container.removeEventListener("contextmenu", onContextMenu);
+  };
 }
 
 export interface TerminalControllerOptions {
