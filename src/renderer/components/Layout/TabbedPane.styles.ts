@@ -1,10 +1,6 @@
-import { MIN_PANE_SIZE_PX } from "./layout-constants";
-
 export const ROOT_SX = {
   width: "100%",
   height: "100%",
-  minWidth: MIN_PANE_SIZE_PX,
-  minHeight: MIN_PANE_SIZE_PX,
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
