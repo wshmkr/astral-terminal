@@ -28,10 +28,23 @@ export function getMainWindow(): BrowserWindow | null {
   return mainWindow;
 }
 
+// Bring a window to the front, defeating the Windows foreground-activation lock
+// (which denies SetForegroundWindow to non-foreground processes) by briefly
+// pinning the window topmost across the focus() call.
+export function forceForeground(win: BrowserWindow): void {
+  win.show();
+  if (process.platform === "win32") {
+    win.setAlwaysOnTop(true);
+    win.focus();
+    win.setAlwaysOnTop(false);
+  } else {
+    win.focus();
+  }
+}
+
 export function focusMainWindow(win: BrowserWindow): void {
   if (!win.isFocused()) {
-    win.show();
-    win.focus();
+    forceForeground(win);
   }
 }
 
@@ -72,9 +85,7 @@ export function createWindow(): void {
     // happened -- on a normal launch show() already activated it, so we don't
     // steal focus from whatever the user switched to mid-load.
     if (process.platform === "win32" && !mainWindow.isFocused()) {
-      mainWindow.setAlwaysOnTop(true);
-      mainWindow.focus();
-      mainWindow.setAlwaysOnTop(false);
+      forceForeground(mainWindow);
     }
   };
   mainWindow.once("ready-to-show", revealMainWindow);
