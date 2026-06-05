@@ -6,6 +6,7 @@ import { APP_MODE, IS_DEV } from "./env";
 import {
   attachExternalLinkHandler,
   openInSystemBrowser,
+  showBrowserContextMenu,
 } from "./external-links";
 import {
   loadWindowState,
@@ -91,6 +92,13 @@ export function createWindow(): void {
   mainWindow.webContents.on("will-navigate", (event, url) => {
     if (DEV_URL && url.startsWith(DEV_URL)) return;
     event.preventDefault();
+  });
+
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    if (!mainWindow) return;
+    showBrowserContextMenu(mainWindow, params, {
+      webContents: mainWindow.webContents,
+    });
   });
 
   mainWindow.on("maximize", () => {

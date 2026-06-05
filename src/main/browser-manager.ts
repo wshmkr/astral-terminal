@@ -342,7 +342,7 @@ export class BrowserManager {
     wc.on("context-menu", (_event, params) => {
       showBrowserContextMenu(this.window, params, {
         webContents: wc,
-        sourceSurfaceId: surfaceId,
+        surface: { id: surfaceId },
       });
     });
 

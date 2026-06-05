@@ -35,16 +35,18 @@ export function openInSystemBrowser(url: string): void {
 
 interface BrowserContextMenuCtx {
   webContents: WebContents;
-  sourceSurfaceId: string;
+  surface?: { id: string };
 }
 
 function buildLinkItems(
   window: BrowserWindow,
   url: string,
-  sourceSurfaceId: string,
+  surface: { id: string } | undefined,
 ): MenuItemConstructorOptions[] {
-  return [
-    {
+  const items: MenuItemConstructorOptions[] = [];
+  if (surface) {
+    const sourceSurfaceId = surface.id;
+    items.push({
       label: "Open link in new tab",
       click: () => {
         const msg: BrowserOpenNewTabPayload = {
@@ -54,7 +56,9 @@ function buildLinkItems(
         };
         window.webContents.send(IPC.browser.openNewTab, msg);
       },
-    },
+    });
+  }
+  items.push(
     {
       label: "Open link in external browser",
       click: () => openInSystemBrowser(url),
@@ -63,7 +67,8 @@ function buildLinkItems(
       label: "Copy link address",
       click: () => clipboard.writeText(url),
     },
-  ];
+  );
+  return items;
 }
 
 function buildEditableItems(
@@ -135,7 +140,7 @@ export function showBrowserContextMenu(
   }
 
   if (params.linkURL) {
-    groups.push(buildLinkItems(window, params.linkURL, ctx.sourceSurfaceId));
+    groups.push(buildLinkItems(window, params.linkURL, ctx.surface));
   }
 
   if (params.mediaType === "image" && params.srcURL) {
@@ -157,6 +162,8 @@ export function showLinkContextMenu(
   window: BrowserWindow,
   payload: { url: string; sourceSurfaceId: string },
 ): void {
-  const template = buildLinkItems(window, payload.url, payload.sourceSurfaceId);
+  const template = buildLinkItems(window, payload.url, {
+    id: payload.sourceSurfaceId,
+  });
   Menu.buildFromTemplate(template).popup({ window });
 }
