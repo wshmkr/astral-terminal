@@ -137,13 +137,13 @@ function attachClipboardHandlers(
   term: Terminal,
   container: HTMLElement,
   onRequestFind: () => void,
-  opts: { surfaceId: string; linkHover: LinkHoverState },
+  opts: { surfaceId: string; linkHover: LinkHoverState; isLive: () => boolean },
 ): () => void {
   const pasteFromClipboard = () => {
     navigator.clipboard
       .readText()
       .then((text) => {
-        pasteText(term, text);
+        pasteText(term, text, opts.isLive);
       })
       .catch((err) => {
         console.warn("Clipboard read failed:", err);
@@ -155,7 +155,7 @@ function attachClipboardHandlers(
     if (!text) return;
     e.preventDefault();
     e.stopPropagation();
-    pasteText(term, text);
+    pasteText(term, text, opts.isLive);
   };
   container.addEventListener("paste", onPaste, true);
 
@@ -168,6 +168,11 @@ function attachClipboardHandlers(
       return false;
     }
     if (e.ctrlKey && e.shiftKey && e.key === "V") {
+      e.preventDefault();
+      pasteFromClipboard();
+      return false;
+    }
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "v") {
       e.preventDefault();
       pasteFromClipboard();
       return false;
@@ -269,12 +274,14 @@ export class TerminalController implements SurfaceController, FindController {
       attachClipboardHandlers(term, opts.container, opts.onRequestFind, {
         surfaceId: opts.surfaceId,
         linkHover,
+        isLive: () => !this.disposed,
       }),
       attachDropHandlers(
         opts.container,
         term,
         () => opts.getLiveSurface().cwd,
         opts.onSelect,
+        () => !this.disposed,
       ),
     );
 

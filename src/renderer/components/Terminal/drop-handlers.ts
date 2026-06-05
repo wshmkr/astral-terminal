@@ -10,6 +10,7 @@ export function attachDropHandlers(
   term: Terminal,
   getCwd: () => string,
   onSelect: () => void,
+  isLive: () => boolean,
 ): () => void {
   const onDragOver = (e: DragEvent) => {
     if (!e.dataTransfer) return;
@@ -35,9 +36,9 @@ export function attachDropHandlers(
         .filter((p) => p.length > 0)
         .map((p) => (cwdIsPosix ? windowsPathToWsl(p) : p))
         .map(quoteForPosixShell);
-      if (quoted.length > 0) pasteText(term, quoted.join(" "));
+      if (quoted.length > 0) pasteText(term, quoted.join(" "), isLive);
     } else {
-      pasteText(term, text);
+      pasteText(term, text, isLive);
     }
     term.focus();
   };
