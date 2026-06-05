@@ -8,6 +8,7 @@ export function attachDropHandlers(
   container: HTMLElement,
   term: Terminal,
   getCwd: () => string,
+  onSelect: () => void,
 ): () => void {
   const onDragOver = (e: DragEvent) => {
     if (!e.dataTransfer) return;
@@ -20,8 +21,15 @@ export function attachDropHandlers(
     if (!dt) return;
 
     const files = Array.from(dt.files);
+    const text = files.length === 0 ? dt.getData("text/plain") : "";
+    if (files.length === 0 && !text) return;
+
+    e.preventDefault();
+    // Drop the surface into focus so the dropped content lands in an active,
+    // typeable pane
+    onSelect();
+
     if (files.length > 0) {
-      e.preventDefault();
       const cwdIsPosix = getCwd().startsWith("/");
       const quoted = files
         .map((f) => window.app.getPathForFile(f))
@@ -29,14 +37,10 @@ export function attachDropHandlers(
         .map((p) => (cwdIsPosix ? windowsPathToWsl(p) : p))
         .map(quoteForPosixShell);
       if (quoted.length > 0) term.paste(quoted.join(" "));
-      return;
-    }
-
-    const text = dt.getData("text/plain");
-    if (text) {
-      e.preventDefault();
+    } else {
       term.paste(text);
     }
+    term.focus();
   };
 
   container.addEventListener("dragover", onDragOver);
