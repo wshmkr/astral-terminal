@@ -10,11 +10,10 @@ interface ControllerOptions {
   surfaceId: string;
   url: string;
   anchor: HTMLElement;
+  highlighted: boolean;
   onState: (state: BrowserState) => void;
 }
 
-// Strip exposed below the WebContentsView so the pane attention outline
-// drawn beneath the native browser view shows on the bottom/left/right edges
 const HIGHLIGHT_INSET_PX = 1;
 
 export class BrowserController implements SurfaceController {
@@ -26,12 +25,13 @@ export class BrowserController implements SurfaceController {
   private rafHandle = 0;
   private lastOffsets: BrowserAnchorOffsets | null = null;
   private disposed = false;
-  private highlighted = false;
+  private highlighted: boolean;
 
   constructor(opts: ControllerOptions) {
     this.surfaceId = opts.surfaceId;
     this.anchor = opts.anchor;
     this.onState = opts.onState;
+    this.highlighted = opts.highlighted;
 
     this.unsubscribeState = window.app.onBrowserState(
       opts.surfaceId,

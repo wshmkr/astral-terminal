@@ -79,6 +79,8 @@ export function BrowserPane({
   );
   const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
   const isPaneHighlighted = useWorkspaceStore((s) => paneHasUnread(s, paneId));
+  const isPaneHighlightedRef = useRef(isPaneHighlighted);
+  isPaneHighlightedRef.current = isPaneHighlighted;
   const fg = terminalTheme.foreground;
   const navButtonStyle = useMemo(() => navButtonSx(fg), [fg]);
   const urlInputStyle = useMemo(() => urlInputSx(fg), [fg]);
@@ -100,6 +102,7 @@ export function BrowserPane({
         surfaceId,
         url: surface.url,
         anchor,
+        highlighted: isPaneHighlightedRef.current,
         onState: (next) => {
           setState(next);
           setBrowserFavicon(surfaceId, next.favicon);
