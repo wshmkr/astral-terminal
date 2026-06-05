@@ -3,12 +3,14 @@ import {
   quoteForPosixShell,
   windowsPathToWsl,
 } from "../../../shared/path-quoting";
+import { pasteText } from "./paste";
 
 export function attachDropHandlers(
   container: HTMLElement,
   term: Terminal,
   getCwd: () => string,
   onSelect: () => void,
+  isLive: () => boolean,
 ): () => void {
   const onDragOver = (e: DragEvent) => {
     if (!e.dataTransfer) return;
@@ -34,9 +36,9 @@ export function attachDropHandlers(
         .filter((p) => p.length > 0)
         .map((p) => (cwdIsPosix ? windowsPathToWsl(p) : p))
         .map(quoteForPosixShell);
-      if (quoted.length > 0) term.paste(quoted.join(" "));
+      if (quoted.length > 0) pasteText(term, quoted.join(" "), isLive);
     } else {
-      term.paste(text);
+      pasteText(term, text, isLive);
     }
     term.focus();
   };
