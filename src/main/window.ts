@@ -66,7 +66,12 @@ export function createWindow(): void {
     if (hasRevealed || !mainWindow) return;
     hasRevealed = true;
     mainWindow.show();
-    if (process.platform === "win32") {
+    // After an auto-update the app is launched by Update.exe, which Windows
+    // denies foreground activation, so the window comes up unfocused on every
+    // post-update start (not just the first). Force it forward only when that
+    // happened -- on a normal launch show() already activated it, so we don't
+    // steal focus from whatever the user switched to mid-load.
+    if (process.platform === "win32" && !mainWindow.isFocused()) {
       mainWindow.setAlwaysOnTop(true);
       mainWindow.focus();
       mainWindow.setAlwaysOnTop(false);
