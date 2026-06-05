@@ -3,6 +3,7 @@ import {
   type ISearchDecorationOptions,
   SearchAddon,
 } from "@xterm/addon-search";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import { windowsPtyOptions } from "../../../shared/pty-options";
@@ -110,6 +111,8 @@ function createTerminal(
   const searchAddon = new SearchAddon();
   term.loadAddon(fitAddon);
   term.loadAddon(searchAddon);
+  term.loadAddon(new Unicode11Addon());
+  term.unicode.activeVersion = "11";
   term.loadAddon(
     new WebLinksAddon(
       (event, uri) => {
