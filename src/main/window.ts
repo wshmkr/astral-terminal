@@ -28,9 +28,7 @@ export function getMainWindow(): BrowserWindow | null {
   return mainWindow;
 }
 
-// Bring a window to the front, defeating the Windows foreground-activation lock
-// (which denies SetForegroundWindow to non-foreground processes) by briefly
-// pinning the window topmost across the focus() call.
+// Raise a window past the Windows foreground lock by toggling topmost around focus().
 export function forceForeground(win: BrowserWindow): void {
   win.show();
   if (process.platform === "win32") {
@@ -79,11 +77,9 @@ export function createWindow(): void {
     if (hasRevealed || !mainWindow) return;
     hasRevealed = true;
     mainWindow.show();
-    // After an auto-update the app is launched by Update.exe, which Windows
-    // denies foreground activation, so the window comes up unfocused on every
-    // post-update start (not just the first). Force it forward only when that
-    // happened -- on a normal launch show() already activated it, so we don't
-    // steal focus from whatever the user switched to mid-load.
+    // Post-update launches (via Update.exe) are denied foreground, so show()
+    // leaves the window unfocused; force it forward without stealing focus on
+    // normal launches.
     if (process.platform === "win32" && !mainWindow.isFocused()) {
       forceForeground(mainWindow);
     }
