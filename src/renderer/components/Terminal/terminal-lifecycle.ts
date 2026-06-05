@@ -207,6 +207,7 @@ export interface TerminalControllerOptions {
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
   onRequestFind: () => void;
+  onSelect: () => void;
 }
 
 export class TerminalController implements SurfaceController, FindController {
@@ -256,7 +257,12 @@ export class TerminalController implements SurfaceController, FindController {
         surfaceId: opts.surfaceId,
         linkHover,
       }),
-      attachDropHandlers(opts.container, term, () => opts.getLiveSurface().cwd),
+      attachDropHandlers(
+        opts.container,
+        term,
+        () => opts.getLiveSurface().cwd,
+        opts.onSelect,
+      ),
     );
 
     this.resizeObserver = new ResizeObserver(() => {
