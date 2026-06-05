@@ -61,9 +61,19 @@ export function createWindow(): void {
   if (savedState.isMaximized) {
     mainWindow.maximize();
   }
-  mainWindow.once("ready-to-show", () => {
-    mainWindow?.show();
-  });
+  let hasRevealed = false;
+  const revealMainWindow = () => {
+    if (hasRevealed || !mainWindow) return;
+    hasRevealed = true;
+    mainWindow.show();
+    if (process.platform === "win32") {
+      mainWindow.setAlwaysOnTop(true);
+      mainWindow.setAlwaysOnTop(false);
+      mainWindow.focus();
+    }
+  };
+  mainWindow.once("ready-to-show", revealMainWindow);
+  mainWindow.webContents.once("did-finish-load", revealMainWindow);
 
   trackWindowState(mainWindow);
 
