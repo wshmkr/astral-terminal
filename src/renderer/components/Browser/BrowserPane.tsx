@@ -9,7 +9,6 @@ import {
   VscLinkExternal,
   VscRefresh,
 } from "react-icons/vsc";
-import type { AppState } from "../../../shared/types";
 import {
   type BrowserState,
   type BrowserSurface,
@@ -20,14 +19,11 @@ import {
   clearBrowserFavicon,
   closeSurface,
   renameSurface,
-  selectActiveWorkspace,
   setBrowserFavicon,
   setBrowserSurfaceUrl,
-  unreadSurfaceIds,
   useWorkspaceStore,
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
-import { forEachLeaf } from "../Layout/pane-tree";
 import {
   ANCHOR_SX,
   navButtonSx,
@@ -42,19 +38,6 @@ interface Props {
   paneId: string;
   surface: BrowserSurface;
   isVisible: boolean;
-}
-
-function paneHasUnread(state: AppState, paneId: string): boolean {
-  const ws = selectActiveWorkspace(state);
-  if (!ws) return false;
-  const unreadIds = unreadSurfaceIds(ws.notifications);
-  if (unreadIds.size === 0) return false;
-  let highlighted = false;
-  forEachLeaf(ws.layout, (leaf) => {
-    if (highlighted || leaf.id !== paneId) return;
-    highlighted = leaf.surfaces.some((s) => unreadIds.has(s.id));
-  });
-  return highlighted;
 }
 
 export function BrowserPane({
@@ -78,9 +61,6 @@ export function BrowserPane({
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
   const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
-  const isPaneHighlighted = useWorkspaceStore((s) => paneHasUnread(s, paneId));
-  const isPaneHighlightedRef = useRef(isPaneHighlighted);
-  isPaneHighlightedRef.current = isPaneHighlighted;
   const fg = terminalTheme.foreground;
   const navButtonStyle = useMemo(() => navButtonSx(fg), [fg]);
   const urlInputStyle = useMemo(() => urlInputSx(fg), [fg]);
@@ -102,7 +82,6 @@ export function BrowserPane({
         surfaceId,
         url: surface.url,
         anchor,
-        highlighted: isPaneHighlightedRef.current,
         onState: (next) => {
           setState(next);
           setBrowserFavicon(surfaceId, next.favicon);
@@ -131,11 +110,6 @@ export function BrowserPane({
   useEffect(() => {
     controllerRef.current?.remeasure();
   }, [uiScale]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: controllerRef is a stable ref
-  useEffect(() => {
-    controllerRef.current?.setHighlighted(isPaneHighlighted);
-  }, [isPaneHighlighted]);
 
   const submitUrl = () => {
     const draft = urlDraft;

@@ -10,11 +10,10 @@ interface ControllerOptions {
   surfaceId: string;
   url: string;
   anchor: HTMLElement;
-  highlighted: boolean;
   onState: (state: BrowserState) => void;
 }
 
-const HIGHLIGHT_INSET_PX = 1;
+const OUTLINE_INSET_PX = 1;
 
 export class BrowserController implements SurfaceController {
   private surfaceId: string;
@@ -25,13 +24,11 @@ export class BrowserController implements SurfaceController {
   private rafHandle = 0;
   private lastOffsets: BrowserAnchorOffsets | null = null;
   private disposed = false;
-  private highlighted: boolean;
 
   constructor(opts: ControllerOptions) {
     this.surfaceId = opts.surfaceId;
     this.anchor = opts.anchor;
     this.onState = opts.onState;
-    this.highlighted = opts.highlighted;
 
     this.unsubscribeState = window.app.onBrowserState(
       opts.surfaceId,
@@ -67,12 +64,15 @@ export class BrowserController implements SurfaceController {
     if (this.disposed) return;
     const zoom = getState().appearance.uiScale;
     const rect = this.anchor.getBoundingClientRect();
-    const inset = this.highlighted ? HIGHLIGHT_INSET_PX : 0;
     const next: BrowserAnchorOffsets = {
-      left: Math.round((rect.left + inset) * zoom),
+      left: Math.round((rect.left + OUTLINE_INSET_PX) * zoom),
       top: Math.round(rect.top * zoom),
-      right: Math.round((window.innerWidth - rect.right + inset) * zoom),
-      bottom: Math.round((window.innerHeight - rect.bottom + inset) * zoom),
+      right: Math.round(
+        (window.innerWidth - rect.right + OUTLINE_INSET_PX) * zoom,
+      ),
+      bottom: Math.round(
+        (window.innerHeight - rect.bottom + OUTLINE_INSET_PX) * zoom,
+      ),
     };
     const prev = this.lastOffsets;
     if (
@@ -92,13 +92,6 @@ export class BrowserController implements SurfaceController {
     if (this.disposed) return;
     if (visible) this.syncBoundsNow();
     window.app.setBrowserVisible(this.surfaceId, visible);
-  }
-
-  setHighlighted(highlighted: boolean): void {
-    if (this.disposed) return;
-    if (this.highlighted === highlighted) return;
-    this.highlighted = highlighted;
-    this.syncBoundsNow();
   }
 
   loadURL(url: string): void {
