@@ -73,7 +73,6 @@ export function createWindow(): void {
     }
   };
   mainWindow.once("ready-to-show", revealMainWindow);
-  mainWindow.webContents.once("did-finish-load", revealMainWindow);
 
   trackWindowState(mainWindow);
 
