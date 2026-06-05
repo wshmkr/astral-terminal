@@ -68,8 +68,8 @@ export function createWindow(): void {
     mainWindow.show();
     if (process.platform === "win32") {
       mainWindow.setAlwaysOnTop(true);
-      mainWindow.setAlwaysOnTop(false);
       mainWindow.focus();
+      mainWindow.setAlwaysOnTop(false);
     }
   };
   mainWindow.once("ready-to-show", revealMainWindow);
