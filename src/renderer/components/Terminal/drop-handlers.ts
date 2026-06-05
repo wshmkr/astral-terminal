@@ -25,8 +25,6 @@ export function attachDropHandlers(
     if (files.length === 0 && !text) return;
 
     e.preventDefault();
-    // Drop the surface into focus so the dropped content lands in an active,
-    // typeable pane
     onSelect();
 
     if (files.length > 0) {
