@@ -13,6 +13,8 @@ interface ControllerOptions {
   onState: (state: BrowserState) => void;
 }
 
+const OUTLINE_INSET_PX = 1;
+
 export class BrowserController implements SurfaceController {
   private surfaceId: string;
   private anchor: HTMLElement;
@@ -63,10 +65,14 @@ export class BrowserController implements SurfaceController {
     const zoom = getState().appearance.uiScale;
     const rect = this.anchor.getBoundingClientRect();
     const next: BrowserAnchorOffsets = {
-      left: Math.round(rect.left * zoom),
+      left: Math.round((rect.left + OUTLINE_INSET_PX) * zoom),
       top: Math.round(rect.top * zoom),
-      right: Math.round((window.innerWidth - rect.right) * zoom),
-      bottom: Math.round((window.innerHeight - rect.bottom) * zoom),
+      right: Math.round(
+        (window.innerWidth - rect.right + OUTLINE_INSET_PX) * zoom,
+      ),
+      bottom: Math.round(
+        (window.innerHeight - rect.bottom + OUTLINE_INSET_PX) * zoom,
+      ),
     };
     const prev = this.lastOffsets;
     if (

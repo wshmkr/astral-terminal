@@ -3,11 +3,14 @@ import {
   quoteForPosixShell,
   windowsPathToWsl,
 } from "../../../shared/path-quoting";
+import { pasteText } from "./paste";
 
 export function attachDropHandlers(
   container: HTMLElement,
   term: Terminal,
   getCwd: () => string,
+  onSelect: () => void,
+  isLive: () => boolean,
 ): () => void {
   const onDragOver = (e: DragEvent) => {
     if (!e.dataTransfer) return;
@@ -20,23 +23,24 @@ export function attachDropHandlers(
     if (!dt) return;
 
     const files = Array.from(dt.files);
+    const text = files.length === 0 ? dt.getData("text/plain") : "";
+    if (files.length === 0 && !text) return;
+
+    e.preventDefault();
+    onSelect();
+
     if (files.length > 0) {
-      e.preventDefault();
       const cwdIsPosix = getCwd().startsWith("/");
       const quoted = files
         .map((f) => window.app.getPathForFile(f))
         .filter((p) => p.length > 0)
         .map((p) => (cwdIsPosix ? windowsPathToWsl(p) : p))
         .map(quoteForPosixShell);
-      if (quoted.length > 0) term.paste(quoted.join(" "));
-      return;
+      if (quoted.length > 0) pasteText(term, quoted.join(" "), isLive);
+    } else {
+      pasteText(term, text, isLive);
     }
-
-    const text = dt.getData("text/plain");
-    if (text) {
-      e.preventDefault();
-      term.paste(text);
-    }
+    term.focus();
   };
 
   container.addEventListener("dragover", onDragOver);

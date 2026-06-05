@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { SerializeAddon } from "@xterm/addon-serialize";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
@@ -275,6 +276,10 @@ export class PtyManager {
     headless.loadAddon(
       serializeAddon as unknown as import("@xterm/headless").ITerminalAddon,
     );
+    headless.loadAddon(
+      new Unicode11Addon() as unknown as import("@xterm/headless").ITerminalAddon,
+    );
+    headless.unicode.activeVersion = "11";
 
     if (restored) headless.write(restored.content);
     if (initialCols !== targetCols || initialRows !== targetRows) {

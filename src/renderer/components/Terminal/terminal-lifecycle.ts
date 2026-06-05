@@ -3,6 +3,7 @@ import {
   type ISearchDecorationOptions,
   SearchAddon,
 } from "@xterm/addon-search";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import { windowsPtyOptions } from "../../../shared/pty-options";
@@ -17,6 +18,7 @@ import {
 import type { FindController, FindMatches } from "../Find/FindBar";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
+import { pasteText } from "./paste";
 
 const RESIZE_DEBOUNCE_MS = 100;
 
@@ -110,6 +112,8 @@ function createTerminal(
   const searchAddon = new SearchAddon();
   term.loadAddon(fitAddon);
   term.loadAddon(searchAddon);
+  term.loadAddon(new Unicode11Addon());
+  term.unicode.activeVersion = "11";
   term.loadAddon(
     new WebLinksAddon(
       (event, uri) => {
@@ -133,18 +137,27 @@ function attachClipboardHandlers(
   term: Terminal,
   container: HTMLElement,
   onRequestFind: () => void,
-  opts: { surfaceId: string; linkHover: LinkHoverState },
+  opts: { surfaceId: string; linkHover: LinkHoverState; isLive: () => boolean },
 ): () => void {
   const pasteFromClipboard = () => {
     navigator.clipboard
       .readText()
       .then((text) => {
-        if (text) term.paste(text);
+        pasteText(term, text, opts.isLive);
       })
       .catch((err) => {
         console.warn("Clipboard read failed:", err);
       });
   };
+
+  const onPaste = (e: ClipboardEvent) => {
+    const text = e.clipboardData?.getData("text/plain");
+    if (!text) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pasteText(term, text, opts.isLive);
+  };
+  container.addEventListener("paste", onPaste, true);
 
   term.attachCustomKeyEventHandler((e) => {
     if (e.type !== "keydown") return true;
@@ -155,6 +168,11 @@ function attachClipboardHandlers(
       return false;
     }
     if (e.ctrlKey && e.shiftKey && e.key === "V") {
+      e.preventDefault();
+      pasteFromClipboard();
+      return false;
+    }
+    if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "v") {
       e.preventDefault();
       pasteFromClipboard();
       return false;
@@ -187,7 +205,10 @@ function attachClipboardHandlers(
   };
   container.addEventListener("contextmenu", onContextMenu);
 
-  return () => container.removeEventListener("contextmenu", onContextMenu);
+  return () => {
+    container.removeEventListener("paste", onPaste, true);
+    container.removeEventListener("contextmenu", onContextMenu);
+  };
 }
 
 export interface TerminalControllerOptions {
@@ -204,6 +225,7 @@ export interface TerminalControllerOptions {
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
   onRequestFind: () => void;
+  onSelect: () => void;
 }
 
 export class TerminalController implements SurfaceController, FindController {
@@ -252,8 +274,15 @@ export class TerminalController implements SurfaceController, FindController {
       attachClipboardHandlers(term, opts.container, opts.onRequestFind, {
         surfaceId: opts.surfaceId,
         linkHover,
+        isLive: () => !this.disposed,
       }),
-      attachDropHandlers(opts.container, term, () => opts.getLiveSurface().cwd),
+      attachDropHandlers(
+        opts.container,
+        term,
+        () => opts.getLiveSurface().cwd,
+        opts.onSelect,
+        () => !this.disposed,
+      ),
     );
 
     this.resizeObserver = new ResizeObserver(() => {

@@ -8,6 +8,7 @@ import {
   getState,
   getWorkspace,
   renameSurface,
+  setFocusedPane,
   updateTerminalSurface,
   useWorkspaceStore,
 } from "../../store";
@@ -110,6 +111,7 @@ export function TerminalPane({
           findInputRef.current?.focus();
           findInputRef.current?.select();
         },
+        onSelect: () => setFocusedPane(paneIdRef.current),
       });
     },
   });
