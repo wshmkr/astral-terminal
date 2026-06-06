@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+tone_instructions: "Be concise and direct. Focus on correctness, races, and resource leaks."
+
+reviews:
+  profile: chill
+  high_level_summary: false
+  poem: false
+  request_changes_workflow: false
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    labels:
+      - "!autorelease: pending"
+    ignore_usernames:
+      - "github-actions[bot]"
+      - "dependabot[bot]"
+
+  path_filters:
+    - "!dist/**"
+    - "!build/**"
+    - "!release/**"
+    - "!package-lock.json"
+    - "!**/*.min.js"
+
+  path_instructions:
+    - path: "src/main/**/*.ts"
+      instructions: >
+        Electron main process. Flag missing cleanup of IPC/PTY/window
+        listeners, unhandled promise rejections, and blocking/sync calls.
+    - path: "src/renderer/**/*.{ts,tsx}"
+      instructions: >
+        Electron renderer (React). Flag effects missing cleanup, stale
+        closures, and work that should be debounced or off the render path.
+
+  pre_merge_checks:
+    issue_assessment:
+      mode: "off"
+    docstrings:
+      mode: "off"
+
+  finishing_touches:
+    simplify:
+      enabled: true
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  tools:
+    biome:
+      enabled: false
+    gitleaks:
+      enabled: true
+
+chat:
+  art: false
+
+knowledge_base:
+  web_search:
+    enabled: true
