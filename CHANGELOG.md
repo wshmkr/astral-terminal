@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.1](https://github.com/wshmkr/astral-terminal/compare/v0.6.0...v0.6.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* align emoji cell width with terminal UI layout ([#81](https://github.com/wshmkr/astral-terminal/issues/81)) ([ebe4c43](https://github.com/wshmkr/astral-terminal/commit/ebe4c4366c313170004a278bbce58187d31e3b09))
+* bracket pastes against xterm's async parse race ([#77](https://github.com/wshmkr/astral-terminal/issues/77)) ([6b0e6d4](https://github.com/wshmkr/astral-terminal/commit/6b0e6d40b182aca2e80f4a3f2485090c6a96d8d7))
+* keep pane attention outline visible ([#79](https://github.com/wshmkr/astral-terminal/issues/79)) ([501cd20](https://github.com/wshmkr/astral-terminal/commit/501cd20b7ecbef8acbdd7093bfdadf0ad1073069))
+* reveal main window reliably after Squirrel auto-update ([#84](https://github.com/wshmkr/astral-terminal/issues/84)) ([782c650](https://github.com/wshmkr/astral-terminal/commit/782c65043c272c47d823db5442591314b13b93a0))
+* select pane on drag-and-drop ([#80](https://github.com/wshmkr/astral-terminal/issues/80)) ([7bf3223](https://github.com/wshmkr/astral-terminal/commit/7bf32234decf1701e4e64604761400a61a8d666f))
+
 ## [0.6.0](https://github.com/wshmkr/astral-terminal/compare/v0.5.0...v0.6.0) (2026-05-22)
 
 
