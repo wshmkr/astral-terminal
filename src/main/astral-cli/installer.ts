@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { parseMarkerVersion } from "../../shared/marker-version";
 import { resolveWslPath, runWsl } from "../wsl/home";
 import { buildAstralCli, CLI_MARKER_PREFIX, CLI_VERSION } from "./build";
 
@@ -17,17 +18,12 @@ function withPathLock<T>(key: string, run: () => Promise<T>): Promise<T> {
   return next;
 }
 
-function installedVersion(content: string): number | null {
-  const i = content.indexOf(CLI_MARKER_PREFIX);
-  if (i < 0) return null;
-  const match = content.slice(i + CLI_MARKER_PREFIX.length).match(/^:v(\d+)/);
-  return match ? Number(match[1]) : null;
-}
-
 async function isCurrent(filePath: string): Promise<boolean> {
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return installedVersion(content) === Number(CLI_VERSION);
+    return (
+      parseMarkerVersion(content, CLI_MARKER_PREFIX) === Number(CLI_VERSION)
+    );
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return false;
     throw err;

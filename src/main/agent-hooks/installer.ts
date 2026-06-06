@@ -5,6 +5,7 @@ import {
   type AgentHookStatus,
   findAgentProvider,
 } from "../../shared/agent-hooks";
+import { parseMarkerVersion } from "../../shared/marker-version";
 import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
@@ -29,10 +30,7 @@ function isCurrentHookCommand(value: unknown): boolean {
 
 function extractHookVersion(value: unknown): number | null {
   if (typeof value !== "string") return null;
-  const i = value.indexOf(HOOK_MARKER_PREFIX);
-  if (i < 0) return null;
-  const match = value.slice(i + HOOK_MARKER_PREFIX.length).match(/^:v(\d+)/);
-  return match ? Number(match[1]) : null;
+  return parseMarkerVersion(value, HOOK_MARKER_PREFIX);
 }
 
 function collectHookVersions(node: unknown, out: Set<number>): void {
