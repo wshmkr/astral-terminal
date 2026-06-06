@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, dialog, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import { DEFAULT_BROWSER_SETTINGS } from "../shared/settings-types";
@@ -101,7 +101,7 @@ function installCsp() {
   });
 }
 
-app.whenReady().then(() => {
+const startup = app.whenReady().then(() => {
   installAppMenu();
   installCsp();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
@@ -159,6 +159,15 @@ app.whenReady().then(() => {
       browserManager?.setDimmed(visible);
     });
   }
+});
+
+startup.catch((error) => {
+  console.error("Failed to initialize Electron main process", error);
+  dialog.showErrorBox(
+    "Astral Terminal failed to start",
+    error instanceof Error ? (error.stack ?? error.message) : String(error),
+  );
+  app.quit();
 });
 
 app.on("before-quit", () => {
