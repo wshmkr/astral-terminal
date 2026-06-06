@@ -13,9 +13,9 @@ reviews:
     auto_incremental_review: true
     drafts: false
     labels:
-      - "!autorelease: pending"   # skip release-please's release PRs
+      - "!autorelease: pending"
     ignore_usernames:
-      - "github-actions[bot]"     # default GITHUB_TOKEN author for release-please
+      - "github-actions[bot]"
       - "dependabot[bot]"
 
   path_filters:
@@ -35,8 +35,20 @@ reviews:
         Electron renderer (React). Flag effects missing cleanup, stale
         closures, and work that should be debounced or off the render path.
 
-  # Biome already runs in CI (`npm run lint`); keep CodeRabbit's overlapping
-  # linter off to avoid duplicate comments.
+  pre_merge_checks:
+    issue_assessment:
+      mode: "off"
+    docstrings:
+      mode: "off"
+
+  finishing_touches:
+    simplify:
+      enabled: true
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
   tools:
     biome:
       enabled: false
