@@ -141,12 +141,12 @@ export function createCliServer(): CliServer {
       const srv = server;
       const loc = location;
       server = null;
-      location = null;
       if (!srv) return;
       await new Promise<void>((resolve) => {
         srv.close(() => resolve());
       });
       if (loc && !loc.isPipe) unlinkSocketIfExists(loc.path);
+      location = null;
     },
   };
 }

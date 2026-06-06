@@ -9,7 +9,7 @@ The main process exposes a local JSON socket that accepts newline-delimited requ
   - Fallback: `${TMPDIR:-/tmp}/astral-<uid>-<pid>.sock`.
 - **Windows:** `\\.\pipe\astral-<pid>`.
 
-The socket is opened during `app.whenReady()` and closed in `before-quit`. A best-effort `process.on("exit")` unlink covers hard crashes.
+The socket is opened during `app.whenReady()` and closed in `before-quit`; a `process.on("exit")` hook removes it as a fallback if that cleanup is cut short. Neither runs on `SIGKILL`, a segfault, or power loss, so a socket orphaned by one of those persists until removed manually — the per-pid name means a fresh launch binds a different path and won't reclaim it.
 
 ## Envelope shape
 
