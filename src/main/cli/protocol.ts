@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const CLI_ERROR_CODES = {
   parseError: "parse_error",
   badEnvelope: "bad_envelope",
@@ -9,11 +11,17 @@ export const CLI_ERROR_CODES = {
 export type CliErrorCode =
   (typeof CLI_ERROR_CODES)[keyof typeof CLI_ERROR_CODES];
 
-export interface CliRequest {
-  id: string | number;
-  method: string;
-  params?: unknown;
-}
+const CliIdSchema = z.union([z.string(), z.number().finite()], {
+  error: "id must be a string or finite number",
+});
+
+const CliRequestSchema = z.object({
+  id: CliIdSchema,
+  method: z.string().min(1, "method must be a non-empty string"),
+  params: z.unknown().optional(),
+});
+
+export type CliRequest = z.infer<typeof CliRequestSchema>;
 
 export interface CliOk {
   id: string | number;
@@ -50,40 +58,22 @@ export function parseRequest(line: string): ParseResult {
       message: err instanceof Error ? err.message : "invalid JSON",
     };
   }
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    return {
-      ok: false,
-      id: null,
-      code: CLI_ERROR_CODES.badEnvelope,
-      message: "envelope must be a JSON object",
-    };
-  }
-  const obj = raw as Record<string, unknown>;
-  const rawId = obj.id;
-  const idValid =
-    typeof rawId === "string" ||
-    (typeof rawId === "number" && Number.isFinite(rawId));
-  if (!idValid) {
-    return {
-      ok: false,
-      id: null,
-      code: CLI_ERROR_CODES.badEnvelope,
-      message: "id must be a string or finite number",
-    };
-  }
-  const id = rawId as string | number;
-  if (typeof obj.method !== "string" || obj.method.length === 0) {
-    return {
-      ok: false,
-      id,
-      code: CLI_ERROR_CODES.badEnvelope,
-      message: "method must be a non-empty string",
-    };
+  const result = CliRequestSchema.safeParse(raw);
+  if (result.success) {
+    return { ok: true, req: result.data };
   }
   return {
-    ok: true,
-    req: { id, method: obj.method, params: obj.params },
+    ok: false,
+    id: recoverId(raw),
+    code: CLI_ERROR_CODES.badEnvelope,
+    message: result.error.issues[0]?.message ?? "invalid envelope",
   };
+}
+
+function recoverId(raw: unknown): string | number | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const parsed = CliIdSchema.safeParse((raw as Record<string, unknown>).id);
+  return parsed.success ? parsed.data : null;
 }
 
 export function formatReply(reply: CliReply): string {
