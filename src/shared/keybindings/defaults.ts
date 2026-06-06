@@ -38,5 +38,5 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "browser.reload", combo: "F5", scope: "browser" },
   { command: "browser.focusAddressBar", combo: "Mod+L", scope: "browser" },
   { command: "browser.devtools", combo: "F12", scope: "browser" },
-  { command: "browser.find", combo: "Ctrl+F", scope: "browser" },
+  { command: "browser.find", combo: "Mod+F", scope: "browser" },
 ];
