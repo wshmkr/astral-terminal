@@ -26,8 +26,8 @@ let started = false;
 
 export function startCliActiveRefBridge(): void {
   if (started) return;
-  started = true;
   if (typeof window === "undefined" || !window.app?.sendCliActiveRef) return;
+  started = true;
   let last = readActiveRef();
   window.app.sendCliActiveRef(last);
   subscribeWorkspaceStore(() => {
