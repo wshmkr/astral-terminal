@@ -508,8 +508,13 @@ export class BrowserManager {
     if (wasVisible === visible) return;
     entry.visible = visible;
     if (visible) this.applyBounds(entry);
+    const surrenderingFocus = !visible && entry.view.webContents.isFocused();
     entry.view.setVisible(visible);
-    if (!visible) this.callbacks.onSurfaceHidden(surfaceId);
+    if (!visible) {
+      // Hand OS focus back to the renderer so the newly active surface can take it
+      if (surrenderingFocus) this.window.webContents.focus();
+      this.callbacks.onSurfaceHidden(surfaceId);
+    }
   }
 
   setDimmed(dimmed: boolean): void {
