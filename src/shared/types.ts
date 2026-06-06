@@ -385,6 +385,7 @@ export const IPC = {
     closeFindWindow: "browser:close-find-window",
     findTargetChanged: "browser:find-target-changed",
     findResultChanged: "browser:find-result-changed",
+    focusAddressBar: "browser:focus-address-bar",
     clearData: "browser:clear-data",
   },
   update: {

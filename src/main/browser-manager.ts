@@ -5,6 +5,11 @@ import {
   WebContentsView,
 } from "electron";
 import {
+  fromElectronInput,
+  matchBinding,
+  resolveBindings,
+} from "../shared/keybindings/match";
+import {
   BARE_DOMAIN_RE,
   type BrowserSettings,
   buildSearchUrl,
@@ -32,6 +37,8 @@ import { createFadeController } from "./fade-controller";
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
 const BROWSER_PARTITION = "persist:browser-default";
+
+const IS_MAC = process.platform === "darwin";
 
 interface Entry {
   view: WebContentsView;
@@ -168,6 +175,7 @@ export interface BrowserManagerCallbacks {
   onOpenNewTab: (payload: BrowserOpenNewTabPayload) => void;
   onFindRequested: (surfaceId: string, anchor: ScreenRect) => void;
   onFindResult: (surfaceId: string, result: BrowserFindResult) => void;
+  onFocusAddressBar: (surfaceId: string) => void;
   onSurfaceHidden: (surfaceId: string) => void;
   onSurfaceAnchorChanged: (surfaceId: string, anchor: ScreenRect) => void;
 }
@@ -318,15 +326,37 @@ export class BrowserManager {
 
     wc.on("before-input-event", (event, input) => {
       entry.shiftHeld = input.shift;
-      if (
-        input.type === "keyDown" &&
-        input.control &&
-        !input.shift &&
-        !input.alt &&
-        input.key.toLowerCase() === "f"
-      ) {
-        event.preventDefault();
-        this.callbacks.onFindRequested(surfaceId, this.computeAnchor(entry));
+      if (input.type !== "keyDown") return;
+      const command = matchBinding(
+        fromElectronInput(input),
+        resolveBindings(),
+        IS_MAC,
+        "browser",
+      );
+      if (!command) return;
+      event.preventDefault();
+      const nav = wc.navigationHistory;
+      switch (command) {
+        case "browser.back":
+          if (nav.canGoBack()) nav.goBack();
+          break;
+        case "browser.forward":
+          if (nav.canGoForward()) nav.goForward();
+          break;
+        case "browser.reload":
+          wc.reload();
+          break;
+        case "browser.devtools":
+          wc.toggleDevTools();
+          break;
+        case "browser.focusAddressBar":
+          this.callbacks.onFocusAddressBar(surfaceId);
+          break;
+        case "browser.find":
+          this.callbacks.onFindRequested(surfaceId, this.computeAnchor(entry));
+          break;
+        default:
+          break;
       }
     });
     wc.on("blur", () => {

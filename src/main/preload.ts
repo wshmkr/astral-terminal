@@ -46,6 +46,10 @@ function subscribe<Args extends unknown[]>(
 
 contextBridge.exposeInMainWorld("app", {
   mode,
+  platform: {
+    isMac: process.platform === "darwin",
+    isWindows: process.platform === "win32",
+  },
 
   readConfig: () => ipcRenderer.invoke(IPC.config.read),
 
@@ -208,6 +212,10 @@ contextBridge.exposeInMainWorld("app", {
     subscribe<[{ surfaceId: string }]>(IPC.browser.findTargetChanged, callback),
   onBrowserFindResult: (callback: (result: BrowserFindResult) => void) =>
     subscribe<[BrowserFindResult]>(IPC.browser.findResultChanged, callback),
+  onBrowserFocusAddressBar: (
+    callback: (payload: { surfaceId: string }) => void,
+  ) =>
+    subscribe<[{ surfaceId: string }]>(IPC.browser.focusAddressBar, callback),
   clearBrowsingData: (): Promise<void> =>
     ipcRenderer.invoke(IPC.browser.clearData),
 });

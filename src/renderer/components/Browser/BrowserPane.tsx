@@ -47,6 +47,7 @@ export function BrowserPane({
   isVisible,
 }: Props) {
   const anchorRef = useRef<HTMLDivElement>(null);
+  const urlInputRef = useRef<HTMLInputElement>(null);
   // paneId can change when the surface is dragged to another pane; the rename
   // closure must address the current pane, not the one captured at mount
   const paneIdRef = useRef(paneId);
@@ -68,6 +69,13 @@ export function BrowserPane({
   useEffect(() => {
     const id = surface.id;
     return () => clearBrowserFavicon(id);
+  }, [surface.id]);
+
+  useEffect(() => {
+    const id = surface.id;
+    return window.app.onBrowserFocusAddressBar(({ surfaceId }) => {
+      if (surfaceId === id) urlInputRef.current?.focus();
+    });
   }, [surface.id]);
 
   const controllerRef = useSurfaceLifecycle<BrowserController>({
@@ -169,6 +177,7 @@ export function BrowserPane({
           )}
         </IconButton>
         <InputBase
+          inputRef={urlInputRef}
           value={urlDraft ?? state.url}
           onChange={(e) => setUrlDraft(e.target.value)}
           onFocus={(e) => {

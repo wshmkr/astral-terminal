@@ -24,6 +24,7 @@ import type {
 
 export interface AppAPI {
   mode: AppMode;
+  platform: { isMac: boolean; isWindows: boolean };
   readConfig: () => Promise<AppConfig>;
   readSettings: () => Promise<PersistedSettings | null>;
   writeSettings: (settings: PersistedSettings) => Promise<void>;
@@ -103,6 +104,9 @@ export interface AppAPI {
   ) => () => void;
   onBrowserFindResult: (
     callback: (result: BrowserFindResult) => void,
+  ) => () => void;
+  onBrowserFocusAddressBar: (
+    callback: (payload: { surfaceId: string }) => void,
   ) => () => void;
   clearBrowsingData: () => Promise<void>;
 

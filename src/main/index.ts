@@ -27,6 +27,7 @@ import {
   registerUpdateIpc,
   registerWindowIpc,
 } from "./ipc";
+import { installAppMenu } from "./menu";
 import {
   destroyNotificationWindow,
   initNotificationWindow,
@@ -101,6 +102,7 @@ function installCsp() {
 }
 
 app.whenReady().then(() => {
+  installAppMenu();
   installCsp();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
@@ -135,6 +137,11 @@ app.whenReady().then(() => {
       },
       onFindResult: (surfaceId, result) => {
         sendBrowserFindResult(surfaceId, result);
+      },
+      onFocusAddressBar: (surfaceId) => {
+        getMainWindow()?.webContents.send(IPC.browser.focusAddressBar, {
+          surfaceId,
+        });
       },
       onSurfaceHidden: (surfaceId) => {
         hideBrowserFindWindow(surfaceId);

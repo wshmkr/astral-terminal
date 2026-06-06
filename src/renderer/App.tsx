@@ -12,7 +12,7 @@ import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TitleBar } from "./components/ui/TitleBar";
 import { WelcomeDialog } from "./components/Welcome/WelcomeDialog";
-import { useKeyboard } from "./hooks/useKeyboard";
+import { useKeybindings } from "./keybindings/useKeybindings";
 import {
   formatNotificationDisplay,
   getState,
@@ -60,7 +60,7 @@ export function App() {
     height: number;
   } | null>(null);
 
-  useKeyboard();
+  useKeybindings(window.app.platform.isMac);
 
   const uiScale = useWorkspaceStore((s) => s.appearance.uiScale);
   const { setMode } = useColorScheme();
