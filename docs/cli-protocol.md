@@ -1,59 +1,55 @@
-# Astral CLI protocol (PR 1)
+# Astral CLI socket
 
-The main process exposes a local JSON socket that accepts newline-delimited request envelopes and replies with newline-delimited response envelopes. This document covers the wire protocol and the one method shipped in PR 1; later PRs add more methods on the same transport.
+Astral Terminal runs a small local socket that lets scripts and other programs query the running app. You send it one JSON request per line and it sends back one JSON reply per line. This is the interface the `astral` command-line tool will build on; until that ships you can talk to the socket directly.
 
-## Socket location
+The socket is local to your machine and reachable only by your own user account.
 
-- **Linux / macOS:**
-  - `$XDG_RUNTIME_DIR/astral/<pid>.sock` when `XDG_RUNTIME_DIR` is set and writable; the directory is created with mode `0700`, the socket with mode `0600`.
-  - Fallback: `${TMPDIR:-/tmp}/astral-<uid>-<pid>.sock`.
-- **Windows:** `\\.\pipe\astral-<pid>`.
+## Finding the socket
 
-The socket is opened during `app.whenReady()` and closed in `before-quit`; a `process.on("exit")` hook removes it as a fallback if that cleanup is cut short. Neither runs on `SIGKILL`, a segfault, or power loss, so a socket orphaned by one of those persists until removed manually — the per-pid name means a fresh launch binds a different path and won't reclaim it.
+Only one instance of Astral Terminal runs at a time, so there is at most one socket. It is named after the running process's id:
 
-## Envelope shape
+- **Linux / macOS:** `$XDG_RUNTIME_DIR/astral/<pid>.sock`, or `${TMPDIR:-/tmp}/astral-<uid>-<pid>.sock` when `XDG_RUNTIME_DIR` is not set.
+- **Windows:** the named pipe `\\.\pipe\astral-<pid>`.
 
-Request (client → server), one JSON object per line:
+On Linux / macOS you can resolve the running instance's socket with:
+
+```sh
+sock="$XDG_RUNTIME_DIR/astral/$(pgrep -n astral).sock"
+```
+
+## Sending a request
+
+Write one JSON object per line. Each request has these fields:
+
+| Field    | Required | Description                                                                                  |
+| -------- | -------- | -------------------------------------------------------------------------------------------- |
+| `id`     | yes      | A string or number you choose. It is echoed back on the reply so you can match the two up.   |
+| `method` | yes      | The method to call, e.g. `app.identify`.                                                     |
+| `params` | no       | Method-specific arguments. Omit it, or send `null`, when a method takes none.                |
 
 ```json
 { "id": "1", "method": "app.identify", "params": null }
 ```
 
-- `id` — string or finite number. Echoed back on the reply.
-- `method` — non-empty string, namespaced as `namespace.action`.
-- `params` — optional; method-specific.
-
-Successful reply:
+The reply is either a success:
 
 ```json
 { "id": "1", "ok": true, "result": { ... } }
 ```
 
-Error reply:
+or an error:
 
 ```json
 { "id": "1", "ok": false, "error": { "code": "...", "message": "..." } }
 ```
 
-`id` is `null` on errors raised before the id could be parsed (`parse_error`, malformed-envelope cases).
+The `id` you sent is echoed back; on an error too malformed to read an `id`, it comes back as `null`. Request lines must not exceed 1 MiB.
 
-### Error codes
-
-| Code             | Meaning                                                              |
-| ---------------- | -------------------------------------------------------------------- |
-| `parse_error`    | Line was not valid JSON.                                             |
-| `bad_envelope`   | JSON did not match the envelope shape, or line exceeded 1 MiB.       |
-| `unknown_method` | `method` is not registered.                                          |
-| `invalid_params` | Handler rejected the params.                                         |
-| `internal_error` | Handler threw something other than a `CliMethodError`.               |
-
-Lines may not exceed 1 MiB. Empty lines are ignored. Parse / envelope errors do not close the connection; oversize lines do.
-
-## Methods
+## Available methods
 
 ### `app.identify`
 
-Returns information about the running app instance and the currently active workspace / pane / surface.
+Returns information about the running app and the workspace, pane, and surface that are currently active.
 
 - **Params:** none.
 - **Result:**
@@ -74,34 +70,27 @@ Returns information about the running app instance and the currently active work
   }
   ```
 
-  `active` is `null` until the renderer pushes its first snapshot (briefly during startup, or if no window has opened yet).
+  `active` is `null` until a window has opened and reported its state (briefly during startup).
 
-## Smoke test
+## Errors
 
-1. `npm run dev`. Main-process log shows `[cli] listening on <socket path>`.
-2. `ls -la $XDG_RUNTIME_DIR/astral/` — socket appears with mode `srw-------`.
-3. Round-trip `app.identify`:
+| Code             | Meaning                                                                       |
+| ---------------- | ----------------------------------------------------------------------------- |
+| `parse_error`    | The line was not valid JSON.                                                  |
+| `bad_envelope`   | The JSON did not match the request shape (missing or invalid `id`/`method`).  |
+| `unknown_method` | The `method` is not recognized.                                               |
+| `invalid_params` | The method rejected the supplied `params`.                                    |
+| `internal_error` | The method failed unexpectedly.                                               |
 
-   ```sh
-   printf '{"id":"1","method":"app.identify"}\n' \
-     | nc -U "$XDG_RUNTIME_DIR/astral/$(pgrep -n astral).sock"
-   ```
+A malformed request is answered with an error and the connection stays open, so you can keep sending requests on it. A line that exceeds 1 MiB is rejected and the connection is closed.
 
-   Expect one line of JSON with `"ok":true` and a populated `result.active`.
-4. Switch workspaces in the UI, repeat step 3 — `active.workspaceId` changes.
-5. Malformed input keeps the connection open:
+## Example
 
-   ```sh
-   printf 'not json\n' | nc -U "<socket>"
-   ```
+Round-trip `app.identify` with `nc`:
 
-   Expect `{"id":null,"ok":false,"error":{"code":"parse_error",...}}`.
-6. Unknown method:
+```sh
+sock="$XDG_RUNTIME_DIR/astral/$(pgrep -n astral).sock"
+printf '{"id":"1","method":"app.identify"}\n' | nc -U "$sock"
+```
 
-   ```sh
-   printf '{"id":"2","method":"does.not.exist"}\n' | nc -U "<socket>"
-   ```
-
-   Expect `unknown_method`.
-7. Quit via the app menu — socket file is removed.
-8. Simulate a stale socket: `kill -9` the app, `touch` the previous socket path, relaunch — `start()` unlinks the leftover and binds cleanly.
+Expect a single line of JSON with `"ok": true` and the active workspace, pane, and surface under `result.active`. Switch workspaces in the app and run it again to see `active.workspaceId` change.
