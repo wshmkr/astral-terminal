@@ -139,7 +139,9 @@ const startup = app.whenReady().then(() => {
         sendBrowserFindResult(surfaceId, result);
       },
       onFocusAddressBar: (surfaceId) => {
-        getMainWindow()?.webContents.send(IPC.browser.focusAddressBar, {
+        const win = getMainWindow();
+        win?.webContents.focus();
+        win?.webContents.send(IPC.browser.focusAddressBar, {
           surfaceId,
         });
       },
