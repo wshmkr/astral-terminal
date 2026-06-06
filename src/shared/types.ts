@@ -314,6 +314,12 @@ export interface AppState {
   welcomeOpen: boolean;
 }
 
+export interface ActiveRef {
+  workspaceId: string | null;
+  paneId: string | null;
+  surfaceId: string | null;
+}
+
 export const IPC = {
   pty: {
     create: "pty:create",
@@ -364,6 +370,9 @@ export const IPC = {
     configure: "agent-hooks:configure",
     uninstall: "agent-hooks:uninstall",
     status: "agent-hooks:status",
+  },
+  cli: {
+    activeRefUpdate: "cli:active-ref-update",
   },
   shell: {
     openExternal: "shell:open-external",

@@ -1,6 +1,7 @@
 import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
 import type { PersistedSettings } from "../../shared/settings-types";
 import type {
+  ActiveRef,
   AppConfig,
   AppMode,
   BrowserAnchorOffsets,
@@ -139,6 +140,8 @@ export interface AppAPI {
   requestUpdateCheck: () => Promise<void>;
   installUpdate: () => Promise<void>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+
+  sendCliActiveRef: (ref: ActiveRef) => void;
 }
 
 declare global {
