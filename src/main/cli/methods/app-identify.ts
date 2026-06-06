@@ -5,7 +5,7 @@ import { CliMethodError, type CliServer } from "../server";
 
 export function registerAppIdentify(server: CliServer): void {
   server.register("app.identify", (params) => {
-    if (params !== undefined) {
+    if (params !== undefined && params !== null) {
       throw new CliMethodError(
         CLI_ERROR_CODES.invalidParams,
         "app.identify takes no params",
