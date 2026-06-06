@@ -73,6 +73,7 @@ export function createCliServer(): CliServer {
       const srv = net.createServer((socket) => {
         let buf = Buffer.alloc(0);
         let overflowed = false;
+        let dispatchChain = Promise.resolve();
         const rejectOversize = () => {
           overflowed = true;
           buf = Buffer.alloc(0);
@@ -99,9 +100,14 @@ export function createCliServer(): CliServer {
             const line = buf.subarray(0, nl).toString("utf8");
             buf = buf.subarray(nl + 1);
             if (line.trim().length === 0) continue;
-            void dispatch(line, handlers).then((reply) => {
-              if (!socket.destroyed) socket.write(formatReply(reply));
-            });
+            dispatchChain = dispatchChain
+              .then(async () => {
+                const reply = await dispatch(line, handlers);
+                if (!socket.destroyed) socket.write(formatReply(reply));
+              })
+              .catch(() => {
+                // a failed dispatch/write must not stall later replies
+              });
           }
         });
         socket.on("error", () => {
