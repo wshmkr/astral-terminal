@@ -28,10 +28,21 @@ export function getMainWindow(): BrowserWindow | null {
   return mainWindow;
 }
 
+// Raise a window past the Windows foreground lock by toggling topmost around focus()
+export function forceForeground(win: BrowserWindow): void {
+  win.show();
+  if (process.platform === "win32") {
+    win.setAlwaysOnTop(true);
+    win.focus();
+    win.setAlwaysOnTop(false);
+  } else {
+    win.focus();
+  }
+}
+
 export function focusMainWindow(win: BrowserWindow): void {
   if (!win.isFocused()) {
-    win.show();
-    win.focus();
+    forceForeground(win);
   }
 }
 
@@ -61,9 +72,17 @@ export function createWindow(): void {
   if (savedState.isMaximized) {
     mainWindow.maximize();
   }
-  mainWindow.once("ready-to-show", () => {
-    mainWindow?.show();
-  });
+  let hasRevealed = false;
+  const revealMainWindow = () => {
+    if (hasRevealed || !mainWindow) return;
+    hasRevealed = true;
+    mainWindow.show();
+    // Post-update launches come up unfocused
+    if (process.platform === "win32" && !mainWindow.isFocused()) {
+      forceForeground(mainWindow);
+    }
+  };
+  mainWindow.once("ready-to-show", revealMainWindow);
 
   trackWindowState(mainWindow);
 
