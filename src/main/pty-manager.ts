@@ -5,9 +5,11 @@ import path from "node:path";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
+import { app } from "electron";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
 import { findAgentProvider } from "../shared/agent-hooks";
+import { ASTRAL_ENV, buildWslenvFragment } from "../shared/cli-env";
 import { APP_PACKAGE_NAME } from "../shared/meta";
 import { windowsPtyOptions } from "../shared/pty-options";
 import { type AppConfig, DEFAULT_CWD } from "../shared/types";
@@ -246,11 +248,20 @@ export class PtyManager {
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
       TERM_PROGRAM: APP_PACKAGE_NAME,
+      [ASTRAL_ENV.surfaceId]: surfaceId,
+      [ASTRAL_ENV.pid]: String(process.pid),
+      [ASTRAL_ENV.version]: app.getVersion(),
     };
     if (isWindows) {
+      // TODO(native): non-Windows shells inherit these directly; only WSL needs WSLENV
+      const forwarded = `TERM_PROGRAM/u:${buildWslenvFragment([
+        ASTRAL_ENV.surfaceId,
+        ASTRAL_ENV.pid,
+        ASTRAL_ENV.version,
+      ])}`;
       env.WSLENV = process.env.WSLENV
-        ? `${process.env.WSLENV}:TERM_PROGRAM/u`
-        : "TERM_PROGRAM/u";
+        ? `${process.env.WSLENV}:${forwarded}`
+        : forwarded;
     }
 
     const proc = pty.spawn(shell, args, {
