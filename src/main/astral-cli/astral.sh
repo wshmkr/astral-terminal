@@ -10,8 +10,12 @@ identify() {
     echo "astral: not running inside an Astral Terminal shell" >&2
     return 1
   fi
+  case "${ASTRAL_PID:-}" in
+    '' | *[!0-9]*) pid=0 ;;
+    *) pid=$ASTRAL_PID ;;
+  esac
   printf '{"surfaceId":"%s","pid":%s,"version":"%s"}\n' \
-    "$ASTRAL_SURFACE_ID" "${ASTRAL_PID:-0}" "${ASTRAL_VERSION:-}"
+    "$ASTRAL_SURFACE_ID" "$pid" "${ASTRAL_VERSION:-}"
 }
 
 usage() {
