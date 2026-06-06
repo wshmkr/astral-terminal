@@ -27,6 +27,7 @@ function cycleTab(delta: number): void {
   const ids = focused.leaf.surfaces.map((s) => s.id);
   if (ids.length < 2) return;
   const current = ids.indexOf(focused.leaf.activeSurfaceId);
+  if (current < 0) return;
   const next = ids[(current + delta + ids.length) % ids.length];
   if (next) setActiveSurface(focused.paneId, next);
 }
