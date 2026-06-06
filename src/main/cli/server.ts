@@ -72,25 +72,28 @@ export function createCliServer(): CliServer {
 
       const srv = net.createServer((socket) => {
         let buf = Buffer.alloc(0);
+        let overflowed = false;
+        const rejectOversize = () => {
+          overflowed = true;
+          buf = Buffer.alloc(0);
+          socket.write(
+            formatReply(
+              makeErr(null, CLI_ERROR_CODES.badEnvelope, "line exceeds 1 MiB"),
+            ),
+            () => socket.destroy(),
+          );
+        };
         socket.on("data", (chunk) => {
+          if (overflowed) return;
           buf = Buffer.concat([buf, chunk]);
           while (true) {
             const nl = buf.indexOf(0x0a);
             if (nl === -1) {
-              if (buf.length > MAX_LINE_BYTES) {
-                socket.write(
-                  formatReply(
-                    makeErr(
-                      null,
-                      CLI_ERROR_CODES.badEnvelope,
-                      "line exceeds 1 MiB",
-                    ),
-                  ),
-                );
-                socket.end();
-                buf = Buffer.alloc(0);
-                return;
-              }
+              if (buf.length > MAX_LINE_BYTES) rejectOversize();
+              break;
+            }
+            if (nl > MAX_LINE_BYTES) {
+              rejectOversize();
               break;
             }
             const line = buf.subarray(0, nl).toString("utf8");
