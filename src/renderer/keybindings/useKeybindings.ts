@@ -20,4 +20,9 @@ export function useKeybindings(isMac: boolean): void {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [isMac]);
+
+  // Global commands matched in the browser view are forwarded from main
+  useEffect(() => {
+    return window.app.onRunCommand(({ command }) => runCommand(command));
+  }, []);
 }

@@ -1,4 +1,5 @@
 import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
+import type { CommandId } from "../../shared/keybindings/types";
 import type { PersistedSettings } from "../../shared/settings-types";
 import type {
   AppConfig,
@@ -109,6 +110,9 @@ export interface AppAPI {
     callback: (payload: { surfaceId: string }) => void,
   ) => () => void;
   clearBrowsingData: () => Promise<void>;
+  onRunCommand: (
+    callback: (payload: { command: CommandId }) => void,
+  ) => () => void;
 
   openNotificationPanel: (anchor: ScreenRect) => void;
   closeNotificationPanel: () => void;

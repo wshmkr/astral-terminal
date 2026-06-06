@@ -394,6 +394,9 @@ export const IPC = {
     install: "update:install",
     status: "update:status",
   },
+  keymap: {
+    runCommand: "keymap:run-command",
+  },
 } as const;
 
 export interface BrowserOpenNewTabPayload {

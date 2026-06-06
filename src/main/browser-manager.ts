@@ -9,6 +9,7 @@ import {
   matchBinding,
   resolveBindings,
 } from "../shared/keybindings/match";
+import type { CommandId } from "../shared/keybindings/types";
 import {
   BARE_DOMAIN_RE,
   type BrowserSettings,
@@ -176,6 +177,7 @@ export interface BrowserManagerCallbacks {
   onFindRequested: (surfaceId: string, anchor: ScreenRect) => void;
   onFindResult: (surfaceId: string, result: BrowserFindResult) => void;
   onFocusAddressBar: (surfaceId: string) => void;
+  onRunGlobalCommand: (command: CommandId) => void;
   onSurfaceHidden: (surfaceId: string) => void;
   onSurfaceAnchorChanged: (surfaceId: string, anchor: ScreenRect) => void;
 }
@@ -327,36 +329,54 @@ export class BrowserManager {
     wc.on("before-input-event", (event, input) => {
       entry.shiftHeld = input.shift;
       if (input.type !== "keyDown") return;
-      const command = matchBinding(
-        fromElectronInput(input),
-        resolveBindings(),
+      const normalized = fromElectronInput(input);
+      const bindings = resolveBindings();
+      const browserCommand = matchBinding(
+        normalized,
+        bindings,
         IS_MAC,
         "browser",
       );
-      if (!command) return;
-      event.preventDefault();
-      const nav = wc.navigationHistory;
-      switch (command) {
-        case "browser.back":
-          if (nav.canGoBack()) nav.goBack();
-          break;
-        case "browser.forward":
-          if (nav.canGoForward()) nav.goForward();
-          break;
-        case "browser.reload":
-          wc.reload();
-          break;
-        case "browser.devtools":
-          wc.toggleDevTools();
-          break;
-        case "browser.focusAddressBar":
-          this.callbacks.onFocusAddressBar(surfaceId);
-          break;
-        case "browser.find":
-          this.callbacks.onFindRequested(surfaceId, this.computeAnchor(entry));
-          break;
-        default:
-          break;
+      if (browserCommand) {
+        event.preventDefault();
+        const nav = wc.navigationHistory;
+        switch (browserCommand) {
+          case "browser.back":
+            if (nav.canGoBack()) nav.goBack();
+            break;
+          case "browser.forward":
+            if (nav.canGoForward()) nav.goForward();
+            break;
+          case "browser.reload":
+            wc.reload();
+            break;
+          case "browser.devtools":
+            wc.toggleDevTools();
+            break;
+          case "browser.focusAddressBar":
+            this.callbacks.onFocusAddressBar(surfaceId);
+            break;
+          case "browser.find":
+            this.callbacks.onFindRequested(
+              surfaceId,
+              this.computeAnchor(entry),
+            );
+            break;
+          default:
+            break;
+        }
+        return;
+      }
+      // Browser views hold OS focus, so forward global shortcuts the renderer never sees
+      const globalCommand = matchBinding(
+        normalized,
+        bindings,
+        IS_MAC,
+        "global",
+      );
+      if (globalCommand) {
+        event.preventDefault();
+        this.callbacks.onRunGlobalCommand(globalCommand);
       }
     });
     wc.on("blur", () => {

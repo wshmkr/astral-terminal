@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame, webUtils } from "electron";
+import type { CommandId } from "../shared/keybindings/types";
 import type { PersistedSettings } from "../shared/settings-types";
 import type {
   BrowserAnchorOffsets,
@@ -218,4 +219,7 @@ contextBridge.exposeInMainWorld("app", {
     subscribe<[{ surfaceId: string }]>(IPC.browser.focusAddressBar, callback),
   clearBrowsingData: (): Promise<void> =>
     ipcRenderer.invoke(IPC.browser.clearData),
+
+  onRunCommand: (callback: (payload: { command: CommandId }) => void) =>
+    subscribe<[{ command: CommandId }]>(IPC.keymap.runCommand, callback),
 });

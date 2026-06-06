@@ -145,6 +145,9 @@ const startup = app.whenReady().then(() => {
           surfaceId,
         });
       },
+      onRunGlobalCommand: (command) => {
+        getMainWindow()?.webContents.send(IPC.keymap.runCommand, { command });
+      },
       onSurfaceHidden: (surfaceId) => {
         hideBrowserFindWindow(surfaceId);
       },
