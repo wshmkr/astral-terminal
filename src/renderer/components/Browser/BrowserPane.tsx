@@ -15,6 +15,7 @@ import {
   defaultBrowserState,
 } from "../../../shared/types";
 import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
+import { commandTitle } from "../../keybindings/shortcutHint";
 import {
   clearBrowserFavicon,
   closeSurface,
@@ -158,7 +159,7 @@ export function BrowserPane({
         <IconButton
           size="small"
           aria-label="Back"
-          title="Back"
+          title={commandTitle("Back", "browser.back")}
           disabled={!state.canGoBack}
           onClick={() => controllerRef.current?.command("goBack")}
           sx={navButtonStyle}
@@ -168,7 +169,7 @@ export function BrowserPane({
         <IconButton
           size="small"
           aria-label="Forward"
-          title="Forward"
+          title={commandTitle("Forward", "browser.forward")}
           disabled={!state.canGoForward}
           onClick={() => controllerRef.current?.command("goForward")}
           sx={navButtonStyle}
@@ -178,7 +179,9 @@ export function BrowserPane({
         <IconButton
           size="small"
           aria-label={state.isLoading ? "Stop" : "Reload"}
-          title={state.isLoading ? "Stop" : "Reload"}
+          title={
+            state.isLoading ? "Stop" : commandTitle("Reload", "browser.reload")
+          }
           onClick={reloadOrStop}
           sx={navButtonStyle}
         >

@@ -35,6 +35,7 @@ import type {
 } from "../../../shared/types";
 import { getDragData, getDragPaneId } from "../../app/dnd-types";
 import { useSurfaceBodyRegister } from "../../app/SurfaceBodyRegistry";
+import { commandTooltip } from "../../keybindings/shortcutHint";
 import {
   addSurface,
   closePane,
@@ -154,7 +155,7 @@ function TabEndDropZone({
 function TabBarActions({ paneId }: { paneId: string }) {
   return (
     <Box sx={TAB_ACTIONS_SX}>
-      <Tooltip title="Split Right">
+      <Tooltip title={commandTooltip("Split Right", "pane.splitRight")}>
         <IconButton
           size="small"
           onClick={() => splitPane(paneId, "vertical")}
@@ -163,7 +164,7 @@ function TabBarActions({ paneId }: { paneId: string }) {
           <VscSplitHorizontal size={16} />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Split Down">
+      <Tooltip title={commandTooltip("Split Down", "pane.splitDown")}>
         <IconButton
           size="small"
           onClick={() => splitPane(paneId, "horizontal")}
@@ -172,7 +173,7 @@ function TabBarActions({ paneId }: { paneId: string }) {
           <VscSplitVertical size={16} />
         </IconButton>
       </Tooltip>
-      <Tooltip title="Close Pane">
+      <Tooltip title={commandTooltip("Close Pane", "pane.close")}>
         <CloseButton size="small" onClick={() => closePane(paneId)}>
           <VscChromeClose size={16} />
         </CloseButton>
@@ -185,7 +186,7 @@ function NewTabButton({ paneId }: { paneId: string }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   return (
     <>
-      <Tooltip title="New Tab">
+      <Tooltip title={commandTooltip("New Tab", "tab.new")}>
         <IconButton
           size="small"
           onClick={() => addSurface(paneId, "terminal")}
@@ -208,7 +209,7 @@ function NewTabButton({ paneId }: { paneId: string }) {
           },
         }}
       >
-        <Tooltip title="Terminal" placement="top">
+        <Tooltip title={commandTooltip("Terminal", "tab.new")} placement="top">
           <IconButton
             size="small"
             onClick={() => {
@@ -224,7 +225,10 @@ function NewTabButton({ paneId }: { paneId: string }) {
           flexItem
           sx={{ borderColor: "custom.subtleDivider" }}
         />
-        <Tooltip title="Browser" placement="top">
+        <Tooltip
+          title={commandTooltip("Browser", "tab.newBrowser")}
+          placement="top"
+        >
           <IconButton
             size="small"
             onClick={() => {

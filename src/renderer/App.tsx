@@ -12,6 +12,7 @@ import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { TitleBar } from "./components/ui/TitleBar";
 import { WelcomeDialog } from "./components/Welcome/WelcomeDialog";
+import { commandShortcut } from "./keybindings/shortcutHint";
 import { useKeybindings } from "./keybindings/useKeybindings";
 import {
   formatNotificationDisplay,
@@ -205,7 +206,9 @@ export function App() {
                   variant="body2"
                   sx={{ color: "text.disabled", opacity: 0.8 }}
                 >
-                  press Ctrl+N to create one
+                  {commandShortcut("workspace.new")
+                    ? `press ${commandShortcut("workspace.new")} to create one`
+                    : "create one from the sidebar"}
                 </Typography>
               </Box>
             ) : (

@@ -3,12 +3,14 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { memo, useRef } from "react";
 import { VscAdd, VscGear } from "react-icons/vsc";
 import { useDrag } from "../../hooks/useDrag";
+import { commandTooltip } from "../../keybindings/shortcutHint";
 import {
   clampSidebarWidth,
   createWorkspace,
@@ -96,13 +98,16 @@ const NEW_WORKSPACE_CONTAINER_SX = {
 const NEW_WORKSPACE_SX = {
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-start",
   gap: 0.75,
+  width: "100%",
   p: "14px 16px",
   minHeight: 36,
   cursor: "pointer",
   userSelect: "none",
   color: "text.disabled",
   "&:hover": { bgcolor: "action.hover", color: "text.primary" },
+  "&.Mui-focusVisible": { bgcolor: "action.hover", color: "text.primary" },
 } as const;
 
 const NEW_WORKSPACE_LABEL_SX = { fontWeight: 500 } as const;
@@ -158,8 +163,9 @@ function SidebarImpl() {
           </Typography>
           <Box sx={HEADER_ACTIONS_SX}>
             <NotificationPanel />
-            <Tooltip title="Settings">
+            <Tooltip title={commandTooltip("Settings", "app.openSettings")}>
               <IconButton
+                aria-label="Settings"
                 sx={SETTINGS_BUTTON_SX}
                 onClick={() => window.app.openSettingsWindow()}
               >
@@ -193,12 +199,18 @@ function SidebarImpl() {
           <OverlayScrollbar scrollRef={scrollRef} />
         </Box>
         <Box sx={NEW_WORKSPACE_CONTAINER_SX}>
-          <Box onClick={() => createWorkspace()} sx={NEW_WORKSPACE_SX}>
-            <VscAdd size={14} />
-            <Typography variant="body2" sx={NEW_WORKSPACE_LABEL_SX}>
-              New Workspace
-            </Typography>
-          </Box>
+          <Tooltip title={commandTooltip("New Workspace", "workspace.new")}>
+            <ButtonBase
+              disableRipple
+              onClick={() => createWorkspace()}
+              sx={NEW_WORKSPACE_SX}
+            >
+              <VscAdd size={14} />
+              <Typography variant="body2" sx={NEW_WORKSPACE_LABEL_SX}>
+                New Workspace
+              </Typography>
+            </ButtonBase>
+          </Tooltip>
         </Box>
         <UsageBar />
       </Box>
