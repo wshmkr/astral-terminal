@@ -130,7 +130,11 @@ export function createWindow(): void {
   mainWindow.on("focus", () => {
     mainWindow?.webContents.send(IPC.window.focusChanged, true);
     mainWindowFocusListeners.forEach((listener) => {
-      listener();
+      try {
+        listener();
+      } catch (error) {
+        console.error("Main window focus listener failed:", error);
+      }
     });
   });
   mainWindow.on("blur", () => {
