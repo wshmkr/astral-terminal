@@ -9,6 +9,6 @@ export const CLI_MARKER = `${CLI_MARKER_PREFIX}:v${CLI_VERSION}`;
 
 export function buildAstralCli(): string {
   return astralScript
-    .replace("__ASTRAL_CLI_MARKER__", CLI_MARKER)
-    .replace("__ASTRAL_CLI_VERSION__", CLI_VERSION);
+    .replaceAll("__ASTRAL_CLI_MARKER__", CLI_MARKER)
+    .replaceAll("__ASTRAL_CLI_VERSION__", CLI_VERSION);
 }
