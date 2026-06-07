@@ -11,8 +11,14 @@ identify() {
     return 1
   fi
   case "${ASTRAL_PID:-}" in
-    '' | *[!0-9]*) pid=0 ;;
-    *) pid=$ASTRAL_PID ;;
+    '' | *[!0-9]*)
+      pid=0
+      ;;
+    *)
+      # JSON numbers can't have leading zeros, so strip them (keeping a single 0)
+      pid=${ASTRAL_PID#"${ASTRAL_PID%%[!0]*}"}
+      pid=${pid:-0}
+      ;;
   esac
   printf '{"surfaceId":"%s","pid":%s,"version":"%s"}\n' \
     "$ASTRAL_SURFACE_ID" "$pid" "${ASTRAL_VERSION:-}"
