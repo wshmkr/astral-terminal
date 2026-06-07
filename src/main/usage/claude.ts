@@ -4,7 +4,7 @@ import type {
   UsageMeter,
   UsageStatus,
 } from "../../shared/types";
-import { resolveWslPath } from "../wsl-home";
+import { resolveWslPath } from "../wsl/home";
 import type { UsageProviderAdapter } from "./types";
 
 // Read-only on .credentials.json: token refresh is Claude Code's job, and rewriting
@@ -35,11 +35,16 @@ type CredentialsRead =
   | { state: "absent" }
   | { state: "unreadable" };
 
+// Won't recover mid-session, so latch it rather than respawn wsl.exe each poll
+let wslHomeUnreachable = false;
+
 async function readCredentials(): Promise<CredentialsRead> {
+  if (wslHomeUnreachable) return { state: "absent" };
   let credPath: string;
   try {
     credPath = await credentialsPath();
   } catch {
+    wslHomeUnreachable = true;
     return { state: "absent" };
   }
   let raw: string;
