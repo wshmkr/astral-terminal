@@ -10,6 +10,7 @@ import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
 } from "../../shared/types";
+import { withKeyedLock } from "../keyed-lock";
 import { resolveWslPath } from "../wsl/home";
 import {
   buildAgentHooksConfig,
@@ -18,7 +19,7 @@ import {
   HOOK_MARKER_VERSION,
 } from "./build";
 
-const pathLocks = new Map<string, Promise<unknown>>();
+const settingsFileLocks = new Map<string, Promise<unknown>>();
 
 function isOwnHookCommand(value: unknown): boolean {
   return typeof value === "string" && value.includes(HOOK_MARKER_PREFIX);
@@ -132,20 +133,6 @@ async function readSettings(filePath: string): Promise<ParsedSettings | null> {
   return { settings, hooks };
 }
 
-function withProviderLock<T>(
-  provider: AgentHookProvider,
-  run: () => Promise<T>,
-): Promise<T> {
-  const key = provider.settingsPath;
-  const prev = pathLocks.get(key) ?? Promise.resolve();
-  const next = prev.then(run, run);
-  pathLocks.set(
-    key,
-    next.catch(() => {}),
-  );
-  return next;
-}
-
 async function runConfigure(
   provider: AgentHookProvider,
 ): Promise<ConfigureAgentHooksResult> {
@@ -218,7 +205,9 @@ export async function configureAgentHooks(
       status: "error",
       message: `Unknown agent provider: ${providerName}`,
     };
-  return withProviderLock(provider, () => runConfigure(provider));
+  return withKeyedLock(settingsFileLocks, provider.settingsPath, () =>
+    runConfigure(provider),
+  );
 }
 
 async function runUninstall(
@@ -259,7 +248,9 @@ export async function uninstallAgentHooks(
       status: "error",
       message: `Unknown agent provider: ${providerName}`,
     };
-  return withProviderLock(provider, () => runUninstall(provider));
+  return withKeyedLock(settingsFileLocks, provider.settingsPath, () =>
+    runUninstall(provider),
+  );
 }
 
 export async function getAgentHookStatus(

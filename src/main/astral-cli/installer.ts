@@ -1,22 +1,13 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { parseMarkerVersion } from "../../shared/marker-version";
+import { withKeyedLock } from "../keyed-lock";
 import { resolveWslPath, runWsl } from "../wsl/home";
 import { buildAstralCli, CLI_MARKER_PREFIX, CLI_VERSION } from "./build";
 
 const CLI_RELATIVE_PATH = ".local/bin/astral";
 
 const pathLocks = new Map<string, Promise<unknown>>();
-
-function withPathLock<T>(key: string, run: () => Promise<T>): Promise<T> {
-  const prev = pathLocks.get(key) ?? Promise.resolve();
-  const next = prev.then(run, run);
-  pathLocks.set(
-    key,
-    next.catch(() => {}),
-  );
-  return next;
-}
 
 async function isCurrent(filePath: string): Promise<boolean> {
   try {
@@ -33,7 +24,7 @@ async function isCurrent(filePath: string): Promise<boolean> {
 export function ensureAstralCliInstalled(
   distro?: string | null,
 ): Promise<void> {
-  return withPathLock(distro ?? "", async () => {
+  return withKeyedLock(pathLocks, distro ?? "", async () => {
     const filePath = await resolveWslPath(CLI_RELATIVE_PATH, distro);
     if (await isCurrent(filePath)) return;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
