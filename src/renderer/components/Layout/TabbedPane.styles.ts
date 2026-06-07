@@ -91,6 +91,11 @@ export const TAB_CLOSE_SX = {
   borderRadius: 0.5,
   color: "inherit",
   "&:hover": { bgcolor: "error.main", color: "common.white" },
+  "&.Mui-focusVisible": {
+    opacity: 1,
+    bgcolor: "error.main",
+    color: "common.white",
+  },
 } as const;
 
 export const SURFACE_BODY_SX = {

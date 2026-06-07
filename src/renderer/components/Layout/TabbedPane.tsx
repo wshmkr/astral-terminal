@@ -174,7 +174,11 @@ function TabBarActions({ paneId }: { paneId: string }) {
         </IconButton>
       </Tooltip>
       <Tooltip title={commandTooltip("Close Pane", "pane.close")}>
-        <CloseButton size="small" onClick={() => closePane(paneId)}>
+        <CloseButton
+          size="small"
+          aria-label="Close pane"
+          onClick={() => closePane(paneId)}
+        >
           <VscChromeClose size={16} />
         </CloseButton>
       </Tooltip>
