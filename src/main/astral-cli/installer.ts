@@ -1,0 +1,91 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import {
+  compareVersions,
+  parseMarkerVersion,
+} from "../../shared/marker-version";
+import { withKeyedLock } from "../keyed-lock";
+import { resolveWslPath, runWsl } from "../wsl/home";
+import { buildAstralCli, CLI_MARKER_PREFIX, CLI_VERSION } from "./build";
+
+const CLI_RELATIVE_PATH = ".local/bin/astral";
+
+const pathLocks = new Map<string, Promise<unknown>>();
+
+// Overwriting an astral we didn't create would clobber the user's own file
+export class ForeignCliError extends Error {
+  constructor(relativePath: string) {
+    super(
+      `~/${relativePath} already exists and was not created by Astral Terminal. Rename or remove it to let Astral install its CLI.`,
+    );
+    this.name = "ForeignCliError";
+  }
+}
+
+type InstalledCli =
+  | { kind: "absent" }
+  | { kind: "unmarked" }
+  | { kind: "marked"; version: string };
+
+async function readInstalledCli(filePath: string): Promise<InstalledCli> {
+  let content: string;
+  try {
+    content = await fs.readFile(filePath, "utf-8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT")
+      return { kind: "absent" };
+    throw err;
+  }
+  const version = parseMarkerVersion(content, CLI_MARKER_PREFIX);
+  return version === null ? { kind: "unmarked" } : { kind: "marked", version };
+}
+
+export function ensureAstralCliInstalled(
+  distro?: string | null,
+): Promise<void> {
+  return withKeyedLock(pathLocks, distro ?? "", async () => {
+    const filePath = await resolveWslPath(CLI_RELATIVE_PATH, distro);
+    const installed = await readInstalledCli(filePath);
+    if (installed.kind === "unmarked") {
+      throw new ForeignCliError(CLI_RELATIVE_PATH);
+    }
+    if (installed.kind === "marked") {
+      const order = compareVersions(installed.version, CLI_VERSION);
+      if (order === 0) return;
+      if (order > 0) {
+        console.warn(
+          `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed.version} → v${CLI_VERSION}`,
+        );
+      }
+    }
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+
+    // Stage then rename so the marker only lands on a complete, executable file
+    const tmpRelativePath = `${path.posix.dirname(CLI_RELATIVE_PATH)}/.astral.${process.pid}.tmp`;
+    const tmpPath = await resolveWslPath(tmpRelativePath, distro);
+    await fs.writeFile(tmpPath, buildAstralCli(), { mode: 0o755 });
+    try {
+      if (process.platform === "win32") {
+        // \\wsl$ writes don't reliably carry the exec bit; chmod and rename inside the guest
+        // TODO(native): on non-Windows the writeFile mode already suffices
+        await runWsl(
+          [
+            "sh",
+            "-c",
+            `chmod 755 "$HOME/${tmpRelativePath}" && mv -f "$HOME/${tmpRelativePath}" "$HOME/${CLI_RELATIVE_PATH}"`,
+          ],
+          distro,
+        );
+      } else {
+        await fs.chmod(tmpPath, 0o755);
+        await fs.rename(tmpPath, filePath);
+      }
+    } catch (err) {
+      await fs.rm(tmpPath, { force: true }).catch(() => {});
+      throw err;
+    }
+    console.log(
+      `[astral-cli] installed ~/${CLI_RELATIVE_PATH} (v${CLI_VERSION})`,
+    );
+  });
+}

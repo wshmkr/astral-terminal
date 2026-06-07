@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { WslDistro } from "../shared/types";
+import { WSL_COMMAND_TIMEOUT_MS } from "./wsl/home";
 
 const execFileAsync = promisify(execFile);
 
@@ -52,6 +53,7 @@ export async function listWslDistros(): Promise<WslDistro[]> {
     const { stdout } = await execFileAsync("wsl.exe", ["-l", "-v"], {
       encoding: "buffer",
       windowsHide: true,
+      timeout: WSL_COMMAND_TIMEOUT_MS,
     });
     const decoded = Buffer.from(stdout).toString("utf16le");
     return parseWslListOutput(decoded);

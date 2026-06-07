@@ -5,9 +5,11 @@ import path from "node:path";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
+import { app, dialog } from "electron";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
 import { findAgentProvider } from "../shared/agent-hooks";
+import { ASTRAL_ENV, buildWslenvFragment } from "../shared/cli-env";
 import { APP_PACKAGE_NAME } from "../shared/meta";
 import { windowsPtyOptions } from "../shared/pty-options";
 import { type AppConfig, DEFAULT_CWD } from "../shared/types";
@@ -17,6 +19,28 @@ import {
   parseAgentSessionOsc,
   resumeCommandFor,
 } from "./agent-hooks/osc";
+import {
+  ensureAstralCliInstalled,
+  ForeignCliError,
+} from "./astral-cli/installer";
+
+const astralCliInstallAttempted = new Set<string>();
+
+// Install the astral CLI once per distro per run (installer is idempotent); clear on transient failure to retry
+function ensureAstralCliOnce(distro: string | null): void {
+  const key = distro ?? "";
+  if (astralCliInstallAttempted.has(key)) return;
+  astralCliInstallAttempted.add(key);
+  void ensureAstralCliInstalled(distro).catch((err) => {
+    if (err instanceof ForeignCliError) {
+      // stays marked attempted so the dialog shows once, not on every spawn
+      dialog.showErrorBox("Astral CLI could not be installed", err.message);
+      return;
+    }
+    astralCliInstallAttempted.delete(key);
+    console.warn("[astral-cli] install failed:", err);
+  });
+}
 
 const HEADLESS_SCROLLBACK = 10000;
 const SERIALIZE_SCROLLBACK = 5000;
@@ -246,11 +270,21 @@ export class PtyManager {
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
       TERM_PROGRAM: APP_PACKAGE_NAME,
+      [ASTRAL_ENV.surfaceId]: surfaceId,
+      [ASTRAL_ENV.pid]: String(process.pid),
+      [ASTRAL_ENV.version]: app.getVersion(),
     };
     if (isWindows) {
+      // TODO(native): non-Windows shells inherit these directly; only WSL needs WSLENV
+      const forwarded = `TERM_PROGRAM/u:${buildWslenvFragment([
+        ASTRAL_ENV.surfaceId,
+        ASTRAL_ENV.pid,
+        ASTRAL_ENV.version,
+      ])}`;
       env.WSLENV = process.env.WSLENV
-        ? `${process.env.WSLENV}:TERM_PROGRAM/u`
-        : "TERM_PROGRAM/u";
+        ? `${process.env.WSLENV}:${forwarded}`
+        : forwarded;
+      ensureAstralCliOnce(opts.wslDistro ?? null);
     }
 
     const proc = pty.spawn(shell, args, {

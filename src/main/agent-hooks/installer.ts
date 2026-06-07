@@ -1,17 +1,20 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import {
   type AgentHookProvider,
   type AgentHookStatus,
   findAgentProvider,
 } from "../../shared/agent-hooks";
+import {
+  compareVersions,
+  parseMarkerVersion,
+} from "../../shared/marker-version";
 import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
 } from "../../shared/types";
+import { withKeyedLock } from "../keyed-lock";
+import { resolveWslPath } from "../wsl/home";
 import {
   buildAgentHooksConfig,
   HOOK_MARKER,
@@ -19,38 +22,7 @@ import {
   HOOK_MARKER_VERSION,
 } from "./build";
 
-const pathLocks = new Map<string, Promise<unknown>>();
-const execFileAsync = promisify(execFile);
-
-async function getWslHomePath(): Promise<string> {
-  const isWindows = process.platform === "win32";
-  if (!isWindows) return os.homedir();
-  const { stdout } = await execFileAsync("wsl.exe", [
-    "sh",
-    "-c",
-    "echo $WSL_DISTRO_NAME; echo $HOME",
-  ]);
-  const [distroRaw, wslHomeRaw] = stdout.trim().split("\n");
-  if (!distroRaw || !wslHomeRaw) {
-    throw new Error("Unable to resolve WSL distro name / home directory");
-  }
-  const distro = distroRaw.trim();
-  const wslHome = wslHomeRaw.trim();
-  return `\\\\wsl$\\${distro}${wslHome.replace(/\//g, "\\")}`;
-}
-
-let wslHomeCache: string | null = null;
-
-async function resolveWslPath(relativePath: string): Promise<string> {
-  if (!wslHomeCache) wslHomeCache = await getWslHomePath();
-  const resolved = path.resolve(wslHomeCache, ...relativePath.split("/"));
-  const root = path.resolve(wslHomeCache);
-  const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
-  if (resolved !== root && !resolved.startsWith(rootWithSep)) {
-    throw new Error(`Refusing path outside WSL home: ${relativePath}`);
-  }
-  return resolved;
-}
+const settingsFileLocks = new Map<string, Promise<unknown>>();
 
 function isOwnHookCommand(value: unknown): boolean {
   return typeof value === "string" && value.includes(HOOK_MARKER_PREFIX);
@@ -60,15 +32,12 @@ function isCurrentHookCommand(value: unknown): boolean {
   return typeof value === "string" && value.includes(HOOK_MARKER);
 }
 
-function extractHookVersion(value: unknown): number | null {
+function extractHookVersion(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const i = value.indexOf(HOOK_MARKER_PREFIX);
-  if (i < 0) return null;
-  const match = value.slice(i + HOOK_MARKER_PREFIX.length).match(/^:v(\d+)/);
-  return match ? Number(match[1]) : null;
+  return parseMarkerVersion(value, HOOK_MARKER_PREFIX);
 }
 
-function collectHookVersions(node: unknown, out: Set<number>): void {
+function collectHookVersions(node: unknown, out: Set<string>): void {
   if (Array.isArray(node)) {
     for (const n of node) collectHookVersions(n, out);
     return;
@@ -167,20 +136,6 @@ async function readSettings(filePath: string): Promise<ParsedSettings | null> {
   return { settings, hooks };
 }
 
-function withProviderLock<T>(
-  provider: AgentHookProvider,
-  run: () => Promise<T>,
-): Promise<T> {
-  const key = provider.settingsPath;
-  const prev = pathLocks.get(key) ?? Promise.resolve();
-  const next = prev.then(run, run);
-  pathLocks.set(
-    key,
-    next.catch(() => {}),
-  );
-  return next;
-}
-
 async function runConfigure(
   provider: AgentHookProvider,
 ): Promise<ConfigureAgentHooksResult> {
@@ -217,13 +172,15 @@ async function runConfigure(
     }
 
     if (hasStale) {
-      const versions = new Set<number>();
+      const versions = new Set<string>();
       collectHookVersions(existing, versions);
-      const current = Number(HOOK_MARKER_VERSION);
-      const maxExisting = versions.size > 0 ? Math.max(...versions) : current;
-      if (maxExisting > current) {
+      const maxExisting = [...versions].reduce(
+        (max, v) => (compareVersions(v, max) > 0 ? v : max),
+        HOOK_MARKER_VERSION,
+      );
+      if (compareVersions(maxExisting, HOOK_MARKER_VERSION) > 0) {
         console.warn(
-          `Downgrading agent hooks in ~/${settingsPath}: v${maxExisting} → v${current}`,
+          `Downgrading agent hooks in ~/${settingsPath}: v${maxExisting} → v${HOOK_MARKER_VERSION}`,
         );
       }
     }
@@ -253,7 +210,9 @@ export async function configureAgentHooks(
       status: "error",
       message: `Unknown agent provider: ${providerName}`,
     };
-  return withProviderLock(provider, () => runConfigure(provider));
+  return withKeyedLock(settingsFileLocks, provider.settingsPath, () =>
+    runConfigure(provider),
+  );
 }
 
 async function runUninstall(
@@ -294,7 +253,9 @@ export async function uninstallAgentHooks(
       status: "error",
       message: `Unknown agent provider: ${providerName}`,
     };
-  return withProviderLock(provider, () => runUninstall(provider));
+  return withKeyedLock(settingsFileLocks, provider.settingsPath, () =>
+    runUninstall(provider),
+  );
 }
 
 export async function getAgentHookStatus(
