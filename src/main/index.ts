@@ -104,7 +104,7 @@ function installCsp() {
   });
 }
 
-const startup = app.whenReady().then(() => {
+const startup = app.whenReady().then(async () => {
   installAppMenu();
   installCsp();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
@@ -118,7 +118,7 @@ const startup = app.whenReady().then(() => {
   registerActiveRefIpc();
   const cliServer = getCliServer();
   registerAppIdentify(cliServer);
-  cliServer.start().catch((err) => {
+  await cliServer.start().catch((err) => {
     console.error("[cli] listen failed", err);
   });
   initAutoUpdater(getMainWindow);
