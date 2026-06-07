@@ -8,10 +8,12 @@ import {
   createWorkspace,
   setActiveSurface,
   setActiveWorkspace,
+  setUiScale,
   splitPane,
   stepUiScale,
 } from "../store";
 import { getActiveWorkspace, getState } from "../store/core";
+import { DEFAULT_UI_SCALE } from "../theme/fonts";
 
 function focusedLeaf(): { paneId: string; leaf: LeafPane } | null {
   const ws = getActiveWorkspace();
@@ -63,6 +65,10 @@ export function runCommand(id: CommandId): void {
       if (focusedPaneId)
         addSurface(focusedPaneId, "terminal", { activate: true });
       return;
+    case "tab.newBrowser":
+      if (focusedPaneId)
+        addSurface(focusedPaneId, "browser", { activate: true });
+      return;
     case "tab.close": {
       const focused = focusedLeaf();
       if (focused) closeSurface(focused.paneId, focused.leaf.activeSurfaceId);
@@ -89,6 +95,12 @@ export function runCommand(id: CommandId): void {
     case "ui.zoomOut":
       stepUiScale(-1);
       return;
+    case "ui.zoomReset":
+      setUiScale(DEFAULT_UI_SCALE);
+      return;
+    case "app.openSettings":
+      window.app.openSettingsWindow();
+      return;
     case "workspace.select.1":
     case "workspace.select.2":
     case "workspace.select.3":
@@ -101,7 +113,7 @@ export function runCommand(id: CommandId): void {
       selectWorkspace(Number(id.slice("workspace.select.".length)) - 1);
       return;
     default:
-      // browser.* commands are handled in the main process
+      // browser.* run in main; terminal.* run in the terminal key handler
       return;
   }
 }

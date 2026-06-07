@@ -24,6 +24,7 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "workspace.select.9", combo: "Mod+9", scope: "global" },
 
   { command: "tab.new", combo: "Mod+T", scope: "global" },
+  { command: "tab.newBrowser", combo: "Ctrl+Alt+T", scope: "global" },
   { command: "tab.close", combo: "Mod+W", scope: "global" },
   { command: "tab.next", combo: "Ctrl+Tab", scope: "global" },
   { command: "tab.prev", combo: "Ctrl+Shift+Tab", scope: "global" },
@@ -32,6 +33,9 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "ui.zoomIn", combo: "Mod+Shift+Equal", scope: "global" },
   { command: "ui.zoomOut", combo: "Mod+Minus", scope: "global" },
   { command: "ui.zoomOut", combo: "Mod+Shift+Minus", scope: "global" },
+  { command: "ui.zoomReset", combo: "Mod+0", scope: "global" },
+
+  { command: "app.openSettings", combo: "Mod+,", scope: "global" },
 
   { command: "browser.back", combo: "Alt+ArrowLeft", scope: "browser" },
   { command: "browser.forward", combo: "Alt+ArrowRight", scope: "browser" },
@@ -40,4 +44,9 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "browser.focusAddressBar", combo: "Mod+L", scope: "browser" },
   { command: "browser.devtools", combo: "F12", scope: "browser" },
   { command: "browser.find", combo: "Mod+F", scope: "browser" },
+
+  { command: "terminal.copy", combo: "Mod+Shift+C", scope: "terminal" },
+  { command: "terminal.paste", combo: "Mod+Shift+V", scope: "terminal" },
+  { command: "terminal.paste", combo: "Mod+V", scope: "terminal" },
+  { command: "terminal.find", combo: "Mod+F", scope: "terminal" },
 ];
