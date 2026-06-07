@@ -194,7 +194,8 @@ export function BrowserPane({
           onChange={(e) => setUrlDraft(e.target.value)}
           onFocus={(e) => {
             setUrlDraft(state.url);
-            e.currentTarget.select();
+            const input = e.currentTarget;
+            requestAnimationFrame(() => input.select());
           }}
           onBlur={() => {
             setUrlDraft(null);
