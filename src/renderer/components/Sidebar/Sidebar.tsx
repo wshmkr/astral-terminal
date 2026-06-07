@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import { memo, useRef } from "react";
 import { VscAdd, VscGear } from "react-icons/vsc";
 import { useDrag } from "../../hooks/useDrag";
+import { commandTooltip } from "../../keybindings/shortcutHint";
 import {
   clampSidebarWidth,
   createWorkspace,
@@ -158,7 +159,7 @@ function SidebarImpl() {
           </Typography>
           <Box sx={HEADER_ACTIONS_SX}>
             <NotificationPanel />
-            <Tooltip title="Settings">
+            <Tooltip title={commandTooltip("Settings", "app.openSettings")}>
               <IconButton
                 sx={SETTINGS_BUTTON_SX}
                 onClick={() => window.app.openSettingsWindow()}
@@ -193,12 +194,14 @@ function SidebarImpl() {
           <OverlayScrollbar scrollRef={scrollRef} />
         </Box>
         <Box sx={NEW_WORKSPACE_CONTAINER_SX}>
-          <Box onClick={() => createWorkspace()} sx={NEW_WORKSPACE_SX}>
-            <VscAdd size={14} />
-            <Typography variant="body2" sx={NEW_WORKSPACE_LABEL_SX}>
-              New Workspace
-            </Typography>
-          </Box>
+          <Tooltip title={commandTooltip("New Workspace", "workspace.new")}>
+            <Box onClick={() => createWorkspace()} sx={NEW_WORKSPACE_SX}>
+              <VscAdd size={14} />
+              <Typography variant="body2" sx={NEW_WORKSPACE_LABEL_SX}>
+                New Workspace
+              </Typography>
+            </Box>
+          </Tooltip>
         </Box>
         <UsageBar />
       </Box>
