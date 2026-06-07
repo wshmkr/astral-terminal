@@ -31,7 +31,7 @@ import { disableAdBlock, enableAdBlock } from "./ad-blocker";
 import {
   attachExternalLinkHandler,
   openInSystemBrowser,
-  showLinkContextMenu,
+  showBrowserContextMenu,
 } from "./external-links";
 import { createFadeController } from "./fade-controller";
 
@@ -390,10 +390,9 @@ export class BrowserManager {
     });
 
     wc.on("context-menu", (_event, params) => {
-      if (!params.linkURL) return;
-      showLinkContextMenu(this.window, {
-        url: params.linkURL,
-        sourceSurfaceId: surfaceId,
+      showBrowserContextMenu(this.window, params, {
+        webContents: wc,
+        surface: { id: surfaceId },
       });
     });
 
