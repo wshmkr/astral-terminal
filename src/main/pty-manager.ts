@@ -9,7 +9,11 @@ import { app, dialog } from "electron";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
 import { findAgentProvider } from "../shared/agent-hooks";
-import { ASTRAL_ENV, buildWslenvFragment } from "../shared/cli-env";
+import {
+  ASTRAL_ENV,
+  type AstralEnvName,
+  buildWslenvFragment,
+} from "../shared/cli-env";
 import { APP_PACKAGE_NAME } from "../shared/meta";
 import { windowsPtyOptions } from "../shared/pty-options";
 import { type AppConfig, DEFAULT_CWD } from "../shared/types";
@@ -23,6 +27,7 @@ import {
   ensureAstralCliInstalled,
   ForeignCliError,
 } from "./astral-cli/installer";
+import { getCliServer } from "./cli/server";
 
 const astralCliInstallAttempted = new Set<string>();
 
@@ -274,13 +279,22 @@ export class PtyManager {
       [ASTRAL_ENV.pid]: String(process.pid),
       [ASTRAL_ENV.version]: app.getVersion(),
     };
+    const forwardNames: AstralEnvName[] = [
+      ASTRAL_ENV.surfaceId,
+      ASTRAL_ENV.pid,
+      ASTRAL_ENV.version,
+    ];
+    const cliServer = getCliServer();
+    const tcpPort = cliServer.getTcpPort();
+    const authToken = cliServer.getAuthToken();
+    if (tcpPort !== null && authToken !== null) {
+      env[ASTRAL_ENV.port] = String(tcpPort);
+      env[ASTRAL_ENV.token] = authToken;
+      forwardNames.push(ASTRAL_ENV.port, ASTRAL_ENV.token);
+    }
     if (isWindows) {
       // TODO(native): non-Windows shells inherit these directly; only WSL needs WSLENV
-      const forwarded = `TERM_PROGRAM/u:${buildWslenvFragment([
-        ASTRAL_ENV.surfaceId,
-        ASTRAL_ENV.pid,
-        ASTRAL_ENV.version,
-      ])}`;
+      const forwarded = `TERM_PROGRAM/u:${buildWslenvFragment(forwardNames)}`;
       env.WSLENV = process.env.WSLENV
         ? `${process.env.WSLENV}:${forwarded}`
         : forwarded;

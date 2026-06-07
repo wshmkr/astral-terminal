@@ -3,6 +3,8 @@ export const ASTRAL_ENV = {
   surfaceId: "ASTRAL_SURFACE_ID",
   pid: "ASTRAL_PID",
   version: "ASTRAL_VERSION",
+  port: "ASTRAL_PORT",
+  token: "ASTRAL_TOKEN",
 } as const;
 
 export type AstralEnvName = (typeof ASTRAL_ENV)[keyof typeof ASTRAL_ENV];
