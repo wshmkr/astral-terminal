@@ -5,8 +5,13 @@ export function parseMarkerVersion(
   content: string,
   prefix: string,
 ): number | null {
-  const i = content.indexOf(prefix);
-  if (i < 0) return null;
-  const match = content.slice(i + prefix.length).match(/^:v(\d+)/);
-  return match ? Number(match[1]) : null;
+  for (
+    let i = content.indexOf(prefix);
+    i >= 0;
+    i = content.indexOf(prefix, i + 1)
+  ) {
+    const match = content.slice(i + prefix.length).match(/^:v(\d+)/);
+    if (match) return Number(match[1]);
+  }
+  return null;
 }
