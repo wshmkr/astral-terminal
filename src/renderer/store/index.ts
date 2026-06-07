@@ -58,6 +58,7 @@ export {
   closePane,
   closeSurface,
   closeWorkspace,
+  consumeBrowserUrlFocus,
   createWorkspace,
   findPaneBySurfaceId,
   moveSurfaceToPane,

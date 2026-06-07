@@ -36,6 +36,17 @@ import {
 } from "./factories";
 import { markSurfaceNotificationsRead } from "./notifications";
 
+// New browser tabs flag themselves here so BrowserPane can focus the URL bar on
+// mount; restored and link-opened tabs are never flagged
+const browserUrlFocusPending = new Set<string>();
+
+export function consumeBrowserUrlFocus(surfaceId: string): boolean {
+  return browserUrlFocusPending.delete(surfaceId);
+}
+
+// Remembers each workspace's last-focused pane so switching back restores it
+const lastFocusedPaneByWorkspace = new Map<string, string>();
+
 function mapWorkspaceById(
   id: string,
   fn: (w: Workspace) => Workspace,
@@ -98,6 +109,7 @@ function removeWorkspace(wsId: string) {
   const s = getState();
   const closedIndex = s.workspaces.findIndex((w) => w.id === wsId);
   if (closedIndex < 0) return;
+  lastFocusedPaneByWorkspace.delete(wsId);
   const remaining = s.workspaces.filter((w) => w.id !== wsId);
   const wasActive = s.activeWorkspaceId === wsId;
   if (!wasActive) {
@@ -161,7 +173,17 @@ export function createWorkspace(name?: string): Workspace {
 export function setActiveWorkspace(id: string): void {
   const s = getState();
   if (s.activeWorkspaceId === id) return;
-  setState({ ...s, activeWorkspaceId: id });
+  if (s.activeWorkspaceId && s.focusedPaneId) {
+    lastFocusedPaneByWorkspace.set(s.activeWorkspaceId, s.focusedPaneId);
+  }
+  const target = getWorkspace(id);
+  const remembered = lastFocusedPaneByWorkspace.get(id);
+  const focusedPaneId = target
+    ? remembered && findLeafPane(target.layout, remembered)
+      ? remembered
+      : findFirstLeaf(target.layout)
+    : null;
+  setState({ ...s, activeWorkspaceId: id, focusedPaneId });
   commit();
 }
 
@@ -292,6 +314,9 @@ export function addSurface(
     };
   });
   if (changed) commit();
+  if (newSurfaceId && kind === "browser" && activate && !options?.url) {
+    browserUrlFocusPending.add(newSurfaceId);
+  }
   return newSurfaceId;
 }
 

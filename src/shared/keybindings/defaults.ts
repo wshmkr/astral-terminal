@@ -10,7 +10,7 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "pane.splitDown", combo: "Mod+Shift+E", scope: "global" },
   { command: "pane.close", combo: "Mod+Shift+W", scope: "global" },
 
-  { command: "workspace.new", combo: "Mod+Shift+T", scope: "global" },
+  { command: "workspace.new", combo: "Mod+N", scope: "global" },
   { command: "workspace.next", combo: "Alt+ArrowDown", scope: "global" },
   { command: "workspace.prev", combo: "Alt+ArrowUp", scope: "global" },
   { command: "workspace.select.1", combo: "Mod+1", scope: "global" },
@@ -24,7 +24,7 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "workspace.select.9", combo: "Mod+9", scope: "global" },
 
   { command: "tab.new", combo: "Mod+T", scope: "global" },
-  { command: "tab.newBrowser", combo: "Ctrl+Alt+T", scope: "global" },
+  { command: "tab.newBrowser", combo: "Mod+Shift+T", scope: "global" },
   { command: "tab.close", combo: "Mod+W", scope: "global" },
   { command: "tab.next", combo: "Ctrl+Tab", scope: "global" },
   { command: "tab.prev", combo: "Ctrl+Shift+Tab", scope: "global" },

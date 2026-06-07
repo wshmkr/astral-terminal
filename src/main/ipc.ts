@@ -314,6 +314,8 @@ export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {
 
   ipcMain.on(IPC.settings.close, () => {
     hideSettingsWindow();
+    const win = getMainWindow();
+    if (win) focusMainWindow(win);
   });
 
   ipcMain.on(IPC.settings.statePublish, (_event, state: SettingsState) => {

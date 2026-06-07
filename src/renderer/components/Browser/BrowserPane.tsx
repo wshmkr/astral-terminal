@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   VscArrowLeft,
   VscArrowRight,
@@ -18,6 +18,7 @@ import { useSurfaceLifecycle } from "../../app/surface-lifecycle";
 import {
   clearBrowserFavicon,
   closeSurface,
+  consumeBrowserUrlFocus,
   renameSurface,
   setBrowserFavicon,
   setBrowserSurfaceUrl,
@@ -57,6 +58,12 @@ export function BrowserPane({
     defaultBrowserState(surface.url),
   );
   const [urlDraft, setUrlDraft] = useState<string | null>(null);
+  // A freshly opened browser tab focuses the URL bar and suppresses the page
+  // auto-focus until the user leaves the address bar, so they can type a URL
+  const [freshTab, setFreshTab] = useState(() =>
+    consumeBrowserUrlFocus(surface.id),
+  );
+  const canFocus = useCallback(() => !freshTab, [freshTab]);
 
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
@@ -78,9 +85,14 @@ export function BrowserPane({
     });
   }, [surface.id]);
 
+  useEffect(() => {
+    if (freshTab) urlInputRef.current?.focus();
+  }, [freshTab]);
+
   const controllerRef = useSurfaceLifecycle<BrowserController>({
     paneId,
     isVisible,
+    canFocus,
     mountKey: `${surface.id}|${workspaceId}`,
     create: () => {
       const anchor = anchorRef.current;
@@ -182,9 +194,13 @@ export function BrowserPane({
           onChange={(e) => setUrlDraft(e.target.value)}
           onFocus={(e) => {
             setUrlDraft(state.url);
-            e.currentTarget.select();
+            const input = e.currentTarget;
+            requestAnimationFrame(() => input.select());
           }}
-          onBlur={() => setUrlDraft(null)}
+          onBlur={() => {
+            setUrlDraft(null);
+            setFreshTab(false);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
