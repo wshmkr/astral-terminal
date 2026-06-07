@@ -59,13 +59,30 @@ export function ensureAstralCliInstalled(
       }
     }
     await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, buildAstralCli(), { mode: 0o755 });
-    // \\wsl$ writes don't reliably carry the exec bit; set it through the guest
-    // TODO(native): on non-Windows the writeFile mode already suffices
-    if (process.platform === "win32") {
-      await runWsl(["sh", "-c", 'chmod 755 "$HOME/.local/bin/astral"'], distro);
-    } else {
-      await fs.chmod(filePath, 0o755);
+
+    // Stage then rename so the marker only lands on a complete, executable file
+    const tmpRelativePath = `${path.posix.dirname(CLI_RELATIVE_PATH)}/.astral.${process.pid}.tmp`;
+    const tmpPath = await resolveWslPath(tmpRelativePath, distro);
+    await fs.writeFile(tmpPath, buildAstralCli(), { mode: 0o755 });
+    try {
+      if (process.platform === "win32") {
+        // \\wsl$ writes don't reliably carry the exec bit; chmod and rename inside the guest
+        // TODO(native): on non-Windows the writeFile mode already suffices
+        await runWsl(
+          [
+            "sh",
+            "-c",
+            `chmod 755 "$HOME/${tmpRelativePath}" && mv -f "$HOME/${tmpRelativePath}" "$HOME/${CLI_RELATIVE_PATH}"`,
+          ],
+          distro,
+        );
+      } else {
+        await fs.chmod(tmpPath, 0o755);
+        await fs.rename(tmpPath, filePath);
+      }
+    } catch (err) {
+      await fs.rm(tmpPath, { force: true }).catch(() => {});
+      throw err;
     }
     console.log(
       `[astral-cli] installed ~/${CLI_RELATIVE_PATH} (v${CLI_VERSION})`,
