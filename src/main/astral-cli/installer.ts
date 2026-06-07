@@ -12,14 +12,32 @@ const CLI_RELATIVE_PATH = ".local/bin/astral";
 
 const pathLocks = new Map<string, Promise<unknown>>();
 
-async function installedVersion(filePath: string): Promise<string | null> {
+// Overwriting an astral we didn't create would clobber the user's own file
+export class ForeignCliError extends Error {
+  constructor(relativePath: string) {
+    super(
+      `~/${relativePath} already exists and was not created by Astral Terminal. Rename or remove it to let Astral install its CLI.`,
+    );
+    this.name = "ForeignCliError";
+  }
+}
+
+type InstalledCli =
+  | { kind: "absent" }
+  | { kind: "unmarked" }
+  | { kind: "marked"; version: string };
+
+async function readInstalledCli(filePath: string): Promise<InstalledCli> {
+  let content: string;
   try {
-    const content = await fs.readFile(filePath, "utf-8");
-    return parseMarkerVersion(content, CLI_MARKER_PREFIX);
+    content = await fs.readFile(filePath, "utf-8");
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+    if ((err as NodeJS.ErrnoException).code === "ENOENT")
+      return { kind: "absent" };
     throw err;
   }
+  const version = parseMarkerVersion(content, CLI_MARKER_PREFIX);
+  return version === null ? { kind: "unmarked" } : { kind: "marked", version };
 }
 
 export function ensureAstralCliInstalled(
@@ -27,13 +45,16 @@ export function ensureAstralCliInstalled(
 ): Promise<void> {
   return withKeyedLock(pathLocks, distro ?? "", async () => {
     const filePath = await resolveWslPath(CLI_RELATIVE_PATH, distro);
-    const installed = await installedVersion(filePath);
-    if (installed !== null) {
-      const order = compareVersions(installed, CLI_VERSION);
+    const installed = await readInstalledCli(filePath);
+    if (installed.kind === "unmarked") {
+      throw new ForeignCliError(CLI_RELATIVE_PATH);
+    }
+    if (installed.kind === "marked") {
+      const order = compareVersions(installed.version, CLI_VERSION);
       if (order === 0) return;
       if (order > 0) {
         console.warn(
-          `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed} → v${CLI_VERSION}`,
+          `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed.version} → v${CLI_VERSION}`,
         );
       }
     }

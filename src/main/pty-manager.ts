@@ -5,7 +5,7 @@ import path from "node:path";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
-import { app } from "electron";
+import { app, dialog } from "electron";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
 import { findAgentProvider } from "../shared/agent-hooks";
@@ -19,16 +19,24 @@ import {
   parseAgentSessionOsc,
   resumeCommandFor,
 } from "./agent-hooks/osc";
-import { ensureAstralCliInstalled } from "./astral-cli/installer";
+import {
+  ensureAstralCliInstalled,
+  ForeignCliError,
+} from "./astral-cli/installer";
 
 const astralCliInstallAttempted = new Set<string>();
 
-// Install the astral CLI once per distro per run (installer is idempotent); clear on failure to retry
+// Install the astral CLI once per distro per run (installer is idempotent); clear on transient failure to retry
 function ensureAstralCliOnce(distro: string | null): void {
   const key = distro ?? "";
   if (astralCliInstallAttempted.has(key)) return;
   astralCliInstallAttempted.add(key);
   void ensureAstralCliInstalled(distro).catch((err) => {
+    if (err instanceof ForeignCliError) {
+      // stays marked attempted so the dialog shows once, not on every spawn
+      dialog.showErrorBox("Astral CLI could not be installed", err.message);
+      return;
+    }
     astralCliInstallAttempted.delete(key);
     console.warn("[astral-cli] install failed:", err);
   });
