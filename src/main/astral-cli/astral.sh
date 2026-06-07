@@ -97,7 +97,10 @@ call() {
   for host in $(candidate_hosts); do
     reply=$(tcp_exchange "$host" "$ASTRAL_PORT" "$auth" "$req") &&
       [ -n "$reply" ] || continue
-    printf '%s\n' "$host" >"$(host_cache)" 2>/dev/null || true
+    cache=$(host_cache)
+    # the port changes each launch, so clear prior runs' caches before recording this one
+    rm -f "${cache%/*}"/astral-host-* 2>/dev/null || true
+    printf '%s\n' "$host" >"$cache" 2>/dev/null || true
     printf '%s\n' "$reply"
     # exit non-zero on a non-ok reply (e.g. unauthorized) so it isn't mistaken for success
     case "$reply" in
