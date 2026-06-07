@@ -10,6 +10,7 @@ import {
   type UsageMeter,
 } from "../../../shared/types";
 import { useUsage } from "../../store";
+import { SIDEBAR_MIN_WIDTH_PX } from "../Layout/layout-constants";
 
 const ROOT_SX = {
   flexShrink: 0,
@@ -172,7 +173,7 @@ export function UsageBar() {
             borderColor: "custom.subtleDivider",
             boxShadow: 3,
             p: 1.25,
-            maxWidth: 280,
+            maxWidth: SIDEBAR_MIN_WIDTH_PX,
           },
         },
       }}
