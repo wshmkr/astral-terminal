@@ -9,7 +9,6 @@ export function commandShortcut(command: CommandId): string | null {
   return shortcutForCommand(command, window.app.platform.isMac);
 }
 
-// For MUI Tooltip surfaces: shortcut rendered as a dimmed span after the label
 export function commandTooltip(label: string, command: CommandId): ReactNode {
   const hint = commandShortcut(command);
   if (!hint) return label;
@@ -23,8 +22,6 @@ export function commandTooltip(label: string, command: CommandId): ReactNode {
   );
 }
 
-// For native HTML title attributes (browser toolbar, which must paint over the
-// BrowserView overlay): plain string only, no dimming possible
 export function commandTitle(label: string, command: CommandId): string {
   const hint = commandShortcut(command);
   return hint ? `${label} (${hint})` : label;
