@@ -19,6 +19,7 @@ import type {
   SettingsState,
   UninstallAgentHooksResult,
   UpdateStatus,
+  UsageData,
 } from "../shared/types";
 import {
   browserStateChannel,
@@ -202,6 +203,10 @@ contextBridge.exposeInMainWorld("app", {
   installUpdate: (): Promise<void> => ipcRenderer.invoke(IPC.update.install),
   onUpdateStatus: (callback: (status: UpdateStatus) => void) =>
     subscribe<[UpdateStatus]>(IPC.update.status, callback),
+
+  readUsage: (): Promise<UsageData> => ipcRenderer.invoke(IPC.usage.getStatus),
+  onUsage: (callback: (usage: UsageData) => void) =>
+    subscribe<[UsageData]>(IPC.usage.status, callback),
 
   sendCliActiveRef: (ref: ActiveRef) =>
     ipcRenderer.send(IPC.cli.activeRefUpdate, ref),

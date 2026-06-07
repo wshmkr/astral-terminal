@@ -19,6 +19,7 @@ import { RESIZE_HANDLE_SIZE_PX } from "../Layout/layout-constants";
 import { DraggableHandle } from "../ui/DraggableHandle";
 import { OverlayScrollbar } from "../ui/OverlayScrollbar";
 import { NotificationPanel } from "./NotificationPanel";
+import { UsageBar } from "./UsageBar";
 import { WorkspaceTab } from "./WorkspaceTab";
 
 const ROOT_SX = {
@@ -199,6 +200,7 @@ function SidebarImpl() {
             </Typography>
           </Box>
         </Box>
+        <UsageBar />
       </Box>
       <DraggableHandle
         orientation="vertical"

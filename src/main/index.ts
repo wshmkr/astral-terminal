@@ -28,6 +28,7 @@ import {
   registerSettingsIpc,
   registerSettingsWindowIpc,
   registerUpdateIpc,
+  registerUsageIpc,
   registerWindowIpc,
 } from "./ipc";
 import { installAppMenu } from "./menu";
@@ -42,6 +43,7 @@ import {
   initSettingsWindow,
   onSettingsVisibilityChange,
 } from "./settings-window";
+import { initUsageMonitor } from "./usage/monitor";
 import { createWindow, focusMainWindow, getMainWindow } from "./window";
 
 if (IS_DEV) {
@@ -115,6 +117,7 @@ const startup = app.whenReady().then(() => {
   registerSettingsWindowIpc({ getMainWindow });
   registerAgentHookIpc();
   registerUpdateIpc();
+  registerUsageIpc();
   registerActiveRefIpc();
   const cliServer = getCliServer();
   registerAppIdentify(cliServer);
@@ -128,6 +131,7 @@ const startup = app.whenReady().then(() => {
   const win = getMainWindow();
   if (win) {
     initNotificationWindow(win);
+    initUsageMonitor(getMainWindow);
     initSettingsWindow(win);
     initBrowserFindWindow(win);
     browserManager = new BrowserManager(win, {

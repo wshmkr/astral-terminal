@@ -16,6 +16,7 @@ import {
   DEFAULT_UPDATE_SETTINGS,
 } from "./preferences";
 import { INITIAL_UPDATE_STATUS } from "./update-status";
+import { INITIAL_USAGE } from "./usage";
 
 const INITIAL_WINDOW_FOCUSED =
   typeof document !== "undefined" ? document.hasFocus() : true;
@@ -68,6 +69,7 @@ async function initState(): Promise<AppState> {
       browserSettings,
       agentHookStatuses: {},
       updateStatus: INITIAL_UPDATE_STATUS,
+      usage: INITIAL_USAGE,
       windowFocused: INITIAL_WINDOW_FOCUSED,
       welcomeOpen: false,
     };
@@ -85,6 +87,7 @@ async function initState(): Promise<AppState> {
     browserSettings,
     agentHookStatuses: {},
     updateStatus: INITIAL_UPDATE_STATUS,
+    usage: INITIAL_USAGE,
     windowFocused: INITIAL_WINDOW_FOCUSED,
     welcomeOpen: isFirstRun,
   };
