@@ -33,18 +33,21 @@ async function getWslHomePath(distro?: string | null): Promise<string> {
   return `\\\\wsl$\\${distroRaw.trim()}${wslHomeRaw.trim().replace(/\//g, "\\")}`;
 }
 
-const wslHomeCache = new Map<string, string>();
+// Memoize the in-flight lookup so concurrent cold-start callers share one round-trip
+const wslHomeCache = new Map<string, Promise<string>>();
 
 export async function resolveWslPath(
   relativePath: string,
   distro?: string | null,
 ): Promise<string> {
   const key = distro ?? "";
-  let home = wslHomeCache.get(key);
-  if (!home) {
-    home = await getWslHomePath(distro);
-    wslHomeCache.set(key, home);
+  let homePromise = wslHomeCache.get(key);
+  if (!homePromise) {
+    homePromise = getWslHomePath(distro);
+    wslHomeCache.set(key, homePromise);
+    homePromise.catch(() => wslHomeCache.delete(key));
   }
+  const home = await homePromise;
   const resolved = path.resolve(home, ...relativePath.split("/"));
   const root = path.resolve(home);
   const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep;
