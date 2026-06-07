@@ -36,7 +36,7 @@ export function ensureAstralCliInstalled(
     }
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buildAstralCli(), { mode: 0o755 });
-    // \\wsl$ writes don't reliably carry the exec bit; set it through the guest to be sure
+    // \\wsl$ writes don't reliably carry the exec bit; set it through the guest
     // TODO(native): on non-Windows the writeFile mode already suffices
     if (process.platform === "win32") {
       await runWsl(["sh", "-c", 'chmod 755 "$HOME/.local/bin/astral"'], distro);

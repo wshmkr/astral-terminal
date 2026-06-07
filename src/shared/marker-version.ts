@@ -1,7 +1,4 @@
-// Installed hooks and the astral CLI tag themselves with a marker of the form `<prefix>:v<version>`,
-// where the version is a dotted-decimal string (e.g. "4" or "0.10"). This reads that version back so
-// an out-of-date install can be detected and replaced. The `:v<version>` format is the single source
-// of truth for the marker convention shared across installers.
+// Reads the version from a `<prefix>:v<version>` marker, or null
 export function parseMarkerVersion(
   content: string,
   prefix: string,
@@ -19,8 +16,7 @@ export function parseMarkerVersion(
   return null;
 }
 
-// Orders dotted-decimal versions numerically per segment ("0.2" < "0.10"), padding missing trailing
-// segments with 0. Returns a sort-style sign: negative if a < b, 0 if equal, positive if a > b
+// Orders dotted versions per segment, so "0.2" < "0.10"
 export function compareVersions(a: string, b: string): number {
   const aSegments = a.split(".").map(Number);
   const bSegments = b.split(".").map(Number);

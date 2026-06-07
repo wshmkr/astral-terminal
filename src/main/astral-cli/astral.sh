@@ -15,7 +15,7 @@ identify() {
       pid=0
       ;;
     *)
-      # JSON numbers can't have leading zeros, so strip them (keeping a single 0)
+      # strip leading zeros — invalid in JSON numbers
       pid=${ASTRAL_PID#"${ASTRAL_PID%%[!0]*}"}
       pid=${pid:-0}
       ;;

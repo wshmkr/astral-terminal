@@ -1,7 +1,7 @@
 import { APP_PACKAGE_NAME } from "../../shared/meta";
 import astralScript from "./astral.sh?raw";
 
-// Bump after any change to astral.sh so installed copies are detected as stale and replaced
+// Bump on any astral.sh change so stale installs are replaced
 export const CLI_VERSION = "0.1";
 
 export const CLI_MARKER_PREFIX = `${APP_PACKAGE_NAME}:cli`;

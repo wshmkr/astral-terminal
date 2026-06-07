@@ -23,9 +23,7 @@ import { ensureAstralCliInstalled } from "./astral-cli/installer";
 
 const astralCliInstallAttempted = new Set<string>();
 
-// Install the `astral` CLI into a WSL distro the first time we spawn into it this run. The
-// installer is itself idempotent and version-aware; this just avoids re-touching the \\wsl$
-// share on every spawn. A failed attempt is cleared so the next spawn retries.
+// Install the astral CLI once per distro per run (installer is idempotent); clear on failure to retry
 function ensureAstralCliOnce(distro: string | null): void {
   const key = distro ?? "";
   if (astralCliInstallAttempted.has(key)) return;

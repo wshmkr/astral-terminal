@@ -5,8 +5,7 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
-// A hung wsl.exe (e.g. a wedged distro) must not leave installer/path-resolution promises pending
-// forever; kill and reject after this long. Generous enough to cover a cold-start distro boot.
+// Cap hung wsl.exe calls; 30s allows a cold-start distro boot
 export const WSL_COMMAND_TIMEOUT_MS = 30_000;
 
 export function runWsl(
@@ -19,7 +18,7 @@ export function runWsl(
   });
 }
 
-// The app reaches the WSL guest filesystem through the \\wsl$\<distro> UNC share.
+// Reach the WSL guest fs via the \\wsl$\<distro> UNC share
 // TODO(native): on non-Windows the guest is the host, so this is just os.homedir()
 async function getWslHomePath(distro?: string | null): Promise<string> {
   if (process.platform !== "win32") return os.homedir();
