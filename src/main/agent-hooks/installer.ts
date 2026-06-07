@@ -5,7 +5,10 @@ import {
   type AgentHookStatus,
   findAgentProvider,
 } from "../../shared/agent-hooks";
-import { parseMarkerVersion } from "../../shared/marker-version";
+import {
+  compareVersions,
+  parseMarkerVersion,
+} from "../../shared/marker-version";
 import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
@@ -29,13 +32,12 @@ function isCurrentHookCommand(value: unknown): boolean {
   return typeof value === "string" && value.includes(HOOK_MARKER);
 }
 
-function extractHookVersion(value: unknown): number | null {
+function extractHookVersion(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const version = parseMarkerVersion(value, HOOK_MARKER_PREFIX);
-  return version === null ? null : Number(version);
+  return parseMarkerVersion(value, HOOK_MARKER_PREFIX);
 }
 
-function collectHookVersions(node: unknown, out: Set<number>): void {
+function collectHookVersions(node: unknown, out: Set<string>): void {
   if (Array.isArray(node)) {
     for (const n of node) collectHookVersions(n, out);
     return;
@@ -170,13 +172,15 @@ async function runConfigure(
     }
 
     if (hasStale) {
-      const versions = new Set<number>();
+      const versions = new Set<string>();
       collectHookVersions(existing, versions);
-      const current = Number(HOOK_MARKER_VERSION);
-      const maxExisting = versions.size > 0 ? Math.max(...versions) : current;
-      if (maxExisting > current) {
+      const maxExisting = [...versions].reduce(
+        (max, v) => (compareVersions(v, max) > 0 ? v : max),
+        HOOK_MARKER_VERSION,
+      );
+      if (compareVersions(maxExisting, HOOK_MARKER_VERSION) > 0) {
         console.warn(
-          `Downgrading agent hooks in ~/${settingsPath}: v${maxExisting} → v${current}`,
+          `Downgrading agent hooks in ~/${settingsPath}: v${maxExisting} → v${HOOK_MARKER_VERSION}`,
         );
       }
     }
