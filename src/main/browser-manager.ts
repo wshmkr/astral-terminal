@@ -5,6 +5,12 @@ import {
   WebContentsView,
 } from "electron";
 import {
+  fromElectronInput,
+  matchBinding,
+  resolveBindings,
+} from "../shared/keybindings/match";
+import type { CommandId } from "../shared/keybindings/types";
+import {
   BARE_DOMAIN_RE,
   type BrowserSettings,
   buildSearchUrl,
@@ -32,6 +38,8 @@ import { createFadeController } from "./fade-controller";
 // Browser surfaces use a separate persistent partition so cookies/storage are
 // isolated from the app shell and to escape the renderer's strict CSP
 const BROWSER_PARTITION = "persist:browser-default";
+
+const IS_MAC = process.platform === "darwin";
 
 interface Entry {
   view: WebContentsView;
@@ -168,6 +176,8 @@ export interface BrowserManagerCallbacks {
   onOpenNewTab: (payload: BrowserOpenNewTabPayload) => void;
   onFindRequested: (surfaceId: string, anchor: ScreenRect) => void;
   onFindResult: (surfaceId: string, result: BrowserFindResult) => void;
+  onFocusAddressBar: (surfaceId: string) => void;
+  onRunGlobalCommand: (command: CommandId) => void;
   onSurfaceHidden: (surfaceId: string) => void;
   onSurfaceAnchorChanged: (surfaceId: string, anchor: ScreenRect) => void;
 }
@@ -318,15 +328,55 @@ export class BrowserManager {
 
     wc.on("before-input-event", (event, input) => {
       entry.shiftHeld = input.shift;
-      if (
-        input.type === "keyDown" &&
-        input.control &&
-        !input.shift &&
-        !input.alt &&
-        input.key.toLowerCase() === "f"
-      ) {
+      if (input.type !== "keyDown") return;
+      const normalized = fromElectronInput(input);
+      const bindings = resolveBindings();
+      const browserCommand = matchBinding(
+        normalized,
+        bindings,
+        IS_MAC,
+        "browser",
+      );
+      if (browserCommand) {
         event.preventDefault();
-        this.callbacks.onFindRequested(surfaceId, this.computeAnchor(entry));
+        const nav = wc.navigationHistory;
+        switch (browserCommand) {
+          case "browser.back":
+            if (nav.canGoBack()) nav.goBack();
+            break;
+          case "browser.forward":
+            if (nav.canGoForward()) nav.goForward();
+            break;
+          case "browser.reload":
+            wc.reload();
+            break;
+          case "browser.devtools":
+            wc.toggleDevTools();
+            break;
+          case "browser.focusAddressBar":
+            this.callbacks.onFocusAddressBar(surfaceId);
+            break;
+          case "browser.find":
+            this.callbacks.onFindRequested(
+              surfaceId,
+              this.computeAnchor(entry),
+            );
+            break;
+          default:
+            break;
+        }
+        return;
+      }
+      // Browser views hold OS focus, so forward global shortcuts the renderer never sees
+      const globalCommand = matchBinding(
+        normalized,
+        bindings,
+        IS_MAC,
+        "global",
+      );
+      if (globalCommand) {
+        event.preventDefault();
+        this.callbacks.onRunGlobalCommand(globalCommand);
       }
     });
     wc.on("blur", () => {
@@ -458,8 +508,13 @@ export class BrowserManager {
     if (wasVisible === visible) return;
     entry.visible = visible;
     if (visible) this.applyBounds(entry);
+    const surrenderingFocus = !visible && entry.view.webContents.isFocused();
     entry.view.setVisible(visible);
-    if (!visible) this.callbacks.onSurfaceHidden(surfaceId);
+    if (!visible) {
+      // Hand OS focus back to the renderer so the newly active surface can take it
+      if (surrenderingFocus) this.window.webContents.focus();
+      this.callbacks.onSurfaceHidden(surfaceId);
+    }
   }
 
   setDimmed(dimmed: boolean): void {

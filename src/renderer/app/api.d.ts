@@ -1,4 +1,5 @@
 import type { AgentHookStatus, AgentName } from "../../shared/agent-hooks";
+import type { CommandId } from "../../shared/keybindings/types";
 import type { PersistedSettings } from "../../shared/settings-types";
 import type {
   ActiveRef,
@@ -25,6 +26,7 @@ import type {
 
 export interface AppAPI {
   mode: AppMode;
+  platform: { isMac: boolean; isWindows: boolean };
   readConfig: () => Promise<AppConfig>;
   readSettings: () => Promise<PersistedSettings | null>;
   writeSettings: (settings: PersistedSettings) => Promise<void>;
@@ -105,7 +107,13 @@ export interface AppAPI {
   onBrowserFindResult: (
     callback: (result: BrowserFindResult) => void,
   ) => () => void;
+  onBrowserFocusAddressBar: (
+    callback: (payload: { surfaceId: string }) => void,
+  ) => () => void;
   clearBrowsingData: () => Promise<void>;
+  onRunCommand: (
+    callback: (payload: { command: CommandId }) => void,
+  ) => () => void;
 
   openNotificationPanel: (anchor: ScreenRect) => void;
   closeNotificationPanel: () => void;

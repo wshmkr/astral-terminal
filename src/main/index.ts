@@ -1,5 +1,5 @@
 import path from "node:path";
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, dialog, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import { DEFAULT_BROWSER_SETTINGS } from "../shared/settings-types";
@@ -30,6 +30,7 @@ import {
   registerUpdateIpc,
   registerWindowIpc,
 } from "./ipc";
+import { installAppMenu } from "./menu";
 import {
   destroyNotificationWindow,
   initNotificationWindow,
@@ -103,7 +104,8 @@ function installCsp() {
   });
 }
 
-app.whenReady().then(() => {
+const startup = app.whenReady().then(() => {
+  installAppMenu();
   installCsp();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
@@ -145,6 +147,16 @@ app.whenReady().then(() => {
       onFindResult: (surfaceId, result) => {
         sendBrowserFindResult(surfaceId, result);
       },
+      onFocusAddressBar: (surfaceId) => {
+        const win = getMainWindow();
+        win?.webContents.focus();
+        win?.webContents.send(IPC.browser.focusAddressBar, {
+          surfaceId,
+        });
+      },
+      onRunGlobalCommand: (command) => {
+        getMainWindow()?.webContents.send(IPC.keymap.runCommand, { command });
+      },
       onSurfaceHidden: (surfaceId) => {
         hideBrowserFindWindow(surfaceId);
       },
@@ -161,6 +173,15 @@ app.whenReady().then(() => {
       browserManager?.setDimmed(visible);
     });
   }
+});
+
+startup.catch((error) => {
+  console.error("Failed to initialize Electron main process", error);
+  dialog.showErrorBox(
+    "Astral Terminal failed to start",
+    error instanceof Error ? (error.stack ?? error.message) : String(error),
+  );
+  app.quit();
 });
 
 app.on("before-quit", () => {
