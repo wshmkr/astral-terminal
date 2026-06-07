@@ -70,14 +70,14 @@ async function refreshAll(): Promise<void> {
 
 export function initUsageMonitor(
   getMainWindowFn: () => BrowserWindow | null,
-): void {
-  if (initialized) return;
+): () => void {
+  if (initialized) return () => {};
   initialized = true;
   getMainWindow = getMainWindowFn;
 
   void refreshAll();
 
-  setInterval(() => {
+  const pollTimer = setInterval(() => {
     if (
       getMainWindow?.()?.isFocused() &&
       Date.now() - lastFetchStartedAt >= POLL_INTERVAL_MS
@@ -86,7 +86,15 @@ export function initUsageMonitor(
     }
   }, POLL_INTERVAL_MS);
 
-  getMainWindow()?.on("focus", () => {
+  const onFocus = () => {
     if (Date.now() - lastFetchStartedAt >= POLL_INTERVAL_MS) void refreshAll();
-  });
+  };
+  getMainWindow()?.on("focus", onFocus);
+
+  return () => {
+    clearInterval(pollTimer);
+    getMainWindow?.()?.removeListener("focus", onFocus);
+    getMainWindow = null;
+    initialized = false;
+  };
 }

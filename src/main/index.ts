@@ -73,6 +73,7 @@ if (squirrelStartup) {
 let ptyManager: PtyManager | null = null;
 let ptyManagerPromise: Promise<PtyManager> | null = null;
 let browserManager: BrowserManager | null = null;
+let cleanupUsageMonitor: (() => void) | null = null;
 
 function getPtyManager(): Promise<PtyManager> {
   ptyManagerPromise ??= (async () => {
@@ -131,7 +132,7 @@ const startup = app.whenReady().then(() => {
   const win = getMainWindow();
   if (win) {
     initNotificationWindow(win);
-    initUsageMonitor(getMainWindow);
+    cleanupUsageMonitor = initUsageMonitor(getMainWindow);
     initSettingsWindow(win);
     initBrowserFindWindow(win);
     browserManager = new BrowserManager(win, {
@@ -189,6 +190,7 @@ startup.catch((error) => {
 });
 
 app.on("before-quit", () => {
+  cleanupUsageMonitor?.();
   void getCliServer().close();
   ptyManager?.saveAndKillAll();
   browserManager?.destroyAll();

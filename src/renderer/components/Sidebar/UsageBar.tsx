@@ -3,6 +3,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import type { SxProps, Theme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { useEffect, useState } from "react";
 import {
   isShowingLastKnown,
   type ProviderUsage,
@@ -111,6 +112,11 @@ function UsagePanel({
   providers: ProviderUsage[];
   showProviderNames: boolean;
 }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
   return (
     <Box sx={PANEL_SX}>
       {providers.map((p) => {

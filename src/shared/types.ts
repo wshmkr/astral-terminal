@@ -201,8 +201,8 @@ export interface UpdateStatus {
 export interface UsageMeter {
   id: string;
   label: string;
-  utilization: number;
-  resetsAt: string | null;
+  utilization: number; // 0–100 percentage
+  resetsAt: string | null; // ISO 8601 timestamp, or null
 }
 
 export type UsageStatus = "ok" | "stale" | "rate_limited" | "unauthenticated";
