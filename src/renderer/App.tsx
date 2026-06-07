@@ -205,7 +205,7 @@ export function App() {
                   variant="body2"
                   sx={{ color: "text.disabled", opacity: 0.8 }}
                 >
-                  press Ctrl+Shift+T to create one
+                  press Ctrl+N to create one
                 </Typography>
               </Box>
             ) : (
