@@ -71,6 +71,13 @@ call() {
     echo "astral: usage: astral call <method> [json-params]" >&2
     return 2
   fi
+  # method goes unescaped into the request JSON; a quote or newline could forge/split the frame
+  case "$method" in
+    *[!A-Za-z0-9._-]*)
+      echo "astral: invalid method name: $method" >&2
+      return 2
+      ;;
+  esac
   params=${2:-null}
   if [ -z "${ASTRAL_PORT:-}" ] || [ -z "${ASTRAL_TOKEN:-}" ]; then
     echo "astral: not connected to Astral Terminal (ASTRAL_PORT/ASTRAL_TOKEN unset)" >&2
