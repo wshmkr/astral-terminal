@@ -6,6 +6,11 @@ import {
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
+import {
+  fromDomEvent,
+  matchBinding,
+  resolveBindings,
+} from "../../../shared/keybindings/match";
 import { windowsPtyOptions } from "../../../shared/pty-options";
 import type { AppConfig, TerminalTheme } from "../../../shared/types";
 import type { SurfaceController } from "../../app/surface-lifecycle";
@@ -159,31 +164,31 @@ function attachClipboardHandlers(
   };
   container.addEventListener("paste", onPaste, true);
 
+  const isMac = window.app.platform.isMac;
   term.attachCustomKeyEventHandler((e) => {
     if (e.type !== "keydown") return true;
-    if (e.ctrlKey && e.shiftKey && e.key === "C") {
-      e.preventDefault();
-      const sel = term.getSelection();
-      if (sel) navigator.clipboard.writeText(sel);
-      return false;
+    const command = matchBinding(
+      fromDomEvent(e),
+      resolveBindings(),
+      isMac,
+      "terminal",
+    );
+    if (!command) return e.key !== "ScrollLock";
+    e.preventDefault();
+    switch (command) {
+      case "terminal.copy": {
+        const sel = term.getSelection();
+        if (sel) navigator.clipboard.writeText(sel);
+        break;
+      }
+      case "terminal.paste":
+        pasteFromClipboard();
+        break;
+      case "terminal.find":
+        onRequestFind();
+        break;
     }
-    if (e.ctrlKey && e.shiftKey && e.key === "V") {
-      e.preventDefault();
-      pasteFromClipboard();
-      return false;
-    }
-    if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "v") {
-      e.preventDefault();
-      pasteFromClipboard();
-      return false;
-    }
-    if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
-      e.preventDefault();
-      onRequestFind();
-      return false;
-    }
-    if (e.key === "ScrollLock") return false;
-    return true;
+    return false;
   });
 
   const onContextMenu = (e: MouseEvent) => {
