@@ -8,9 +8,13 @@ export function withKeyedLock<T>(
 ): Promise<T> {
   const prev = locks.get(key) ?? Promise.resolve();
   const next = prev.then(run, run);
-  locks.set(
-    key,
-    next.catch(() => {}),
-  );
+  // Drop the entry once this run settles, but only if nothing newer chained onto it, so the map
+  // doesn't grow without bound when keys are short-lived
+  const tail = next
+    .catch(() => {})
+    .finally(() => {
+      if (locks.get(key) === tail) locks.delete(key);
+    });
+  locks.set(key, tail);
   return next;
 }
