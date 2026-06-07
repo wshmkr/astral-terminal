@@ -99,7 +99,11 @@ call() {
       [ -n "$reply" ] || continue
     printf '%s\n' "$host" >"$(host_cache)" 2>/dev/null || true
     printf '%s\n' "$reply"
-    return 0
+    # exit non-zero on a non-ok reply (e.g. unauthorized) so it isn't mistaken for success
+    case "$reply" in
+      *'"ok":true'*) return 0 ;;
+      *) return 1 ;;
+    esac
   done
   echo "astral: could not reach Astral Terminal on port $ASTRAL_PORT" >&2
   return 1
