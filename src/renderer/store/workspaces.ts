@@ -109,6 +109,7 @@ function removeWorkspace(wsId: string) {
   const s = getState();
   const closedIndex = s.workspaces.findIndex((w) => w.id === wsId);
   if (closedIndex < 0) return;
+  lastFocusedPaneByWorkspace.delete(wsId);
   const remaining = s.workspaces.filter((w) => w.id !== wsId);
   const wasActive = s.activeWorkspaceId === wsId;
   if (!wasActive) {
