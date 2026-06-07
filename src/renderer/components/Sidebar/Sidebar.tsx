@@ -198,7 +198,13 @@ function SidebarImpl() {
           </Box>
           <OverlayScrollbar scrollRef={scrollRef} />
         </Box>
-        <Box sx={NEW_WORKSPACE_CONTAINER_SX}>
+        <Box
+          sx={[
+            NEW_WORKSPACE_CONTAINER_SX,
+            // header's borderBottom already divides; avoid doubling it when empty
+            workspaces.length === 0 && { borderTop: 0 },
+          ]}
+        >
           <Tooltip title={commandTooltip("New Workspace", "workspace.new")}>
             <ButtonBase
               disableRipple
