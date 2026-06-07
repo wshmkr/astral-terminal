@@ -58,7 +58,15 @@ tcp_exchange() {
     return $?
   fi
   if command -v nc >/dev/null 2>&1; then
-    printf '%s\n%s\n' "$3" "$4" | $_to nc "$1" "$2" 2>/dev/null | sed -n '2p'
+    # nc won't close on stdin EOF without a half-close flag, and it differs by variant
+    # (Ncat and busybox need none); derive it from the help text
+    _nc_close=""
+    case "$(nc -h 2>&1)" in
+      *Ncat*) ;;
+      *"Shutdown the network socket after EOF"*) _nc_close="-N" ;;
+      *"quit after EOF"*) _nc_close="-q 0" ;;
+    esac
+    printf '%s\n%s\n' "$3" "$4" | $_to nc $_nc_close "$1" "$2" 2>/dev/null | sed -n '2p'
     return 0
   fi
   echo "astral: need bash or nc to reach Astral Terminal" >&2
