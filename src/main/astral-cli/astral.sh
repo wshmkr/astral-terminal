@@ -26,7 +26,7 @@ identify() {
 
 usage() {
   cat <<EOF
-astral $CLI_VERSION — query the running Astral Terminal
+Astral Terminal CLI v$CLI_VERSION
 
 Usage:
   astral identify    Print this surface's identity as JSON
