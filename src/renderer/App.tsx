@@ -206,7 +206,9 @@ export function App() {
                   variant="body2"
                   sx={{ color: "text.disabled", opacity: 0.8 }}
                 >
-                  press {commandShortcut("workspace.new")} to create one
+                  {commandShortcut("workspace.new")
+                    ? `press ${commandShortcut("workspace.new")} to create one`
+                    : "create one from the sidebar"}
                 </Typography>
               </Box>
             ) : (
