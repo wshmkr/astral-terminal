@@ -28,11 +28,14 @@ export function ensureAstralCliInstalled(
   return withKeyedLock(pathLocks, distro ?? "", async () => {
     const filePath = await resolveWslPath(CLI_RELATIVE_PATH, distro);
     const installed = await installedVersion(filePath);
-    if (installed === CLI_VERSION) return;
-    if (installed !== null && compareVersions(installed, CLI_VERSION) > 0) {
-      console.warn(
-        `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed} → v${CLI_VERSION}`,
-      );
+    if (installed !== null) {
+      const order = compareVersions(installed, CLI_VERSION);
+      if (order === 0) return;
+      if (order > 0) {
+        console.warn(
+          `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed} → v${CLI_VERSION}`,
+        );
+      }
     }
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buildAstralCli(), { mode: 0o755 });
