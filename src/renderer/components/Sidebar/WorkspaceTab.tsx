@@ -125,6 +125,7 @@ export const WorkspaceTab = memo(function WorkspaceTab({
     <Box
       ref={setNodeRef}
       className="workspace-tab"
+      data-active={isActive ? "true" : undefined}
       onClick={() => setActiveWorkspace(workspace.id)}
       style={{
         transform: CSS.Translate.toString(transform),

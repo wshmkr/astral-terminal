@@ -7,7 +7,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { memo, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { VscAdd, VscGear } from "react-icons/vsc";
 import { useDrag } from "../../hooks/useDrag";
 import { commandTooltip } from "../../keybindings/shortcutHint";
@@ -150,6 +150,14 @@ function SidebarImpl() {
       setSidebarWidth(dragRef.current.latestWidth);
     },
   });
+
+  // keep the selected workspace visible when it changes
+  useEffect(() => {
+    if (!activeWorkspaceId) return;
+    scrollRef.current
+      ?.querySelector('[data-active="true"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeWorkspaceId]);
 
   return (
     <Box sx={ROOT_SX}>
