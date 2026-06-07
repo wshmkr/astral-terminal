@@ -15,6 +15,7 @@ export type CommandId =
   | "workspace.select.6"
   | "workspace.select.7"
   | "workspace.select.8"
+  | "workspace.select.9"
   | "tab.new"
   | "tab.close"
   | "tab.next"

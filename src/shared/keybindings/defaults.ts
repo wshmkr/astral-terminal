@@ -11,8 +11,8 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "pane.close", combo: "Mod+Shift+W", scope: "global" },
 
   { command: "workspace.new", combo: "Mod+Shift+T", scope: "global" },
-  { command: "workspace.next", combo: "Ctrl+PageDown", scope: "global" },
-  { command: "workspace.prev", combo: "Ctrl+PageUp", scope: "global" },
+  { command: "workspace.next", combo: "Alt+ArrowDown", scope: "global" },
+  { command: "workspace.prev", combo: "Alt+ArrowUp", scope: "global" },
   { command: "workspace.select.1", combo: "Mod+1", scope: "global" },
   { command: "workspace.select.2", combo: "Mod+2", scope: "global" },
   { command: "workspace.select.3", combo: "Mod+3", scope: "global" },
@@ -21,6 +21,7 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "workspace.select.6", combo: "Mod+6", scope: "global" },
   { command: "workspace.select.7", combo: "Mod+7", scope: "global" },
   { command: "workspace.select.8", combo: "Mod+8", scope: "global" },
+  { command: "workspace.select.9", combo: "Mod+9", scope: "global" },
 
   { command: "tab.new", combo: "Mod+T", scope: "global" },
   { command: "tab.close", combo: "Mod+W", scope: "global" },

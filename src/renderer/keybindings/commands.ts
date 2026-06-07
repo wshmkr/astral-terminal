@@ -97,6 +97,7 @@ export function runCommand(id: CommandId): void {
     case "workspace.select.6":
     case "workspace.select.7":
     case "workspace.select.8":
+    case "workspace.select.9":
       selectWorkspace(Number(id.slice("workspace.select.".length)) - 1);
       return;
     default:
