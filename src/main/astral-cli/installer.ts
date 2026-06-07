@@ -1,6 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { parseMarkerVersion } from "../../shared/marker-version";
+import {
+  compareVersions,
+  parseMarkerVersion,
+} from "../../shared/marker-version";
 import { withKeyedLock } from "../keyed-lock";
 import { resolveWslPath, runWsl } from "../wsl/home";
 import { buildAstralCli, CLI_MARKER_PREFIX, CLI_VERSION } from "./build";
@@ -9,14 +12,12 @@ const CLI_RELATIVE_PATH = ".local/bin/astral";
 
 const pathLocks = new Map<string, Promise<unknown>>();
 
-async function isCurrent(filePath: string): Promise<boolean> {
+async function installedVersion(filePath: string): Promise<string | null> {
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return (
-      parseMarkerVersion(content, CLI_MARKER_PREFIX) === Number(CLI_VERSION)
-    );
+    return parseMarkerVersion(content, CLI_MARKER_PREFIX);
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return false;
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw err;
   }
 }
@@ -26,7 +27,13 @@ export function ensureAstralCliInstalled(
 ): Promise<void> {
   return withKeyedLock(pathLocks, distro ?? "", async () => {
     const filePath = await resolveWslPath(CLI_RELATIVE_PATH, distro);
-    if (await isCurrent(filePath)) return;
+    const installed = await installedVersion(filePath);
+    if (installed === CLI_VERSION) return;
+    if (installed !== null && compareVersions(installed, CLI_VERSION) > 0) {
+      console.warn(
+        `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed} → v${CLI_VERSION}`,
+      );
+    }
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, buildAstralCli(), { mode: 0o755 });
     // \\wsl$ writes don't reliably carry the exec bit; set it through the guest to be sure

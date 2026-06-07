@@ -31,7 +31,8 @@ function isCurrentHookCommand(value: unknown): boolean {
 
 function extractHookVersion(value: unknown): number | null {
   if (typeof value !== "string") return null;
-  return parseMarkerVersion(value, HOOK_MARKER_PREFIX);
+  const version = parseMarkerVersion(value, HOOK_MARKER_PREFIX);
+  return version === null ? null : Number(version);
 }
 
 function collectHookVersions(node: unknown, out: Set<number>): void {
