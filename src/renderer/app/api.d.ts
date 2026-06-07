@@ -21,6 +21,7 @@ import type {
   SettingsState,
   UninstallAgentHooksResult,
   UpdateStatus,
+  UsageData,
   WslDistro,
 } from "../../shared/types";
 
@@ -148,6 +149,9 @@ export interface AppAPI {
   requestUpdateCheck: () => Promise<void>;
   installUpdate: () => Promise<void>;
   onUpdateStatus: (callback: (status: UpdateStatus) => void) => () => void;
+
+  readUsage: () => Promise<UsageData>;
+  onUsage: (callback: (usage: UsageData) => void) => () => void;
 
   sendCliActiveRef: (ref: ActiveRef) => void;
 }

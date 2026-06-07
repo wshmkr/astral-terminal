@@ -56,6 +56,7 @@ import {
   openSettingsWindow,
   setSettingsState,
 } from "./settings-window";
+import { getUsage } from "./usage/monitor";
 import { focusMainWindow } from "./window";
 import { loadWorkspaces, saveWorkspaces } from "./workspaces-store";
 import { listWslDistros } from "./wsl-distros";
@@ -282,6 +283,10 @@ export function registerUpdateIpc(): void {
   ipcMain.handle(IPC.update.install, () => {
     quitAndInstall();
   });
+}
+
+export function registerUsageIpc(): void {
+  ipcMain.handle(IPC.usage.getStatus, () => getUsage());
 }
 
 export function registerSettingsWindowIpc({ getMainWindow }: WindowDeps): void {

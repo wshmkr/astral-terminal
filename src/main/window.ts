@@ -28,6 +28,14 @@ export function getMainWindow(): BrowserWindow | null {
   return mainWindow;
 }
 
+// Persist across window recreation (macOS) so focus subscribers aren't lost
+const mainWindowFocusListeners = new Set<() => void>();
+
+export function onMainWindowFocus(listener: () => void): () => void {
+  mainWindowFocusListeners.add(listener);
+  return () => mainWindowFocusListeners.delete(listener);
+}
+
 // Raise a window past the Windows foreground lock by toggling topmost around focus()
 export function forceForeground(win: BrowserWindow): void {
   win.show();
@@ -121,6 +129,13 @@ export function createWindow(): void {
 
   mainWindow.on("focus", () => {
     mainWindow?.webContents.send(IPC.window.focusChanged, true);
+    mainWindowFocusListeners.forEach((listener) => {
+      try {
+        listener();
+      } catch (error) {
+        console.error("Main window focus listener failed:", error);
+      }
+    });
   });
   mainWindow.on("blur", () => {
     mainWindow?.webContents.send(IPC.window.focusChanged, false);

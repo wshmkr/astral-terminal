@@ -51,6 +51,8 @@ export {
 
 export { setUpdateStatus } from "./update-status";
 
+export { setUsage, useUsage } from "./usage";
+
 export {
   addSurface,
   closePane,

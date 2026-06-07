@@ -198,6 +198,30 @@ export interface UpdateStatus {
   version?: string;
 }
 
+export interface UsageMeter {
+  id: string;
+  label: string;
+  utilization: number; // 0–100 percentage
+  resetsAt: string | null; // ISO 8601 timestamp, or null
+}
+
+export type UsageStatus = "ok" | "stale" | "rate_limited" | "unauthenticated";
+
+export function isShowingLastKnown(status: UsageStatus): boolean {
+  return status === "stale" || status === "rate_limited";
+}
+
+export interface ProviderUsage {
+  provider: AgentName;
+  status: UsageStatus;
+  // ordered headline-first; meters[0] drives the sidebar bar
+  meters: UsageMeter[];
+}
+
+export interface UsageData {
+  providers: ProviderUsage[];
+}
+
 export interface NotificationFirePayload {
   workspaceId: string;
   paneId: string;
@@ -310,6 +334,7 @@ export interface AppState {
   // not persisted:
   agentHookStatuses: Partial<Record<AgentName, AgentHookStatus>>;
   updateStatus: UpdateStatus;
+  usage: UsageData;
   windowFocused: boolean;
   welcomeOpen: boolean;
 }
@@ -405,6 +430,10 @@ export const IPC = {
   },
   keymap: {
     runCommand: "keymap:run-command",
+  },
+  usage: {
+    getStatus: "usage:get-status",
+    status: "usage:status",
   },
 } as const;
 

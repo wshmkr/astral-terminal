@@ -23,6 +23,7 @@ import {
   setAgentHook,
   setAgentHookStatuses,
   setUpdateStatus,
+  setUsage,
   setWindowFocused,
   useWorkspaceStore,
 } from "./store";
@@ -148,6 +149,17 @@ export function App() {
       .then(setUpdateStatus)
       .catch((err) => {
         console.error("Failed to read update status:", err);
+      });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = window.app.onUsage(setUsage);
+    window.app
+      .readUsage()
+      .then(setUsage)
+      .catch((err) => {
+        console.error("Failed to read usage:", err);
       });
     return unsubscribe;
   }, []);
