@@ -44,7 +44,12 @@ import {
   onSettingsVisibilityChange,
 } from "./settings-window";
 import { initUsageMonitor } from "./usage/monitor";
-import { createWindow, focusMainWindow, getMainWindow } from "./window";
+import {
+  createWindow,
+  focusMainWindow,
+  getMainWindow,
+  onMainWindowFocus,
+} from "./window";
 
 if (IS_DEV) {
   const devName = `${app.getName()}${DEV_SUFFIX}`;
@@ -132,7 +137,7 @@ const startup = app.whenReady().then(() => {
   const win = getMainWindow();
   if (win) {
     initNotificationWindow(win);
-    cleanupUsageMonitor = initUsageMonitor(getMainWindow);
+    cleanupUsageMonitor = initUsageMonitor(getMainWindow, onMainWindowFocus);
     initSettingsWindow(win);
     initBrowserFindWindow(win);
     browserManager = new BrowserManager(win, {

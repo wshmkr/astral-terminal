@@ -216,7 +216,6 @@ export interface ProviderUsage {
   status: UsageStatus;
   // ordered headline-first; meters[0] drives the sidebar bar
   meters: UsageMeter[];
-  fetchedAt: number | null;
 }
 
 export interface UsageData {

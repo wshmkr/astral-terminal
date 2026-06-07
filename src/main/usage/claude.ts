@@ -29,27 +29,42 @@ function credentialsPath(): Promise<string> {
   return resolveWslPath(CREDENTIALS_RELATIVE);
 }
 
-async function readCredentials(): Promise<ClaudeCredentials | null> {
+// "absent" omits the provider; "unreadable" is transient → keep last-known
+type CredentialsRead =
+  | { state: "ok"; credentials: ClaudeCredentials }
+  | { state: "absent" }
+  | { state: "unreadable" };
+
+async function readCredentials(): Promise<CredentialsRead> {
+  let credPath: string;
+  try {
+    credPath = await credentialsPath();
+  } catch {
+    return { state: "absent" };
+  }
   let raw: string;
   try {
-    raw = await fs.readFile(await credentialsPath(), "utf-8");
-  } catch {
-    return null;
+    raw = await fs.readFile(credPath, "utf-8");
+  } catch (err) {
+    if ((err as { code?: string }).code === "ENOENT")
+      return { state: "absent" };
+    return { state: "unreadable" };
   }
-  if (!raw.trim()) return null;
+  if (!raw.trim()) return { state: "unreadable" };
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return null;
+    return { state: "unreadable" };
   }
   const oauth = (parsed as { claudeAiOauth?: Record<string, unknown> })
     ?.claudeAiOauth;
   const accessToken = oauth?.accessToken;
-  if (typeof accessToken !== "string" || !accessToken) return null;
+  if (typeof accessToken !== "string" || !accessToken)
+    return { state: "absent" };
   const expiresAt =
     typeof oauth?.expiresAt === "number" ? oauth.expiresAt : null;
-  return { accessToken, expiresAt };
+  return { state: "ok", credentials: { accessToken, expiresAt } };
 }
 
 function toMeter(
@@ -75,26 +90,24 @@ function mapMeters(body: Record<string, RawWindow | null>): UsageMeter[] {
   ].filter((m): m is UsageMeter => m !== null);
 }
 
-function result(
-  status: UsageStatus,
-  meters: UsageMeter[],
-  fetchedAt: number | null,
-): ProviderUsage {
-  return { provider: "Claude", status, meters, fetchedAt };
+function result(status: UsageStatus, meters: UsageMeter[]): ProviderUsage {
+  return { provider: "Claude", status, meters };
 }
 
 async function fetchUsage(): Promise<ProviderUsage | null> {
   const creds = await readCredentials();
-  if (!creds) return null;
-  if (creds.expiresAt !== null && creds.expiresAt < Date.now()) {
-    return result("unauthenticated", [], null);
+  if (creds.state === "absent") return null;
+  if (creds.state === "unreadable") return result("stale", []);
+  const { accessToken, expiresAt } = creds.credentials;
+  if (expiresAt !== null && expiresAt < Date.now()) {
+    return result("unauthenticated", []);
   }
   let res: Response;
   try {
     res = await fetch(USAGE_URL, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${creds.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "anthropic-beta": "oauth-2025-04-20",
         "User-Agent": CLAUDE_CODE_UA,
         "Content-Type": "application/json",
@@ -102,18 +115,19 @@ async function fetchUsage(): Promise<ProviderUsage | null> {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
   } catch {
-    return result("stale", [], null);
+    return result("stale", []);
   }
-  if (res.status === 401) return result("unauthenticated", [], null);
-  if (res.status === 429) return result("rate_limited", [], null);
-  if (!res.ok) return result("stale", [], null);
-  let body: Record<string, RawWindow | null>;
+  if (res.status === 401) return result("unauthenticated", []);
+  if (res.status === 429) return result("rate_limited", []);
+  if (!res.ok) return result("stale", []);
+  let body: unknown;
   try {
-    body = (await res.json()) as Record<string, RawWindow | null>;
+    body = await res.json();
   } catch {
-    return result("stale", [], null);
+    return result("stale", []);
   }
-  return result("ok", mapMeters(body), Date.now());
+  if (typeof body !== "object" || body === null) return result("stale", []);
+  return result("ok", mapMeters(body as Record<string, RawWindow | null>));
 }
 
 export const claudeUsageAdapter: UsageProviderAdapter = {

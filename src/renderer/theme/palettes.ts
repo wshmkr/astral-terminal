@@ -19,6 +19,7 @@ export interface AppPalette {
   divider: string;
   primary: string;
   error: string;
+  warning: string;
   actionHover: string;
   actionSelected: string;
   custom: AppPaletteCustom;
@@ -33,6 +34,7 @@ export const DARK_PALETTE: AppPalette = {
   divider: "#3a3937",
   primary: "#0078d4",
   error: "#c42b1c",
+  warning: "#d4a72c",
   actionHover: "rgba(250,249,245,0.06)",
   actionSelected: "rgba(250,249,245,0.10)",
   custom: {
@@ -55,6 +57,7 @@ export const LIGHT_PALETTE: AppPalette = {
   divider: "#e5e5e5",
   primary: "#0078d4",
   error: "#c42b1c",
+  warning: "#bf8700",
   actionHover: "rgba(0,0,0,0.04)",
   actionSelected: "rgba(0,0,0,0.08)",
   custom: {
@@ -77,6 +80,7 @@ export const BLACK_PALETTE: AppPalette = {
   divider: "#1a1a1a",
   primary: "#0078d4",
   error: "#c42b1c",
+  warning: "#d4a72c",
   actionHover: "rgba(255,255,255,0.06)",
   actionSelected: "rgba(255,255,255,0.10)",
   custom: {

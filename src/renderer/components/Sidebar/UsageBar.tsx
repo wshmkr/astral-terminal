@@ -46,7 +46,7 @@ function clampPct(util: number): number {
 
 function barColor(util: number): string {
   if (util >= 90) return "error.main";
-  if (util >= 70) return "#d4a72c";
+  if (util >= 70) return "warning.main";
   return "primary.main";
 }
 

@@ -27,6 +27,7 @@ function paletteFromApp(p: AppPalette): PaletteOptions {
     divider: p.divider,
     primary: { main: p.primary },
     error: { main: p.error },
+    warning: { main: p.warning },
     action: { hover: p.actionHover, selected: p.actionSelected },
     custom: p.custom,
   };

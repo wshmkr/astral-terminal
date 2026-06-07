@@ -32,12 +32,18 @@ async function getWslHomePath(): Promise<string> {
 
 let wslHomeCache: string | null = null;
 let wslHomeCachePromise: Promise<string> | null = null;
+// Cache failures for the session so the poller doesn't re-spawn wsl.exe every tick
+let wslHomeError: Error | null = null;
 
 export async function resolveWslPath(relativePath: string): Promise<string> {
+  if (wslHomeError) throw wslHomeError;
   if (!wslHomeCache) {
     if (!wslHomeCachePromise) wslHomeCachePromise = getWslHomePath();
     try {
       wslHomeCache = await wslHomeCachePromise;
+    } catch (err) {
+      wslHomeError = err instanceof Error ? err : new Error(String(err));
+      throw wslHomeError;
     } finally {
       wslHomeCachePromise = null;
     }

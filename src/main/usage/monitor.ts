@@ -17,11 +17,7 @@ let lastFetchStartedAt = 0;
 
 let cache: UsageData = { providers: [] };
 
-interface LastGood {
-  meters: UsageMeter[];
-  fetchedAt: number | null;
-}
-const lastGood = new Map<string, LastGood>();
+const lastGood = new Map<string, UsageMeter[]>();
 
 function broadcast(): void {
   getMainWindow?.()?.webContents.send(IPC.usage.status, cache);
@@ -33,17 +29,12 @@ export function getUsage(): UsageData {
 
 function reconcile(usage: ProviderUsage): ProviderUsage {
   if (usage.status === "ok") {
-    lastGood.set(usage.provider, {
-      meters: usage.meters,
-      fetchedAt: usage.fetchedAt,
-    });
+    lastGood.set(usage.provider, usage.meters);
     return usage;
   }
   if (isShowingLastKnown(usage.status)) {
-    const prior = lastGood.get(usage.provider);
-    if (prior) {
-      return { ...usage, meters: prior.meters, fetchedAt: prior.fetchedAt };
-    }
+    const priorMeters = lastGood.get(usage.provider);
+    if (priorMeters) return { ...usage, meters: priorMeters };
     return usage;
   }
   lastGood.delete(usage.provider);
@@ -70,6 +61,7 @@ async function refreshAll(): Promise<void> {
 
 export function initUsageMonitor(
   getMainWindowFn: () => BrowserWindow | null,
+  subscribeMainWindowFocus: (listener: () => void) => () => void,
 ): () => void {
   if (initialized) return () => {};
   initialized = true;
@@ -86,14 +78,14 @@ export function initUsageMonitor(
     }
   }, POLL_INTERVAL_MS);
 
-  const onFocus = () => {
+  // Subscribe via window.ts so on-focus refresh survives window recreation (macOS)
+  const unsubscribeFocus = subscribeMainWindowFocus(() => {
     if (Date.now() - lastFetchStartedAt >= POLL_INTERVAL_MS) void refreshAll();
-  };
-  getMainWindow()?.on("focus", onFocus);
+  });
 
   return () => {
     clearInterval(pollTimer);
-    getMainWindow?.()?.removeListener("focus", onFocus);
+    unsubscribeFocus();
     getMainWindow = null;
     initialized = false;
   };
