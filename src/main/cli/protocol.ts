@@ -3,6 +3,7 @@ import { z } from "zod";
 export const CLI_ERROR_CODES = {
   parseError: "parse_error",
   badEnvelope: "bad_envelope",
+  unauthorized: "unauthorized",
   unknownMethod: "unknown_method",
   invalidParams: "invalid_params",
   internalError: "internal_error",
