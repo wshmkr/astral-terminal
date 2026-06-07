@@ -17,17 +17,23 @@ export type CommandId =
   | "workspace.select.8"
   | "workspace.select.9"
   | "tab.new"
+  | "tab.newBrowser"
   | "tab.close"
   | "tab.next"
   | "tab.prev"
   | "ui.zoomIn"
   | "ui.zoomOut"
+  | "ui.zoomReset"
+  | "app.openSettings"
   | "browser.back"
   | "browser.forward"
   | "browser.reload"
   | "browser.focusAddressBar"
   | "browser.devtools"
-  | "browser.find";
+  | "browser.find"
+  | "terminal.copy"
+  | "terminal.paste"
+  | "terminal.find";
 
 export interface Binding {
   command: CommandId;
