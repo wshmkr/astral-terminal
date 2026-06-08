@@ -116,7 +116,7 @@ function installCsp() {
 const startup = app.whenReady().then(async () => {
   installAppMenu();
   installCsp();
-  // Dev iterations crash/restart often, abandoning pty trees; sweep them on launch
+  // Dev restarts/crashes orphan pty trees; sweep them on launch
   if (IS_DEV) void reapOrphanedPtys();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });

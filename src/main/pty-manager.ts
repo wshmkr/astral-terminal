@@ -16,6 +16,7 @@ import {
 } from "../shared/cli-env";
 import { APP_PACKAGE_NAME } from "../shared/meta";
 import { windowsPtyOptions } from "../shared/pty-options";
+import { PTY_SHELL_EXPANSION } from "../shared/pty-shell";
 import { type AppConfig, DEFAULT_CWD } from "../shared/types";
 import {
   AGENT_SESSION_OSC_IDENT,
@@ -95,8 +96,7 @@ function buildShellArgs(opts: {
   startupCommand: string | undefined;
 }): string[] {
   const { isWindows, wslCwd, wslDistro, startupCommand } = opts;
-  // biome-ignore lint/suspicious/noTemplateCurlyInString: POSIX shell parameter expansion
-  const sh = '"${SHELL:-/bin/sh}"';
+  const sh = `"${PTY_SHELL_EXPANSION}"`;
   const inner = startupCommand
     ? `exec ${sh} -lic '${startupCommand.replace(/'/g, "'\\''")}; exec ${sh}'`
     : `exec ${sh} -l`;
