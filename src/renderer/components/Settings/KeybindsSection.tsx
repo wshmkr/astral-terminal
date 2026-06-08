@@ -5,7 +5,7 @@ import { useState } from "react";
 import { VscChevronDown, VscChevronRight } from "react-icons/vsc";
 import type { CommandId } from "../../../shared/keybindings/types";
 import { commandShortcut } from "../../keybindings/shortcutHint";
-import { ROOT_SX } from "./shared";
+import { ROOT_SX, SUBHEAD_SX } from "./shared";
 
 interface KeybindRow {
   label: string;
@@ -94,24 +94,12 @@ const KEYCAP_SX = {
 const GROUP_HEADER_SX = {
   display: "flex",
   alignItems: "center",
-  gap: 0.75,
+  gap: 0.5,
   cursor: "pointer",
   userSelect: "none",
-  px: 1.25,
-  py: 0.75,
-  borderRadius: 1,
-  color: "text.secondary",
-  bgcolor: "action.hover",
-  "&:hover": { bgcolor: "action.selected" },
 } as const;
 
-const GROUP_TITLE_SX = {
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase" as const,
-  flex: 1,
-} as const;
+const CHEVRON_SX = { display: "inline-flex", color: "text.secondary" } as const;
 
 const ROWS_SX = {
   display: "flex",
@@ -119,6 +107,7 @@ const ROWS_SX = {
   gap: 1.5,
   pt: 1,
   pb: 0.5,
+  pl: 1,
 } as const;
 
 function KeybindLine({ label, combo }: { label: string; combo: string }) {
@@ -158,12 +147,16 @@ export function KeybindsSection() {
         return (
           <Box key={group.id}>
             <Box sx={GROUP_HEADER_SX} onClick={() => toggle(group.id)}>
-              {isCollapsed ? (
-                <VscChevronRight size={12} />
-              ) : (
-                <VscChevronDown size={12} />
-              )}
-              <Typography sx={GROUP_TITLE_SX}>{group.title}</Typography>
+              <Typography variant="subtitle1" sx={SUBHEAD_SX}>
+                {group.title}
+              </Typography>
+              <Box sx={CHEVRON_SX}>
+                {isCollapsed ? (
+                  <VscChevronRight size={16} />
+                ) : (
+                  <VscChevronDown size={16} />
+                )}
+              </Box>
             </Box>
             <Collapse in={!isCollapsed}>
               <Box sx={ROWS_SX}>
