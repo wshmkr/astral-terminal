@@ -368,6 +368,20 @@ export function setActiveSurface(paneId: string, surfaceId: string): void {
   else if (notifsChanged) notify();
 }
 
+// Navigates to the surface that triggered a notification. The paneId captured
+// when the notification fired may be stale (panes get split/moved/closed while
+// the app stays open), so we re-resolve the current pane from the surfaceId and
+// only fall back to the captured ids when the surface can't be found.
+export function navigateToSurface(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+): void {
+  const located = findPaneBySurfaceId(surfaceId);
+  setActiveWorkspace(located?.workspaceId ?? workspaceId);
+  setActiveSurface(located?.paneId ?? paneId, surfaceId);
+}
+
 export function resizeSplit(splitNodeId: string, sizes: number[]): void {
   const ws = getActiveWorkspace();
   if (!ws) return;
