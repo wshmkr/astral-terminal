@@ -1,10 +1,11 @@
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
+import Collapse from "@mui/material/Collapse";
 import Typography from "@mui/material/Typography";
-import { Fragment } from "react";
+import { useState } from "react";
+import { VscChevronDown, VscChevronRight } from "react-icons/vsc";
 import type { CommandId } from "../../../shared/keybindings/types";
 import { commandShortcut } from "../../keybindings/shortcutHint";
-import { DIVIDER_SX, ROOT_SX, SUBHEAD_SX } from "./shared";
+import { ROOT_SX } from "./shared";
 
 interface KeybindRow {
   label: string;
@@ -12,15 +13,15 @@ interface KeybindRow {
 }
 
 interface KeybindGroup {
-  id: "general" | "workspaces" | "view" | "terminal" | "browser";
+  id: "terminals" | "workspaces" | "app" | "browser";
   title: string;
   rows: ReadonlyArray<KeybindRow>;
 }
 
 const GROUPS: ReadonlyArray<KeybindGroup> = [
   {
-    id: "general",
-    title: "General (Panes & Tabs)",
+    id: "terminals",
+    title: "Terminals",
     rows: [
       { label: "Split right", command: "pane.splitRight" },
       { label: "Split down", command: "pane.splitDown" },
@@ -30,6 +31,9 @@ const GROUPS: ReadonlyArray<KeybindGroup> = [
       { label: "Close tab", command: "tab.close" },
       { label: "Next tab", command: "tab.next" },
       { label: "Previous tab", command: "tab.prev" },
+      { label: "Copy", command: "terminal.copy" },
+      { label: "Paste", command: "terminal.paste" },
+      { label: "Find", command: "terminal.find" },
     ],
   },
   {
@@ -42,22 +46,13 @@ const GROUPS: ReadonlyArray<KeybindGroup> = [
     ],
   },
   {
-    id: "view",
-    title: "View",
+    id: "app",
+    title: "App",
     rows: [
       { label: "Zoom in", command: "ui.zoomIn" },
       { label: "Zoom out", command: "ui.zoomOut" },
       { label: "Reset zoom", command: "ui.zoomReset" },
       { label: "Open settings", command: "app.openSettings" },
-    ],
-  },
-  {
-    id: "terminal",
-    title: "Terminal",
-    rows: [
-      { label: "Copy", command: "terminal.copy" },
-      { label: "Paste", command: "terminal.paste" },
-      { label: "Find", command: "terminal.find" },
     ],
   },
   {
@@ -96,6 +91,36 @@ const KEYCAP_SX = {
   whiteSpace: "nowrap",
 } as const;
 
+const GROUP_HEADER_SX = {
+  display: "flex",
+  alignItems: "center",
+  gap: 0.75,
+  cursor: "pointer",
+  userSelect: "none",
+  px: 1.25,
+  py: 0.75,
+  borderRadius: 1,
+  color: "text.secondary",
+  bgcolor: "action.hover",
+  "&:hover": { bgcolor: "action.selected" },
+} as const;
+
+const GROUP_TITLE_SX = {
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase" as const,
+  flex: 1,
+} as const;
+
+const ROWS_SX = {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: 1.5,
+  pt: 1,
+  pb: 0.5,
+} as const;
+
 function KeybindLine({ label, combo }: { label: string; combo: string }) {
   return (
     <Box sx={ROW_SX}>
@@ -108,7 +133,17 @@ function KeybindLine({ label, combo }: { label: string; combo: string }) {
 }
 
 export function KeybindsSection() {
-  // Collapse the nine workspace.select.* bindings into one range row
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+
+  const toggle = (id: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const workspaceFirst = commandShortcut("workspace.select.1");
   const workspaceNinth = commandShortcut("workspace.select.9");
   const workspaceRange =
@@ -118,27 +153,42 @@ export function KeybindsSection() {
 
   return (
     <Box sx={ROOT_SX}>
-      {GROUPS.map((group, index) => (
-        <Fragment key={group.id}>
-          {index > 0 && <Divider sx={DIVIDER_SX} />}
-          <Typography variant="subtitle1" sx={SUBHEAD_SX}>
-            {group.title}
-          </Typography>
-          {group.rows.map((row) => {
-            const combo = commandShortcut(row.command);
-            if (!combo) return null;
-            return (
-              <KeybindLine key={row.command} label={row.label} combo={combo} />
-            );
-          })}
-          {group.id === "workspaces" && workspaceRange && (
-            <KeybindLine
-              label="Switch to workspace 1–9"
-              combo={workspaceRange}
-            />
-          )}
-        </Fragment>
-      ))}
+      {GROUPS.map((group) => {
+        const isCollapsed = collapsed.has(group.id);
+        return (
+          <Box key={group.id}>
+            <Box sx={GROUP_HEADER_SX} onClick={() => toggle(group.id)}>
+              {isCollapsed ? (
+                <VscChevronRight size={12} />
+              ) : (
+                <VscChevronDown size={12} />
+              )}
+              <Typography sx={GROUP_TITLE_SX}>{group.title}</Typography>
+            </Box>
+            <Collapse in={!isCollapsed}>
+              <Box sx={ROWS_SX}>
+                {group.rows.map((row) => {
+                  const combo = commandShortcut(row.command);
+                  if (!combo) return null;
+                  return (
+                    <KeybindLine
+                      key={row.command}
+                      label={row.label}
+                      combo={combo}
+                    />
+                  );
+                })}
+                {group.id === "workspaces" && workspaceRange && (
+                  <KeybindLine
+                    label="Switch to workspace 1–9"
+                    combo={workspaceRange}
+                  />
+                )}
+              </Box>
+            </Collapse>
+          </Box>
+        );
+      })}
     </Box>
   );
 }
