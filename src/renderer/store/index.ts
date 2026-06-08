@@ -47,6 +47,7 @@ export {
   updateBrowserSettings,
   updateNotificationSettings,
   updateUpdateSettings,
+  useSidebarWidth,
 } from "./preferences";
 
 export { setUpdateStatus } from "./update-status";
