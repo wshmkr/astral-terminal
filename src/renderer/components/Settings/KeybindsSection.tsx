@@ -146,7 +146,20 @@ export function KeybindsSection() {
         const isCollapsed = collapsed.has(group.id);
         return (
           <Box key={group.id}>
-            <Box sx={GROUP_HEADER_SX} onClick={() => toggle(group.id)}>
+            <Box
+              sx={GROUP_HEADER_SX}
+              role="button"
+              tabIndex={0}
+              aria-expanded={!isCollapsed}
+              aria-controls={`keybind-group-${group.id}`}
+              onClick={() => toggle(group.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  toggle(group.id);
+                }
+              }}
+            >
               <Typography variant="subtitle1" sx={SUBHEAD_SX}>
                 {group.title}
               </Typography>
@@ -159,7 +172,7 @@ export function KeybindsSection() {
               </Box>
             </Box>
             <Collapse in={!isCollapsed}>
-              <Box sx={ROWS_SX}>
+              <Box id={`keybind-group-${group.id}`} sx={ROWS_SX}>
                 {group.rows.map((row) => {
                   const combo = commandShortcut(row.command);
                   if (!combo) return null;
