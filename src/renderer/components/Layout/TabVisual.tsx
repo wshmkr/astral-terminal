@@ -1,4 +1,5 @@
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import { VscClose, VscGlobe } from "react-icons/vsc";
 import type { Surface } from "../../../shared/types";
@@ -51,7 +52,7 @@ export function tabItemSx({
     color: isActive ? activeFg : "text.secondary",
     userSelect: "none",
     "&:hover": { bgcolor: isActive ? activeBg : "action.hover" },
-    "&:hover .tab-close": { opacity: 1 },
+    "&:hover .tab-close, &:focus-within .tab-close": { opacity: 1 },
     "&:hover::after": { opacity: 0 },
     "&:has(+ .tab-item:hover)::after": { opacity: 0 },
   } as const;
@@ -78,14 +79,15 @@ export function TabContent({
         {surface.name}
       </Typography>
       {onClose && (
-        <Box
-          component="span"
+        <ButtonBase
+          disableRipple
+          aria-label="Close tab"
           className="tab-close"
           onClick={onClose}
           sx={[TAB_CLOSE_SX, { opacity: isActive ? 1 : 0 }]}
         >
           <VscClose size={16} />
-        </Box>
+        </ButtonBase>
       )}
     </>
   );

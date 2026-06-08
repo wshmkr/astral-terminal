@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
 import { memo, useState } from "react";
 import { VscClose, VscEdit } from "react-icons/vsc";
@@ -32,14 +33,17 @@ const CLOSE_AFFORDANCE_SX = {
   top: "22px",
   right: "10px",
   transform: "translateY(-50%)",
-  display: "none",
+  display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
   p: "1px",
   borderRadius: 0.5,
   color: "text.disabled",
+  opacity: 0,
+  pointerEvents: "none",
   "&:hover": { bgcolor: "error.main", color: "common.white" },
+  "&.Mui-focusVisible": { bgcolor: "error.main", color: "common.white" },
 } as const;
 
 const TITLE_ROW_SX = {
@@ -76,9 +80,12 @@ function rootSx(isActive: boolean, showDivider: boolean) {
     userSelect: "none",
     bgcolor: isActive ? "action.selected" : "transparent",
     "&:hover": { bgcolor: isActive ? "action.selected" : "action.hover" },
-    "&:hover .ws-close": { display: "inline-flex" },
+    "&:hover .ws-close, &:focus-within .ws-close": {
+      opacity: 1,
+      pointerEvents: "auto",
+    },
     "&:hover .ws-edit": { display: "inline-flex" },
-    "&:hover .ws-title-row": { pr: "22px" },
+    "&:hover .ws-title-row, &:focus-within .ws-title-row": { pr: "22px" },
     "&::after": showDivider
       ? {
           content: '""',
@@ -179,8 +186,9 @@ export const WorkspaceTab = memo(function WorkspaceTab({
         )}
       </Box>
       {!editing && (
-        <Box
-          component="span"
+        <ButtonBase
+          disableRipple
+          aria-label="Close workspace"
           className="ws-close"
           onClick={(e) => {
             e.stopPropagation();
@@ -189,7 +197,7 @@ export const WorkspaceTab = memo(function WorkspaceTab({
           sx={CLOSE_AFFORDANCE_SX}
         >
           <VscClose size={16} />
-        </Box>
+        </ButtonBase>
       )}
       <WorkspaceSurfaceList workspace={workspace} />
     </Box>
