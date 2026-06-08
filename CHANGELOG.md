@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.7.0](https://github.com/wshmkr/astral-terminal/compare/v0.6.1...v0.7.0) (2026-06-08)
+
+
+### Features
+
+* add Claude plan usage bar in the sidebar ([#92](https://github.com/wshmkr/astral-terminal/issues/92)) ([9a4c056](https://github.com/wshmkr/astral-terminal/commit/9a4c056a86239d8382f462cec93adfcf0f3f7c8c))
+* add CLI socket server with app.identify ([#76](https://github.com/wshmkr/astral-terminal/issues/76)) ([f047010](https://github.com/wshmkr/astral-terminal/commit/f0470104aff91b1096562ced8fc6455add3250d1))
+* add read-only keybinds section to settings ([#98](https://github.com/wshmkr/astral-terminal/issues/98)) ([7bb9a2f](https://github.com/wshmkr/astral-terminal/commit/7bb9a2f45f20ab38a1b95cac1b8d145b5fc1e985))
+* add settings, reset-zoom, and new-browser-tab keybinds ([#91](https://github.com/wshmkr/astral-terminal/issues/91)) ([4abae47](https://github.com/wshmkr/astral-terminal/commit/4abae47d3b0b8e58fff2f15343b96fd1eb309557))
+* browser view right-click context menu ([#78](https://github.com/wshmkr/astral-terminal/issues/78)) ([5b55337](https://github.com/wshmkr/astral-terminal/commit/5b55337b07216d302fbf316637a2f897e789e64e))
+* central keymap with extra terminal and browser keybinds ([#87](https://github.com/wshmkr/astral-terminal/issues/87)) ([549474c](https://github.com/wshmkr/astral-terminal/commit/549474cb15945be5dd796771c6483fd06c514963))
+* focus QoL for new tabs, settings, and workspace switching ([#94](https://github.com/wshmkr/astral-terminal/issues/94)) ([0668e2e](https://github.com/wshmkr/astral-terminal/commit/0668e2ee553d81a1779fd97f184d73a345541e2e))
+* inherit cwd from previous terminal for new tabs ([#101](https://github.com/wshmkr/astral-terminal/issues/101)) ([a79a602](https://github.com/wshmkr/astral-terminal/commit/a79a6029ad158d45ddc635e9172452cdda581198))
+* inject CLI identity env + auto-install astral CLI ([#89](https://github.com/wshmkr/astral-terminal/issues/89)) ([3d93c2d](https://github.com/wshmkr/astral-terminal/commit/3d93c2d119d7b3d5887d6e99cb5b727fee9282fd))
+* reach the app from WSL over TCP with astral call ([#93](https://github.com/wshmkr/astral-terminal/issues/93)) ([0e41828](https://github.com/wshmkr/astral-terminal/commit/0e4182817ee4e793716cdd7e4e8b6a170de0dad4))
+* scroll the selected workspace into view ([#100](https://github.com/wshmkr/astral-terminal/issues/100)) ([4d4c501](https://github.com/wshmkr/astral-terminal/commit/4d4c5017935b76a5664fd7db03d14bd673bdb6d9))
+* show keyboard shortcut hints on action buttons ([#95](https://github.com/wshmkr/astral-terminal/issues/95)) ([a6cdbc6](https://github.com/wshmkr/astral-terminal/commit/a6cdbc6bba9b269b865f3768fd0c96e4397e10f8))
+
+
+### Bug Fixes
+
+* avoid doubled sidebar divider when no workspaces ([#97](https://github.com/wshmkr/astral-terminal/issues/97)) ([87503b7](https://github.com/wshmkr/astral-terminal/commit/87503b7cf0a8a97d926b992f8fec468717715a28))
+* make close buttons keyboard-accessible with accessible names ([#96](https://github.com/wshmkr/astral-terminal/issues/96)) ([1dc0297](https://github.com/wshmkr/astral-terminal/commit/1dc0297c7e3433a623dee3fe18a9d3d1c11409a0))
+* match sidebar min width to usage tooltip width ([#99](https://github.com/wshmkr/astral-terminal/issues/99)) ([0c30654](https://github.com/wshmkr/astral-terminal/commit/0c306545b147b666e45e4d89a1e0c7af1c16a36d))
+* reap orphaned WSL pty processes on dev startup ([#104](https://github.com/wshmkr/astral-terminal/issues/104)) ([7c7593e](https://github.com/wshmkr/astral-terminal/commit/7c7593e96971ac6fea0a35b8a2a933b8937b2507))
+* remove tooltip from New Workspace button ([#103](https://github.com/wshmkr/astral-terminal/issues/103)) ([8d3b92c](https://github.com/wshmkr/astral-terminal/commit/8d3b92c5d332d1d0aa1340305a12fce8ad2b7274))
+
 ## [0.6.1](https://github.com/wshmkr/astral-terminal/compare/v0.6.0...v0.6.1) (2026-06-06)
 
 
