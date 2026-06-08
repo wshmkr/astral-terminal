@@ -301,7 +301,18 @@ export function addSurface(
   let newSurfaceId: string | null = null;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const active = getActiveSurface(leaf);
-    const cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
+    // fall back to nearest left terminal's cwd if active tab is non-terminal
+    let cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
+    if (cwd === undefined && active) {
+      const activeIndex = leaf.surfaces.findIndex((s) => s.id === active.id);
+      for (let i = activeIndex - 1; i >= 0; i--) {
+        const surface = leaf.surfaces[i];
+        if (surface && isTerminalSurface(surface)) {
+          cwd = surface.cwd;
+          break;
+        }
+      }
+    }
     const surface =
       kind === "browser"
         ? createBrowserSurface(browserUrl)
