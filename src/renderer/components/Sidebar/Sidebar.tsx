@@ -212,18 +212,16 @@ function SidebarImpl() {
             workspaces.length === 0 && { borderTop: 0 },
           ]}
         >
-          <Tooltip title={commandTooltip("New Workspace", "workspace.new")}>
-            <ButtonBase
-              disableRipple
-              onClick={() => createWorkspace()}
-              sx={NEW_WORKSPACE_SX}
-            >
-              <VscAdd size={14} />
-              <Typography variant="body2" sx={NEW_WORKSPACE_LABEL_SX}>
-                New Workspace
-              </Typography>
-            </ButtonBase>
-          </Tooltip>
+          <ButtonBase
+            disableRipple
+            onClick={() => createWorkspace()}
+            sx={NEW_WORKSPACE_SX}
+          >
+            <VscAdd size={14} />
+            <Typography variant="body2" sx={NEW_WORKSPACE_LABEL_SX}>
+              New Workspace
+            </Typography>
+          </ButtonBase>
         </Box>
         <UsageBar />
       </Box>
