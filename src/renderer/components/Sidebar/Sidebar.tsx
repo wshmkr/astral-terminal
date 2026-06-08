@@ -201,7 +201,6 @@ function SidebarImpl() {
         <Box
           sx={[
             NEW_WORKSPACE_CONTAINER_SX,
-            // header's borderBottom already divides; avoid doubling it when empty
             workspaces.length === 0 && { borderTop: 0 },
           ]}
         >
