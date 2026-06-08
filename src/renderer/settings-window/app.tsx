@@ -14,6 +14,7 @@ import { SETTINGS_FADE_EASING, SETTINGS_FADE_MS } from "../../shared/types";
 import { AppearanceSection } from "../components/Settings/AppearanceSection";
 import { AstralSection } from "../components/Settings/AstralSection";
 import { BrowserSection } from "../components/Settings/BrowserSection";
+import { KeybindsSection } from "../components/Settings/KeybindsSection";
 import { NotificationsSection } from "../components/Settings/NotificationsSection";
 import { TitleBarButton } from "../components/ui/TitleBarButton";
 import { resolveAccentHex } from "../theme/accent-colors";
@@ -33,12 +34,18 @@ import {
 } from "./app.styles";
 import { setSettingsStoreState, useSettingsState } from "./store";
 
-type SectionId = "appearance" | "notifications" | "browser" | "astral";
+type SectionId =
+  | "appearance"
+  | "notifications"
+  | "browser"
+  | "keybinds"
+  | "astral";
 
 const SECTIONS: Array<{ id: SectionId; label: string }> = [
   { id: "appearance", label: "Appearance" },
   { id: "notifications", label: "Notifications" },
   { id: "browser", label: "Browser" },
+  { id: "keybinds", label: "Keybinds" },
   { id: "astral", label: "Astral Terminal" },
 ];
 
@@ -152,6 +159,7 @@ export function SettingsApp() {
               {section === "appearance" && <AppearanceSection />}
               {section === "notifications" && <NotificationsSection />}
               {section === "browser" && <BrowserSection />}
+              {section === "keybinds" && <KeybindsSection />}
               {section === "astral" && <AstralSection />}
             </Box>
           </Box>
