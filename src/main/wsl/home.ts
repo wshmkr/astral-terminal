@@ -15,6 +15,7 @@ export function runWsl(
   const distroArgs = distro ? ["-d", distro] : [];
   return execFileAsync("wsl.exe", [...distroArgs, ...args], {
     timeout: WSL_COMMAND_TIMEOUT_MS,
+    windowsHide: true,
   });
 }
 
