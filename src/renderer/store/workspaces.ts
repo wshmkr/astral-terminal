@@ -301,8 +301,7 @@ export function addSurface(
   let newSurfaceId: string | null = null;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const active = getActiveSurface(leaf);
-    // when the active tab isn't a terminal (e.g. a browser), inherit the cwd of
-    // the nearest terminal to its left so the new terminal opens where the last one was
+    // fall back to nearest left terminal's cwd if active tab is non-terminal
     let cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
     if (cwd === undefined && active) {
       const activeIndex = leaf.surfaces.findIndex((s) => s.id === active.id);
