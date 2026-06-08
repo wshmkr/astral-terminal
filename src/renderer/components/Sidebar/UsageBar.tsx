@@ -23,7 +23,6 @@ const PANEL_SX = {
   display: "flex",
   flexDirection: "column",
   gap: 1,
-  minWidth: 180,
 } as const;
 
 const ROW_SX = {
