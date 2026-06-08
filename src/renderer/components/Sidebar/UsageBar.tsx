@@ -9,20 +9,21 @@ import {
   type ProviderUsage,
   type UsageMeter,
 } from "../../../shared/types";
-import { useUsage } from "../../store";
+import { useSidebarWidth, useUsage } from "../../store";
 
 const ROOT_SX = {
   flexShrink: 0,
   // extra hover reach above the bar, offset so the layout doesn't shift
   pt: 0.5,
   mt: -0.5,
+  position: "relative",
+  zIndex: 1,
 } as const;
 
 const PANEL_SX = {
   display: "flex",
   flexDirection: "column",
   gap: 1,
-  minWidth: 180,
 } as const;
 
 const ROW_SX = {
@@ -151,6 +152,7 @@ function UsagePanel({
 
 export function UsageBar() {
   const usage = useUsage();
+  const sidebarWidth = useSidebarWidth();
   const visible = usage.providers.filter((p) => p.meters.length > 0);
   if (visible.length === 0) return null;
 
@@ -172,7 +174,8 @@ export function UsageBar() {
             borderColor: "custom.subtleDivider",
             boxShadow: 3,
             p: 1.25,
-            maxWidth: 280,
+            width: sidebarWidth * 0.95,
+            maxWidth: sidebarWidth * 0.95,
           },
         },
       }}

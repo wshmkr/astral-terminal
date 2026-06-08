@@ -14,7 +14,7 @@ import {
   SIDEBAR_MAX_WIDTH_PX,
   SIDEBAR_MIN_WIDTH_PX,
 } from "../components/Layout/layout-constants";
-import { commit, getState, notify, setState } from "./core";
+import { commit, getState, notify, setState, useWorkspaceStore } from "./core";
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   soundEnabled: false,
@@ -40,6 +40,10 @@ export function clampSidebarWidth(
     Math.floor(viewportWidth / 2),
   );
   return Math.max(SIDEBAR_MIN_WIDTH_PX, Math.min(width, maxWidth));
+}
+
+export function useSidebarWidth(): number {
+  return useWorkspaceStore((s) => s.sidebarWidth);
 }
 
 export function setSidebarWidth(width: number): void {
