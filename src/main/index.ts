@@ -50,6 +50,7 @@ import {
   getMainWindow,
   onMainWindowFocus,
 } from "./window";
+import { reapOrphanedPtys } from "./wsl/reap-orphans";
 
 if (IS_DEV) {
   const devName = `${app.getName()}${DEV_SUFFIX}`;
@@ -115,6 +116,8 @@ function installCsp() {
 const startup = app.whenReady().then(async () => {
   installAppMenu();
   installCsp();
+  // Dev restarts/crashes orphan pty trees; sweep them on launch
+  if (IS_DEV) void reapOrphanedPtys();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
   registerWindowIpc({ getMainWindow });
