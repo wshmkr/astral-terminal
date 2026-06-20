@@ -188,6 +188,7 @@ function attachClipboardHandlers(
       return;
     }
     let handled: boolean;
+    let attemptedImageRead = false;
     try {
       handled = await pasteFromSource({
         readText: async () => {
@@ -199,7 +200,10 @@ function attachClipboardHandlers(
             const imageType = item.types.find((type) =>
               type.startsWith("image/"),
             );
-            if (imageType) return item.getType(imageType);
+            if (imageType) {
+              attemptedImageRead = true;
+              return item.getType(imageType);
+            }
           }
           return null;
         },
@@ -208,6 +212,7 @@ function attachClipboardHandlers(
       // Reading the chosen item failed; surface it rather than silently
       // pasting whatever stray text happens to be on the clipboard.
       console.warn("Clipboard image paste failed:", err);
+      if (attemptedImageRead) term.write("\x07");
       return;
     }
     if (!handled) pasteTextFromClipboard();
