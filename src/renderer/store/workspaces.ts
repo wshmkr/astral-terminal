@@ -187,6 +187,20 @@ export function setActiveWorkspace(id: string): void {
   commit();
 }
 
+function wrapLeafInSplit(
+  layout: PaneNode,
+  targetPaneId: string,
+  direction: SplitDirection,
+  newLeaf: LeafPane,
+): PaneNode {
+  return mapNode(layout, targetPaneId, (node) => ({
+    kind: "split" as const,
+    id: generateId(),
+    direction,
+    children: [node, newLeaf],
+  }));
+}
+
 export function splitPane(
   targetPaneId: string,
   direction: SplitDirection,
@@ -201,12 +215,12 @@ export function splitPane(
       ? activeSurface.cwd
       : undefined;
   const newLeaf = createLeafPane(cwd);
-  const newLayout = mapNode(ws.layout, targetPaneId, (node) => ({
-    kind: "split" as const,
-    id: generateId(),
+  const newLayout = wrapLeafInSplit(
+    ws.layout,
+    targetPaneId,
     direction,
-    children: [node, newLeaf],
-  }));
+    newLeaf,
+  );
   if (newLayout === ws.layout) return;
   setWorkspaceLayout(ws.id, newLayout);
   setState({ ...getState(), focusedPaneId: newLeaf.id });
@@ -463,12 +477,12 @@ export function splitPaneWithSurface(
     surfaces: [surface],
     activeSurfaceId: surface.id,
   };
-  const afterSplit = mapNode(ws.layout, targetPaneId, (node) => ({
-    kind: "split" as const,
-    id: generateId(),
+  const afterSplit = wrapLeafInSplit(
+    ws.layout,
+    targetPaneId,
     direction,
-    children: [node, newLeaf],
-  }));
+    newLeaf,
+  );
   if (afterSplit === ws.layout) return;
 
   // Splitting a pane's only tab onto its own edge would prune the now-empty
