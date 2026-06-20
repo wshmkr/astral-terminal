@@ -3,7 +3,6 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
-  type DragOverEvent,
   DragOverlay,
   type DragStartEvent,
   type Modifier,
@@ -17,10 +16,7 @@ import {
   restrictToFirstScrollableAncestor,
   restrictToVerticalAxis,
 } from "@dnd-kit/modifiers";
-import { alpha, useTheme } from "@mui/material/styles";
-import { type ReactNode, useRef, useState } from "react";
-import { isBrowserSurface } from "../../shared/types";
-import { findLeafPane, getActiveSurface } from "../components/Layout/pane-tree";
+import { type ReactNode, useState } from "react";
 import { TabDragOverlay } from "../components/Layout/TabDragOverlay";
 import {
   moveSurfaceToPane,
@@ -28,18 +24,7 @@ import {
   reorderWorkspaces,
   splitPaneWithSurface,
 } from "../store";
-import { getActiveWorkspace } from "../store/core";
 import { getDragData, getDragPaneId } from "./dnd-types";
-
-// Resolves the browser surface visible in a pane, or null if the active surface
-// is not a browser (terminal panes use the renderer-DOM preview instead)
-function activeBrowserSurfaceId(paneId: string): string | null {
-  const ws = getActiveWorkspace();
-  if (!ws) return null;
-  const leaf = findLeafPane(ws.layout, paneId);
-  const surface = leaf ? getActiveSurface(leaf) : undefined;
-  return surface && isBrowserSurface(surface) ? surface.id : null;
-}
 
 const workspaceModifier: Modifier = (args) => {
   const data = getDragData(args.active);
@@ -82,29 +67,9 @@ interface Props {
 
 export function AppDndContext({ children }: Props) {
   const [activeTab, setActiveTab] = useState<ActiveTabDrag | null>(null);
-  const theme = useTheme();
-  const splitPreviewFill = alpha(theme.palette.primary.main, 0.25);
-  const splitPreviewStroke = theme.palette.primary.main;
-  // Last preview target sent to main, to skip redundant executeJavaScript calls
-  const lastSplitPreview = useRef<string>("");
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
-
-  function sendSplitPreview(
-    surfaceId: string | null,
-    edge: "right" | "bottom" | null,
-  ): void {
-    const key = `${surfaceId ?? ""}|${edge ?? ""}`;
-    if (key === lastSplitPreview.current) return;
-    lastSplitPreview.current = key;
-    window.app.setBrowserSplitPreview(
-      surfaceId,
-      edge,
-      splitPreviewFill,
-      splitPreviewStroke,
-    );
-  }
 
   function handleDragStart(event: DragStartEvent): void {
     const data = getDragData(event.active);
@@ -113,19 +78,8 @@ export function AppDndContext({ children }: Props) {
     }
   }
 
-  function handleDragOver(event: DragOverEvent): void {
-    const over = getDragData(event.over);
-    if (over?.type === "pane-split") {
-      const surfaceId = activeBrowserSurfaceId(over.paneId);
-      sendSplitPreview(surfaceId, surfaceId ? over.edge : null);
-      return;
-    }
-    sendSplitPreview(null, null);
-  }
-
   function handleDragEnd(event: DragEndEvent): void {
     setActiveTab(null);
-    sendSplitPreview(null, null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const activeData = getDragData(active);
@@ -165,12 +119,8 @@ export function AppDndContext({ children }: Props) {
       collisionDetection={collisionDetection}
       modifiers={modifiers}
       onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => {
-        setActiveTab(null);
-        sendSplitPreview(null, null);
-      }}
+      onDragCancel={() => setActiveTab(null)}
     >
       {children}
       <DragOverlay>

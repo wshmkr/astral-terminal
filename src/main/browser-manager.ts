@@ -79,6 +79,15 @@ const DIM_HTML =
     </style>`,
   );
 
+const SPLIT_PREVIEW_HTML =
+  "data:text/html;charset=utf-8," +
+  encodeURIComponent(
+    `<style>
+      html,body { margin:0; height:100%; box-sizing:border-box; }
+      body { box-sizing:border-box; background:transparent; border:1px solid transparent; }
+    </style>`,
+  );
+
 const MAX_FAVICON_BYTES = 256 * 1024;
 const FAVICON_SCHEMES = new Set(["http:", "https:", "data:"]);
 const FAVICON_CACHE_MAX = 64;
@@ -198,8 +207,12 @@ export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
   private dimVisible = false;
-  // Surface whose browser view currently shows an injected drag-to-split preview
-  private splitPreviewSurfaceId: string | null = null;
+  // Top-most overlay that previews where a dragged tab will land, drawn above
+  // browser views (which would otherwise occlude the renderer's DOM preview)
+  private splitPreviewView: WebContentsView | null = null;
+  private splitPreviewReady = false;
+  private splitPreviewFill: string | null = null;
+  private splitPreviewStroke: string | null = null;
   private dimReady = false;
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
@@ -463,6 +476,14 @@ export class BrowserManager {
 
   destroyAll(): void {
     for (const id of [...this.entries.keys()]) this.destroy(id);
+    if (this.splitPreviewView) {
+      try {
+        this.window.contentView.removeChildView(this.splitPreviewView);
+        this.splitPreviewView.webContents.close();
+      } catch {}
+      this.splitPreviewView = null;
+      this.splitPreviewReady = false;
+    }
   }
 
   async clearBrowsingData(): Promise<void> {
@@ -518,53 +539,66 @@ export class BrowserManager {
     }
   }
 
-  setSplitPreview(
-    surfaceId: string | null,
-    edge: "right" | "bottom" | null,
-    fill: string,
-    stroke: string,
-  ): void {
-    const previous = this.splitPreviewSurfaceId;
-    if (previous && previous !== surfaceId) {
-      this.clearSplitPreview(previous);
-    }
-    if (surfaceId && edge) {
-      const entry = this.entries.get(surfaceId);
-      if (!entry || entry.disposed) {
-        this.splitPreviewSurfaceId = null;
-        return;
-      }
-      const inset = edge === "right" ? "0 0 0 auto" : "auto 0 0 0";
-      const size = edge === "right" ? "width:50%" : "height:50%";
-      entry.view.webContents
-        .executeJavaScript(
-          `(() => {
-            let el = document.getElementById('__astral-split-preview');
-            if (!el) {
-              el = document.createElement('div');
-              el.id = '__astral-split-preview';
-              document.documentElement.appendChild(el);
-            }
-            el.style.cssText = 'position:fixed;inset:${inset};${size};` +
-            `background:${fill};border:1px solid ${stroke};box-sizing:border-box;` +
-            `pointer-events:none;z-index:2147483647';
-          })()`,
-        )
-        .catch(() => {});
-      this.splitPreviewSurfaceId = surfaceId;
-    } else {
-      this.splitPreviewSurfaceId = null;
-    }
+  private ensureSplitPreviewView(): WebContentsView {
+    if (this.splitPreviewView) return this.splitPreviewView;
+    const view = new WebContentsView({
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+      },
+    });
+    view.setBackgroundColor("#00000000");
+    view.setVisible(false);
+    view.webContents.once("did-finish-load", () => {
+      this.splitPreviewReady = true;
+      this.applySplitPreviewColors();
+    });
+    view.webContents.loadURL(SPLIT_PREVIEW_HTML).catch((err) => {
+      console.error("[browser] split-preview loadURL failed:", err);
+    });
+    this.window.contentView.addChildView(view);
+    this.splitPreviewView = view;
+    return view;
   }
 
-  private clearSplitPreview(surfaceId: string): void {
-    const entry = this.entries.get(surfaceId);
-    if (!entry || entry.disposed) return;
-    entry.view.webContents
+  private applySplitPreviewColors(): void {
+    if (!this.splitPreviewView || !this.splitPreviewReady) return;
+    const fill = this.splitPreviewFill ?? "transparent";
+    const stroke = this.splitPreviewStroke ?? "transparent";
+    this.splitPreviewView.webContents
       .executeJavaScript(
-        `document.getElementById('__astral-split-preview')?.remove()`,
+        `document.body.style.background=${JSON.stringify(fill)};` +
+          `document.body.style.borderColor=${JSON.stringify(stroke)};`,
       )
       .catch(() => {});
+  }
+
+  private bringSplitPreviewToTop(): void {
+    if (!this.splitPreviewView) return;
+    this.window.contentView.removeChildView(this.splitPreviewView);
+    this.window.contentView.addChildView(this.splitPreviewView);
+  }
+
+  setSplitPreview(rect: ScreenRect | null, fill: string, stroke: string): void {
+    if (!rect) {
+      this.splitPreviewView?.setVisible(false);
+      return;
+    }
+    const view = this.ensureSplitPreviewView();
+    if (this.splitPreviewFill !== fill || this.splitPreviewStroke !== stroke) {
+      this.splitPreviewFill = fill;
+      this.splitPreviewStroke = stroke;
+      this.applySplitPreviewColors();
+    }
+    view.setBounds({
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+    });
+    this.bringSplitPreviewToTop();
+    view.setVisible(true);
   }
 
   setDimmed(dimmed: boolean): void {
