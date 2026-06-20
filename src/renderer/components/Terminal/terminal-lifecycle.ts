@@ -149,19 +149,24 @@ function attachClipboardHandlers(
     getCwd: () => string;
   },
 ): () => void {
-  const pasteImageFromClipboard = async (
-    items: ClipboardItems,
-  ): Promise<boolean> => {
-    for (const item of items) {
-      if (item.types.includes("text/plain")) return false;
+  // Single precedence shared by both paste triggers: non-empty text wins,
+  // otherwise the first image. Keeping it in one place stops the native
+  // `paste` event and the keyboard/right-click path from drifting apart.
+  type ClipboardSource = {
+    readText: () => string | Promise<string>;
+    readImage: () => Blob | null | Promise<Blob | null>;
+  };
+
+  const pasteFromSource = async (source: ClipboardSource): Promise<boolean> => {
+    const text = await source.readText();
+    if (text) {
+      pasteText(term, text, opts.isLive);
+      return true;
     }
-    for (const item of items) {
-      const imageType = item.types.find((type) => type.startsWith("image/"));
-      if (imageType) {
-        const blob = await item.getType(imageType);
-        await pasteClipboardImage(term, blob, opts.getCwd(), opts.isLive);
-        return true;
-      }
+    const blob = await source.readImage();
+    if (blob) {
+      await pasteClipboardImage(term, blob, opts.getCwd(), opts.isLive);
+      return true;
     }
     return false;
   };
@@ -173,33 +178,55 @@ function attachClipboardHandlers(
       .catch((err) => console.warn("Clipboard read failed:", err));
   };
 
-  const pasteFromClipboard = () => {
-    navigator.clipboard
-      .read()
-      .then(async (items) => {
-        if (!(await pasteImageFromClipboard(items))) pasteTextFromClipboard();
-      })
-      .catch(pasteTextFromClipboard);
+  const pasteFromClipboard = async () => {
+    let items: ClipboardItems;
+    try {
+      items = await navigator.clipboard.read();
+    } catch {
+      // read() is unsupported or denied; a plain-text read may still work.
+      pasteTextFromClipboard();
+      return;
+    }
+    let handled: boolean;
+    try {
+      handled = await pasteFromSource({
+        readText: async () => {
+          const item = items.find((it) => it.types.includes("text/plain"));
+          return item ? (await item.getType("text/plain")).text() : "";
+        },
+        readImage: async () => {
+          for (const item of items) {
+            const imageType = item.types.find((type) =>
+              type.startsWith("image/"),
+            );
+            if (imageType) return item.getType(imageType);
+          }
+          return null;
+        },
+      });
+    } catch (err) {
+      // Reading the chosen item failed; surface it rather than silently
+      // pasting whatever stray text happens to be on the clipboard.
+      console.warn("Clipboard image paste failed:", err);
+      return;
+    }
+    if (!handled) pasteTextFromClipboard();
   };
 
   const onPaste = (e: ClipboardEvent) => {
     const data = e.clipboardData;
     if (!data) return;
     const text = data.getData("text/plain");
-    if (text) {
-      e.preventDefault();
-      e.stopPropagation();
-      pasteText(term, text, opts.isLive);
-      return;
-    }
     const imageItem = Array.from(data.items).find((item) =>
       item.type.startsWith("image/"),
     );
-    const file = imageItem?.getAsFile();
-    if (!file) return;
+    if (!text && !imageItem) return;
     e.preventDefault();
     e.stopPropagation();
-    void pasteClipboardImage(term, file, opts.getCwd(), opts.isLive);
+    void pasteFromSource({
+      readText: () => text,
+      readImage: () => imageItem?.getAsFile() ?? null,
+    });
   };
   container.addEventListener("paste", onPaste, true);
 
@@ -221,7 +248,7 @@ function attachClipboardHandlers(
         break;
       }
       case "terminal.paste":
-        pasteFromClipboard();
+        void pasteFromClipboard();
         break;
       case "terminal.find":
         onRequestFind();
@@ -244,7 +271,7 @@ function attachClipboardHandlers(
       navigator.clipboard.writeText(sel);
       term.clearSelection();
     } else {
-      pasteFromClipboard();
+      void pasteFromClipboard();
     }
   };
   container.addEventListener("contextmenu", onContextMenu);
