@@ -90,7 +90,11 @@ async function writeFileAtomic(filePath: string, data: Buffer): Promise<void> {
     await fs.writeFile(tmpPath, data);
     await fs.rename(tmpPath, filePath);
   } catch (err) {
-    await fs.rm(tmpPath, { force: true });
+    try {
+      await fs.rm(tmpPath, { force: true });
+    } catch (cleanupErr) {
+      console.warn("Failed to remove temp clipboard image:", cleanupErr);
+    }
     throw err;
   }
 }
