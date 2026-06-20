@@ -5,7 +5,6 @@ import path from "node:path";
 
 const PASTE_DIR = path.join(os.tmpdir(), "astral-terminal");
 const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/png": "png",
@@ -35,25 +34,8 @@ export async function saveClipboardImage(
   return filePath;
 }
 
-export async function pruneStalePasteImages(): Promise<void> {
-  let names: string[];
-  try {
-    names = await fs.readdir(PASTE_DIR);
-  } catch {
-    return;
-  }
-  const cutoff = Date.now() - MAX_AGE_MS;
-  await Promise.all(
-    names.map(async (name) => {
-      const filePath = path.join(PASTE_DIR, name);
-      try {
-        const stat = await fs.stat(filePath);
-        if (stat.mtimeMs < cutoff) await fs.unlink(filePath);
-      } catch {
-        // File vanished or is inaccessible; nothing to prune.
-      }
-    }),
-  );
+export async function clearPasteImages(): Promise<void> {
+  await fs.rm(PASTE_DIR, { recursive: true, force: true });
 }
 
 function sniffExtension(bytes: Uint8Array): string | undefined {
