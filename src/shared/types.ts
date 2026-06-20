@@ -411,6 +411,7 @@ export const IPC = {
     destroy: "browser:destroy",
     setAnchorOffsets: "browser:set-anchor-offsets",
     setVisible: "browser:set-visible",
+    setSplitPreview: "browser:set-split-preview",
     loadURL: "browser:load-url",
     command: "browser:command",
     openNewTab: "browser:open-new-tab",

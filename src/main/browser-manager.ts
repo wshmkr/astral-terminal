@@ -198,6 +198,8 @@ export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
   private dimVisible = false;
+  // Surface whose browser view currently shows an injected drag-to-split preview
+  private splitPreviewSurfaceId: string | null = null;
   private dimReady = false;
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
@@ -514,6 +516,55 @@ export class BrowserManager {
       if (surrenderingFocus) this.window.webContents.focus();
       this.callbacks.onSurfaceHidden(surfaceId);
     }
+  }
+
+  setSplitPreview(
+    surfaceId: string | null,
+    edge: "right" | "bottom" | null,
+    fill: string,
+    stroke: string,
+  ): void {
+    const previous = this.splitPreviewSurfaceId;
+    if (previous && previous !== surfaceId) {
+      this.clearSplitPreview(previous);
+    }
+    if (surfaceId && edge) {
+      const entry = this.entries.get(surfaceId);
+      if (!entry || entry.disposed) {
+        this.splitPreviewSurfaceId = null;
+        return;
+      }
+      const inset = edge === "right" ? "0 0 0 auto" : "auto 0 0 0";
+      const size = edge === "right" ? "width:50%" : "height:50%";
+      entry.view.webContents
+        .executeJavaScript(
+          `(() => {
+            let el = document.getElementById('__astral-split-preview');
+            if (!el) {
+              el = document.createElement('div');
+              el.id = '__astral-split-preview';
+              document.documentElement.appendChild(el);
+            }
+            el.style.cssText = 'position:fixed;inset:${inset};${size};` +
+            `background:${fill};border:1px solid ${stroke};box-sizing:border-box;` +
+            `pointer-events:none;z-index:2147483647';
+          })()`,
+        )
+        .catch(() => {});
+      this.splitPreviewSurfaceId = surfaceId;
+    } else {
+      this.splitPreviewSurfaceId = null;
+    }
+  }
+
+  private clearSplitPreview(surfaceId: string): void {
+    const entry = this.entries.get(surfaceId);
+    if (!entry || entry.disposed) return;
+    entry.view.webContents
+      .executeJavaScript(
+        `document.getElementById('__astral-split-preview')?.remove()`,
+      )
+      .catch(() => {});
   }
 
   setDimmed(dimmed: boolean): void {

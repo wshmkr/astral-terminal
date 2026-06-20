@@ -90,6 +90,12 @@ export interface AppAPI {
     offsets: BrowserAnchorOffsets,
   ) => void;
   setBrowserVisible: (surfaceId: string, visible: boolean) => void;
+  setBrowserSplitPreview: (
+    surfaceId: string | null,
+    edge: "right" | "bottom" | null,
+    fill: string,
+    stroke: string,
+  ) => void;
   loadBrowserURL: (surfaceId: string, url: string) => void;
   browserCommand: (surfaceId: string, cmd: BrowserCommand) => void;
   onBrowserState: (
