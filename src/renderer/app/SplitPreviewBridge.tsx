@@ -1,68 +1,68 @@
 import { useDndMonitor } from "@dnd-kit/core";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import { useRef } from "react";
 import { isBrowserSurface, type ScreenRect } from "../../shared/types";
 import { findLeafPane, getActiveSurface } from "../components/Layout/pane-tree";
 import { getActiveWorkspace, getState } from "../store/core";
-import { getDragData, type SplitEdge } from "./dnd-types";
+import { getDragData, getDragPaneId, type SplitEdge } from "./dnd-types";
 import { useSurfaceBodyGetter } from "./SurfaceBodyRegistry";
 
 // Browser surfaces are native WebContentsViews that composite above the renderer
-// DOM, so the DOM split preview is occluded by them. For panes whose active
-// surface is a browser, this drives a top-most native overlay (positioned to
-// match the pane's surface body) so the preview shows over the page. Terminal
-// panes keep using the DOM preview.
-function halfRect(el: HTMLElement, edge: SplitEdge, zoom: number): ScreenRect {
+// DOM, so the DOM drop hints (the whole-pane merge tint and the edge split
+// preview) are occluded over a browser pane. This drives a top-most native
+// overlay covering that pane's surface body, rendering the same two layers so
+// browser panes look identical to terminal panes. Terminal panes are untouched.
+function paneRect(el: HTMLElement, zoom: number): ScreenRect {
   const r = el.getBoundingClientRect();
-  let { left, top, width, height } = r;
-  if (edge === "right") {
-    left = r.left + r.width / 2;
-    width = r.width / 2;
-  } else {
-    top = r.top + r.height / 2;
-    height = r.height / 2;
-  }
   return {
-    x: Math.round(left * zoom),
-    y: Math.round(top * zoom),
-    width: Math.round(width * zoom),
-    height: Math.round(height * zoom),
+    x: Math.round(r.left * zoom),
+    y: Math.round(r.top * zoom),
+    width: Math.round(r.width * zoom),
+    height: Math.round(r.height * zoom),
   };
 }
 
 export function SplitPreviewBridge() {
-  const theme = useTheme();
-  const fill = alpha(theme.palette.primary.main, 0.25);
-  const stroke = theme.palette.primary.main;
+  const color = useTheme().palette.primary.main;
   const getSurfaceBody = useSurfaceBodyGetter();
   const lastKey = useRef<string>("");
 
-  function send(rect: ScreenRect | null): void {
-    const key = rect ? `${rect.x},${rect.y},${rect.width},${rect.height}` : "";
+  function send(
+    rect: ScreenRect | null,
+    edge: SplitEdge | null,
+    merge: boolean,
+  ): void {
+    const key = rect
+      ? `${rect.x},${rect.y},${rect.width},${rect.height}|${edge ?? ""}|${merge}`
+      : "";
     if (key === lastKey.current) return;
     lastKey.current = key;
-    window.app.setBrowserSplitPreview(rect, fill, stroke);
+    window.app.setBrowserSplitPreview(rect, edge, merge, color);
   }
 
   useDndMonitor({
     onDragOver(event) {
+      const active = getDragData(event.active);
+      if (active?.type !== "tab") return send(null, null, false);
       const over = getDragData(event.over);
-      if (over?.type !== "pane-split") {
-        send(null);
-        return;
-      }
+      const targetPaneId = getDragPaneId(over);
+      if (!targetPaneId) return send(null, null, false);
+
       const ws = getActiveWorkspace();
-      const leaf = ws ? findLeafPane(ws.layout, over.paneId) : undefined;
+      const leaf = ws ? findLeafPane(ws.layout, targetPaneId) : undefined;
       const surface = leaf ? getActiveSurface(leaf) : undefined;
-      const el = getSurfaceBody(over.paneId);
+      const el = getSurfaceBody(targetPaneId);
       if (!surface || !isBrowserSurface(surface) || !el) {
-        send(null);
-        return;
+        return send(null, null, false);
       }
-      send(halfRect(el, over.edge, getState().appearance.uiScale));
+
+      const edge = over?.type === "pane-split" ? over.edge : null;
+      const merge = active.paneId !== targetPaneId;
+      if (!edge && !merge) return send(null, null, false);
+      send(paneRect(el, getState().appearance.uiScale), edge, merge);
     },
-    onDragEnd: () => send(null),
-    onDragCancel: () => send(null),
+    onDragEnd: () => send(null, null, false),
+    onDragCancel: () => send(null, null, false),
   });
 
   return null;

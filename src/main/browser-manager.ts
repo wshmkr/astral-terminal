@@ -79,13 +79,21 @@ const DIM_HTML =
     </style>`,
   );
 
+// Two stacked layers matching the terminal panes' DOM hints exactly: a
+// full-bleed merge tint at 0.1 and an edge split preview at 0.25, each a
+// separate element with its own opacity so they composite identically.
 const SPLIT_PREVIEW_HTML =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
     `<style>
-      html,body { margin:0; height:100%; box-sizing:border-box; }
-      body { box-sizing:border-box; background:transparent; border:1px solid transparent; }
-    </style>`,
+      html,body { margin:0; height:100%; }
+      #m,#s { position:absolute; background:var(--c,transparent); pointer-events:none; display:none; }
+      #m { inset:0; opacity:0.1; }
+      #s { opacity:0.25; }
+      #s.right { top:0; right:0; bottom:0; width:50%; }
+      #s.bottom { left:0; right:0; bottom:0; height:50%; }
+    </style>
+    <div id="m"></div><div id="s"></div>`,
   );
 
 const MAX_FAVICON_BYTES = 256 * 1024;
@@ -207,12 +215,14 @@ export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
   private dimVisible = false;
-  // Top-most overlay that previews where a dragged tab will land, drawn above
-  // browser views (which would otherwise occlude the renderer's DOM preview)
+  // Top-most overlay covering a browser pane's surface body during a tab drag,
+  // mirroring the renderer's DOM drop hints (which native browser views would
+  // otherwise occlude): a full-pane merge tint plus an edge split preview
   private splitPreviewView: WebContentsView | null = null;
   private splitPreviewReady = false;
-  private splitPreviewFill: string | null = null;
-  private splitPreviewStroke: string | null = null;
+  private splitPreviewColor: string | null = null;
+  private splitPreviewEdge: "right" | "bottom" | null = null;
+  private splitPreviewMerge = false;
   private dimReady = false;
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
@@ -552,7 +562,7 @@ export class BrowserManager {
     view.setVisible(false);
     view.webContents.once("did-finish-load", () => {
       this.splitPreviewReady = true;
-      this.applySplitPreviewColors();
+      this.applySplitPreviewState();
     });
     view.webContents.loadURL(SPLIT_PREVIEW_HTML).catch((err) => {
       console.error("[browser] split-preview loadURL failed:", err);
@@ -562,14 +572,20 @@ export class BrowserManager {
     return view;
   }
 
-  private applySplitPreviewColors(): void {
+  private applySplitPreviewState(): void {
     if (!this.splitPreviewView || !this.splitPreviewReady) return;
-    const fill = this.splitPreviewFill ?? "transparent";
-    const stroke = this.splitPreviewStroke ?? "transparent";
+    const color = this.splitPreviewColor ?? "transparent";
+    const merge = this.splitPreviewMerge ? "block" : "none";
+    const edge = this.splitPreviewEdge ?? "";
     this.splitPreviewView.webContents
       .executeJavaScript(
-        `document.body.style.background=${JSON.stringify(fill)};` +
-          `document.body.style.borderColor=${JSON.stringify(stroke)};`,
+        `(() => {
+          document.documentElement.style.setProperty('--c', ${JSON.stringify(color)});
+          const m = document.getElementById('m');
+          const s = document.getElementById('s');
+          if (m) m.style.display = ${JSON.stringify(merge)};
+          if (s) { s.className = ${JSON.stringify(edge)}; s.style.display = ${JSON.stringify(edge ? "block" : "none")}; }
+        })()`,
       )
       .catch(() => {});
   }
@@ -580,23 +596,27 @@ export class BrowserManager {
     this.window.contentView.addChildView(this.splitPreviewView);
   }
 
-  setSplitPreview(rect: ScreenRect | null, fill: string, stroke: string): void {
+  setSplitPreview(
+    rect: ScreenRect | null,
+    edge: "right" | "bottom" | null,
+    merge: boolean,
+    color: string,
+  ): void {
     if (!rect) {
       this.splitPreviewView?.setVisible(false);
       return;
     }
     const view = this.ensureSplitPreviewView();
-    if (this.splitPreviewFill !== fill || this.splitPreviewStroke !== stroke) {
-      this.splitPreviewFill = fill;
-      this.splitPreviewStroke = stroke;
-      this.applySplitPreviewColors();
-    }
+    this.splitPreviewColor = color;
+    this.splitPreviewEdge = edge;
+    this.splitPreviewMerge = merge;
     view.setBounds({
       x: rect.x,
       y: rect.y,
       width: rect.width,
       height: rect.height,
     });
+    this.applySplitPreviewState();
     this.bringSplitPreviewToTop();
     view.setVisible(true);
   }

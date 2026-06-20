@@ -92,8 +92,9 @@ export interface AppAPI {
   setBrowserVisible: (surfaceId: string, visible: boolean) => void;
   setBrowserSplitPreview: (
     rect: ScreenRect | null,
-    fill: string,
-    stroke: string,
+    edge: "right" | "bottom" | null,
+    merge: boolean,
+    color: string,
   ) => void;
   loadBrowserURL: (surfaceId: string, url: string) => void;
   browserCommand: (surfaceId: string, cmd: BrowserCommand) => void;

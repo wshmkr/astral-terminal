@@ -422,9 +422,14 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
     IPC.browser.setSplitPreview,
     (
       _event,
-      msg: { rect: ScreenRect | null; fill: string; stroke: string },
+      msg: {
+        rect: ScreenRect | null;
+        edge: "right" | "bottom" | null;
+        merge: boolean;
+        color: string;
+      },
     ) => {
-      browserManager.setSplitPreview(msg.rect, msg.fill, msg.stroke);
+      browserManager.setSplitPreview(msg.rect, msg.edge, msg.merge, msg.color);
     },
   );
 
