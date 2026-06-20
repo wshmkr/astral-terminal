@@ -260,6 +260,13 @@ export class BrowserManager {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
       if (this.dimVisible) this.applyDimBounds();
+      // The split preview's bounds come from a renderer-measured rect we can't
+      // recompute here, so hide it on window geometry changes rather than let
+      // it sit misaligned; the next drag-over re-shows it with a fresh rect.
+      if (this.splitPreviewVisible) {
+        this.splitPreviewVisible = false;
+        this.splitPreviewView?.setVisible(false);
+      }
     };
     this.window.on("resize", reapplyAll);
     this.window.on("maximize", reapplyAll);
