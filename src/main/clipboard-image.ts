@@ -1,9 +1,9 @@
+import { createHash, randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 const PASTE_DIR = path.join(os.tmpdir(), "astral-terminal");
-const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/png": "png",
@@ -19,29 +19,30 @@ export async function saveClipboardImage(
   mime: string,
 ): Promise<string> {
   await fs.mkdir(PASTE_DIR, { recursive: true });
-  void pruneStalePasteFiles();
   const ext = EXT_BY_MIME[mime] ?? "png";
-  const filePath = path.join(PASTE_DIR, `image-${Date.now()}.${ext}`);
-  await fs.writeFile(filePath, Buffer.from(bytes));
+  const hash = createHash("sha256").update(bytes).digest("hex");
+  const filePath = path.join(PASTE_DIR, `image-${hash}.${ext}`);
+  if (await pathExists(filePath)) return filePath;
+  await writeFileAtomic(filePath, Buffer.from(bytes));
   return filePath;
 }
 
-async function pruneStalePasteFiles(): Promise<void> {
+async function pathExists(filePath: string): Promise<boolean> {
   try {
-    const cutoff = Date.now() - MAX_AGE_MS;
-    const names = await fs.readdir(PASTE_DIR);
-    await Promise.all(
-      names.map(async (name) => {
-        const filePath = path.join(PASTE_DIR, name);
-        try {
-          const stat = await fs.stat(filePath);
-          if (stat.mtimeMs < cutoff) await fs.unlink(filePath);
-        } catch {
-          // File vanished or is inaccessible; nothing to prune.
-        }
-      }),
-    );
+    await fs.access(filePath);
+    return true;
   } catch {
-    // Directory missing or unreadable; pruning is best-effort.
+    return false;
+  }
+}
+
+async function writeFileAtomic(filePath: string, data: Buffer): Promise<void> {
+  const tmpPath = path.join(PASTE_DIR, `.tmp-${randomUUID()}`);
+  try {
+    await fs.writeFile(tmpPath, data);
+    await fs.rename(tmpPath, filePath);
+  } catch (err) {
+    await fs.rm(tmpPath, { force: true });
+    throw err;
   }
 }
