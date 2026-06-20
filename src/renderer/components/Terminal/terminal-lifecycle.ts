@@ -23,7 +23,7 @@ import {
 import type { FindController, FindMatches } from "../Find/FindBar";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
-import { pasteText } from "./paste";
+import { pasteClipboardImage, pasteText } from "./paste";
 
 const RESIZE_DEBOUNCE_MS = 100;
 
@@ -142,25 +142,64 @@ function attachClipboardHandlers(
   term: Terminal,
   container: HTMLElement,
   onRequestFind: () => void,
-  opts: { surfaceId: string; linkHover: LinkHoverState; isLive: () => boolean },
+  opts: {
+    surfaceId: string;
+    linkHover: LinkHoverState;
+    isLive: () => boolean;
+    getCwd: () => string;
+  },
 ): () => void {
-  const pasteFromClipboard = () => {
+  const pasteImageFromClipboard = async (
+    items: ClipboardItems,
+  ): Promise<boolean> => {
+    for (const item of items) {
+      if (item.types.includes("text/plain")) return false;
+    }
+    for (const item of items) {
+      const imageType = item.types.find((type) => type.startsWith("image/"));
+      if (imageType) {
+        const blob = await item.getType(imageType);
+        await pasteClipboardImage(term, blob, opts.getCwd(), opts.isLive);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const pasteTextFromClipboard = () => {
     navigator.clipboard
       .readText()
-      .then((text) => {
-        pasteText(term, text, opts.isLive);
+      .then((text) => pasteText(term, text, opts.isLive))
+      .catch((err) => console.warn("Clipboard read failed:", err));
+  };
+
+  const pasteFromClipboard = () => {
+    navigator.clipboard
+      .read()
+      .then(async (items) => {
+        if (!(await pasteImageFromClipboard(items))) pasteTextFromClipboard();
       })
-      .catch((err) => {
-        console.warn("Clipboard read failed:", err);
-      });
+      .catch(pasteTextFromClipboard);
   };
 
   const onPaste = (e: ClipboardEvent) => {
-    const text = e.clipboardData?.getData("text/plain");
-    if (!text) return;
+    const data = e.clipboardData;
+    if (!data) return;
+    const text = data.getData("text/plain");
+    if (text) {
+      e.preventDefault();
+      e.stopPropagation();
+      pasteText(term, text, opts.isLive);
+      return;
+    }
+    const imageItem = Array.from(data.items).find((item) =>
+      item.type.startsWith("image/"),
+    );
+    const file = imageItem?.getAsFile();
+    if (!file) return;
     e.preventDefault();
     e.stopPropagation();
-    pasteText(term, text, opts.isLive);
+    void pasteClipboardImage(term, file, opts.getCwd(), opts.isLive);
   };
   container.addEventListener("paste", onPaste, true);
 
@@ -280,6 +319,7 @@ export class TerminalController implements SurfaceController, FindController {
         surfaceId: opts.surfaceId,
         linkHover,
         isLive: () => !this.disposed,
+        getCwd: () => opts.getLiveSurface().cwd,
       }),
       attachDropHandlers(
         opts.container,

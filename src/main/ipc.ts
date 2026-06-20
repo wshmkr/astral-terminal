@@ -42,6 +42,7 @@ import {
 } from "./auto-update";
 import { hideBrowserFindWindow } from "./browser-find-window";
 import type { BrowserManager } from "./browser-manager";
+import { saveClipboardImage } from "./clipboard-image";
 import { openInSystemBrowser, showLinkContextMenu } from "./external-links";
 import {
   hideNotificationPanel,
@@ -138,6 +139,12 @@ export function registerPtyIpc({
       m.write(msg.ptyId, msg.data);
     });
   });
+
+  ipcMain.handle(
+    IPC.clipboard.saveImage,
+    (_event, msg: { bytes: Uint8Array; mime: string }) =>
+      saveClipboardImage(msg.bytes, msg.mime),
+  );
 
   ipcMain.on(
     IPC.pty.resize,

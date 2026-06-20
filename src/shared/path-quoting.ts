@@ -9,3 +9,10 @@ export function windowsPathToWsl(path: string): string {
   if (!m?.[1]) return path;
   return `/mnt/${m[1].toLowerCase()}/${path.slice(3).replace(/\\/g, "/")}`;
 }
+
+export function quotePathForCwd(filePath: string, cwd: string): string {
+  const normalized = cwd.startsWith("/")
+    ? windowsPathToWsl(filePath)
+    : filePath;
+  return quoteForPosixShell(normalized);
+}
