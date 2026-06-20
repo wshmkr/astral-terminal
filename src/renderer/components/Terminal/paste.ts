@@ -24,5 +24,8 @@ export async function pasteClipboardImage(
     if (filePath) pasteText(term, quotePathForCwd(filePath, cwd), isLive);
   } catch (err) {
     console.warn("Clipboard image paste failed:", err);
+    // The paste event was already consumed, so a failed save is otherwise
+    // invisible; ring the bell so it does not look like nothing happened.
+    term.write("\x07");
   }
 }
