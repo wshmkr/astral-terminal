@@ -275,8 +275,13 @@ export class BrowserManager {
     this.window.on("leave-full-screen", reapplyAll);
   }
 
-  private ensureDimView(): WebContentsView {
-    if (this.dimView) return this.dimView;
+  // Shared bootstrap for the transparent, top-most overlay views (dim + split
+  // preview): create hidden, load HTML, fire onReady once loaded, add to top.
+  private createOverlayView(
+    html: string,
+    label: string,
+    onReady: () => void,
+  ): WebContentsView {
     const view = new WebContentsView({
       webPreferences: {
         contextIsolation: true,
@@ -286,16 +291,21 @@ export class BrowserManager {
     });
     view.setBackgroundColor("#00000000");
     view.setVisible(false);
-    view.webContents.once("did-finish-load", () => {
+    view.webContents.once("did-finish-load", onReady);
+    view.webContents.loadURL(html).catch((err) => {
+      console.error(`[browser] ${label} loadURL failed:`, err);
+    });
+    this.window.contentView.addChildView(view);
+    return view;
+  }
+
+  private ensureDimView(): WebContentsView {
+    if (this.dimView) return this.dimView;
+    this.dimView = this.createOverlayView(DIM_HTML, "dim", () => {
       this.dimReady = true;
       this.applyDimClass();
     });
-    view.webContents.loadURL(DIM_HTML).catch((err) => {
-      console.error("[browser] dim loadURL failed:", err);
-    });
-    this.window.contentView.addChildView(view);
-    this.dimView = view;
-    return view;
+    return this.dimView;
   }
 
   private applyDimClass(): void {
@@ -559,25 +569,15 @@ export class BrowserManager {
 
   private ensureSplitPreviewView(): WebContentsView {
     if (this.splitPreviewView) return this.splitPreviewView;
-    const view = new WebContentsView({
-      webPreferences: {
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
+    this.splitPreviewView = this.createOverlayView(
+      SPLIT_PREVIEW_HTML,
+      "split-preview",
+      () => {
+        this.splitPreviewReady = true;
+        this.showSplitPreviewWhenReady();
       },
-    });
-    view.setBackgroundColor("#00000000");
-    view.setVisible(false);
-    view.webContents.once("did-finish-load", () => {
-      this.splitPreviewReady = true;
-      this.showSplitPreviewWhenReady();
-    });
-    view.webContents.loadURL(SPLIT_PREVIEW_HTML).catch((err) => {
-      console.error("[browser] split-preview loadURL failed:", err);
-    });
-    this.window.contentView.addChildView(view);
-    this.splitPreviewView = view;
-    return view;
+    );
+    return this.splitPreviewView;
   }
 
   private applySplitPreviewState(): Promise<void> {
