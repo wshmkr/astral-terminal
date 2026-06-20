@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 const PASTE_DIR = path.join(os.tmpdir(), "astral-terminal");
+const MAX_IMAGE_BYTES = 64 * 1024 * 1024;
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/png": "png",
@@ -18,6 +19,12 @@ export async function saveClipboardImage(
   bytes: Uint8Array,
   mime: string,
 ): Promise<string> {
+  if (bytes.byteLength === 0) {
+    throw new Error("saveClipboardImage: empty image payload");
+  }
+  if (bytes.byteLength > MAX_IMAGE_BYTES) {
+    throw new Error("saveClipboardImage: image payload exceeds size limit");
+  }
   await fs.mkdir(PASTE_DIR, { recursive: true });
   const ext = EXT_BY_MIME[mime] ?? "png";
   const hash = createHash("sha256").update(bytes).digest("hex");
