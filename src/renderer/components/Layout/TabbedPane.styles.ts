@@ -32,6 +32,54 @@ export const DROP_TARGET_OVERLAY_SX = {
   },
 } as const;
 
+export const SPLIT_ZONES_CONTAINER_SX = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 10,
+  pointerEvents: "none",
+} as const;
+
+const SPLIT_ZONE_PREVIEW_BASE = {
+  position: "absolute",
+  bgcolor: "primary.main",
+  opacity: 0.25,
+  border: "1px solid",
+  borderColor: "primary.main",
+  pointerEvents: "none",
+} as const;
+
+// Thin edge bands are the drop targets; previews show the half the new pane
+// will occupy. Bands are kept narrow and non-overlapping so the bottom-right
+// corner resolves to exactly one zone.
+export const SPLIT_ZONE_GEOMETRY = {
+  right: {
+    band: { position: "absolute", top: 0, right: 0, bottom: 0, width: "30%" },
+    preview: {
+      ...SPLIT_ZONE_PREVIEW_BASE,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: "50%",
+    },
+  },
+  bottom: {
+    band: {
+      position: "absolute",
+      left: 0,
+      bottom: 0,
+      right: "30%",
+      height: "30%",
+    },
+    preview: {
+      ...SPLIT_ZONE_PREVIEW_BASE,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: "50%",
+    },
+  },
+} as const;
+
 export const TAB_BAR_SX = {
   display: "flex",
   alignItems: "flex-end",

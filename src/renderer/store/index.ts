@@ -73,5 +73,6 @@ export {
   setBrowserSurfaceUrl,
   setFocusedPane,
   splitPane,
+  splitPaneWithSurface,
   updateTerminalSurface,
 } from "./workspaces";

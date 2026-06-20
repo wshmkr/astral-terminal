@@ -444,3 +444,42 @@ export function moveSurfaceToPane(
     setState({ ...s, focusedPaneId: targetPaneId });
   commit();
 }
+
+export function splitPaneWithSurface(
+  sourcePaneId: string,
+  surfaceId: string,
+  targetPaneId: string,
+  direction: SplitDirection,
+): void {
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
+  const surface = sourceLeaf?.surfaces.find((s) => s.id === surfaceId);
+  if (!sourceLeaf || !surface) return;
+  if (sourcePaneId === targetPaneId && sourceLeaf.surfaces.length === 1) return;
+
+  const newLeaf: LeafPane = {
+    kind: "leaf",
+    id: generateId(),
+    surfaces: [surface],
+    activeSurfaceId: surface.id,
+  };
+  const afterSplit = mapNode(ws.layout, targetPaneId, (node) => ({
+    kind: "split" as const,
+    id: generateId(),
+    direction,
+    children: [node, newLeaf],
+  }));
+  if (afterSplit === ws.layout) return;
+
+  const nextLayout = removeSurfaceFromLayout(
+    afterSplit,
+    sourcePaneId,
+    surfaceId,
+  );
+  if (!nextLayout) return;
+
+  setWorkspaceLayout(ws.id, nextLayout);
+  setState({ ...getState(), focusedPaneId: newLeaf.id });
+  commit();
+}

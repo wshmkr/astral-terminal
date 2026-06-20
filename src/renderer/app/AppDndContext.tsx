@@ -22,6 +22,7 @@ import {
   moveSurfaceToPane,
   reorderSurfaces,
   reorderWorkspaces,
+  splitPaneWithSurface,
 } from "../store";
 import { getDragData, getDragPaneId } from "./dnd-types";
 
@@ -90,6 +91,16 @@ export function AppDndContext({ children }: Props) {
     const overData = getDragData(over);
     const targetPaneId = getDragPaneId(overData);
     if (!targetPaneId) return;
+
+    if (overData?.type === "pane-split") {
+      splitPaneWithSurface(
+        activeData.paneId,
+        String(active.id),
+        targetPaneId,
+        overData.edge === "right" ? "vertical" : "horizontal",
+      );
+      return;
+    }
 
     if (targetPaneId !== activeData.paneId) {
       moveSurfaceToPane(activeData.paneId, String(active.id), targetPaneId);
