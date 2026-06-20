@@ -1,6 +1,6 @@
 import { useDndMonitor } from "@dnd-kit/core";
 import { useTheme } from "@mui/material/styles";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { isBrowserSurface, type ScreenRect } from "../../shared/types";
 import { findLeafPane, getActiveSurface } from "../components/Layout/pane-tree";
 import { getActiveWorkspace, getState } from "../store/core";
@@ -39,6 +39,14 @@ export function SplitPreviewBridge() {
     lastKey.current = key;
     window.app.setBrowserSplitPreview(rect, edge, merge, color);
   }
+
+  // This component is mounted only for the active workspace, so a workspace
+  // switch mid-drag unmounts it before onDragEnd fires; clear the native
+  // overlay on unmount so it can't get stuck visible.
+  useEffect(
+    () => () => window.app.setBrowserSplitPreview(null, null, false, ""),
+    [],
+  );
 
   useDndMonitor({
     onDragOver(event) {
