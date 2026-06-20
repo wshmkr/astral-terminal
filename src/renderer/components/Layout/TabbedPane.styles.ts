@@ -1,3 +1,5 @@
+import { SPLIT_PREVIEW_COLOR } from "../../../shared/types";
+
 export const ROOT_SX = {
   width: "100%",
   height: "100%",
@@ -27,7 +29,7 @@ export const ATTENTION_OUTLINE_SX = {
 export const DROP_TARGET_OVERLAY_SX = {
   "&::after": {
     ...PANE_OVERLAY_BASE,
-    bgcolor: "primary.main",
+    bgcolor: SPLIT_PREVIEW_COLOR,
     opacity: 0.1,
   },
 } as const;
@@ -41,10 +43,10 @@ export const SPLIT_ZONES_CONTAINER_SX = {
 
 const SPLIT_ZONE_PREVIEW_BASE = {
   position: "absolute",
-  bgcolor: "primary.main",
+  bgcolor: SPLIT_PREVIEW_COLOR,
   opacity: 0.25,
   border: "1px solid",
-  borderColor: "primary.main",
+  borderColor: SPLIT_PREVIEW_COLOR,
   pointerEvents: "none",
 } as const;
 

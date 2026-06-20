@@ -1,7 +1,10 @@
 import { useDndMonitor } from "@dnd-kit/core";
-import { useTheme } from "@mui/material/styles";
 import { useEffect, useRef } from "react";
-import { isBrowserSurface, type ScreenRect } from "../../shared/types";
+import {
+  isBrowserSurface,
+  type ScreenRect,
+  SPLIT_PREVIEW_COLOR,
+} from "../../shared/types";
 import { findLeafPane, getActiveSurface } from "../components/Layout/pane-tree";
 import { getActiveWorkspace, getState } from "../store/core";
 import { getDragData, getDragPaneId, type SplitEdge } from "./dnd-types";
@@ -23,7 +26,7 @@ function paneRect(el: HTMLElement, zoom: number): ScreenRect {
 }
 
 export function SplitPreviewBridge() {
-  const color = useTheme().palette.primary.main;
+  const color = SPLIT_PREVIEW_COLOR;
   const getSurfaceBody = useSurfaceBodyGetter();
   const lastKey = useRef<string>("");
 
