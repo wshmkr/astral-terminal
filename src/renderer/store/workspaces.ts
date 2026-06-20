@@ -456,7 +456,6 @@ export function splitPaneWithSurface(
   const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
   const surface = sourceLeaf?.surfaces.find((s) => s.id === surfaceId);
   if (!sourceLeaf || !surface) return;
-  if (sourcePaneId === targetPaneId && sourceLeaf.surfaces.length === 1) return;
 
   const newLeaf: LeafPane = {
     kind: "leaf",
@@ -472,11 +471,22 @@ export function splitPaneWithSurface(
   }));
   if (afterSplit === ws.layout) return;
 
-  const nextLayout = removeSurfaceFromLayout(
-    afterSplit,
-    sourcePaneId,
-    surfaceId,
-  );
+  // Splitting a pane's only tab onto its own edge would prune the now-empty
+  // source and collapse the split back to a no-op; instead leave a fresh
+  // terminal where the dragged tab used to be so the split actually takes.
+  const isSoleSelfSplit =
+    sourcePaneId === targetPaneId && sourceLeaf.surfaces.length === 1;
+  const nextLayout = isSoleSelfSplit
+    ? updateLeafInLayout(afterSplit, sourcePaneId, (leaf) => {
+        const cwd = isTerminalSurface(surface) ? surface.cwd : undefined;
+        const replacement = createTerminalSurface(cwd);
+        return {
+          ...leaf,
+          surfaces: [replacement],
+          activeSurfaceId: replacement.id,
+        };
+      })
+    : removeSurfaceFromLayout(afterSplit, sourcePaneId, surfaceId);
   if (!nextLayout) return;
 
   setWorkspaceLayout(ws.id, nextLayout);
