@@ -223,6 +223,7 @@ export class BrowserManager {
   private splitPreviewColor: string | null = null;
   private splitPreviewEdge: "right" | "bottom" | null = null;
   private splitPreviewMerge = false;
+  private splitPreviewVisible = false;
   private dimReady = false;
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
@@ -562,7 +563,7 @@ export class BrowserManager {
     view.setVisible(false);
     view.webContents.once("did-finish-load", () => {
       this.splitPreviewReady = true;
-      this.applySplitPreviewState();
+      this.showSplitPreviewWhenReady();
     });
     view.webContents.loadURL(SPLIT_PREVIEW_HTML).catch((err) => {
       console.error("[browser] split-preview loadURL failed:", err);
@@ -572,12 +573,14 @@ export class BrowserManager {
     return view;
   }
 
-  private applySplitPreviewState(): void {
-    if (!this.splitPreviewView || !this.splitPreviewReady) return;
+  private applySplitPreviewState(): Promise<void> {
+    if (!this.splitPreviewView || !this.splitPreviewReady) {
+      return Promise.resolve();
+    }
     const color = this.splitPreviewColor ?? "transparent";
     const merge = this.splitPreviewMerge ? "block" : "none";
     const edge = this.splitPreviewEdge ?? "";
-    this.splitPreviewView.webContents
+    return this.splitPreviewView.webContents
       .executeJavaScript(
         `(() => {
           document.documentElement.style.setProperty('--c', ${JSON.stringify(color)});
@@ -587,6 +590,7 @@ export class BrowserManager {
           if (s) { s.className = ${JSON.stringify(edge)}; s.style.display = ${JSON.stringify(edge ? "block" : "none")}; }
         })()`,
       )
+      .then(() => {})
       .catch(() => {});
   }
 
@@ -596,6 +600,18 @@ export class BrowserManager {
     this.window.contentView.addChildView(this.splitPreviewView);
   }
 
+  // Reveal the overlay only after its content/color have actually been applied
+  // (and after the first load), so the first frame is never empty or stale.
+  private showSplitPreviewWhenReady(): void {
+    const view = this.splitPreviewView;
+    if (!view || !this.splitPreviewReady) return;
+    void this.applySplitPreviewState().then(() => {
+      if (!this.splitPreviewVisible) return;
+      this.bringSplitPreviewToTop();
+      view.setVisible(true);
+    });
+  }
+
   setSplitPreview(
     rect: ScreenRect | null,
     edge: "right" | "bottom" | null,
@@ -603,22 +619,22 @@ export class BrowserManager {
     color: string,
   ): void {
     if (!rect) {
+      this.splitPreviewVisible = false;
       this.splitPreviewView?.setVisible(false);
       return;
     }
-    const view = this.ensureSplitPreviewView();
+    this.splitPreviewVisible = true;
     this.splitPreviewColor = color;
     this.splitPreviewEdge = edge;
     this.splitPreviewMerge = merge;
+    const view = this.ensureSplitPreviewView();
     view.setBounds({
       x: rect.x,
       y: rect.y,
       width: rect.width,
       height: rect.height,
     });
-    this.applySplitPreviewState();
-    this.bringSplitPreviewToTop();
-    view.setVisible(true);
+    this.showSplitPreviewWhenReady();
   }
 
   setDimmed(dimmed: boolean): void {
