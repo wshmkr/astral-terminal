@@ -405,6 +405,9 @@ export const IPC = {
     openExternal: "shell:open-external",
     showLinkMenu: "shell:show-link-menu",
   },
+  clipboard: {
+    saveImage: "clipboard:save-image",
+  },
   wsl: {
     listDistros: "wsl:list-distros",
   },

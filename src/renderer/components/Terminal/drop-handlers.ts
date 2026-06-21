@@ -1,8 +1,5 @@
 import type { Terminal } from "@xterm/xterm";
-import {
-  quoteForPosixShell,
-  windowsPathToWsl,
-} from "../../../shared/path-quoting";
+import { quotePathForCwd } from "../../../shared/path-quoting";
 import { pasteText } from "./paste";
 
 export function attachDropHandlers(
@@ -30,12 +27,11 @@ export function attachDropHandlers(
     onSelect();
 
     if (files.length > 0) {
-      const cwdIsPosix = getCwd().startsWith("/");
+      const cwd = getCwd();
       const quoted = files
         .map((f) => window.app.getPathForFile(f))
         .filter((p) => p.length > 0)
-        .map((p) => (cwdIsPosix ? windowsPathToWsl(p) : p))
-        .map(quoteForPosixShell);
+        .map((p) => quotePathForCwd(p, cwd));
       if (quoted.length > 0) pasteText(term, quoted.join(" "), isLive);
     } else {
       pasteText(term, text, isLive);

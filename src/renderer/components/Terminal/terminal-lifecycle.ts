@@ -23,7 +23,7 @@ import {
 import type { FindController, FindMatches } from "../Find/FindBar";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
-import { pasteText } from "./paste";
+import { pasteClipboardImage, pasteText } from "./paste";
 
 const RESIZE_DEBOUNCE_MS = 100;
 
@@ -142,25 +142,93 @@ function attachClipboardHandlers(
   term: Terminal,
   container: HTMLElement,
   onRequestFind: () => void,
-  opts: { surfaceId: string; linkHover: LinkHoverState; isLive: () => boolean },
+  opts: {
+    surfaceId: string;
+    linkHover: LinkHoverState;
+    isLive: () => boolean;
+    getCwd: () => string;
+  },
 ): () => void {
-  const pasteFromClipboard = () => {
+  // Shared by both paste triggers so their precedence can't drift.
+  type ClipboardSource = {
+    readText: () => string | Promise<string>;
+    readImage: () => Blob | null | Promise<Blob | null>;
+  };
+
+  const pasteFromSource = async (source: ClipboardSource): Promise<boolean> => {
+    const text = await source.readText();
+    if (text) {
+      pasteText(term, text, opts.isLive);
+      return true;
+    }
+    const blob = await source.readImage();
+    if (blob) {
+      await pasteClipboardImage(term, blob, opts.getCwd(), opts.isLive);
+      return true;
+    }
+    return false;
+  };
+
+  const pasteTextFromClipboard = () => {
     navigator.clipboard
       .readText()
-      .then((text) => {
-        pasteText(term, text, opts.isLive);
-      })
-      .catch((err) => {
-        console.warn("Clipboard read failed:", err);
+      .then((text) => pasteText(term, text, opts.isLive))
+      .catch((err) => console.warn("Clipboard read failed:", err));
+  };
+
+  const pasteFromClipboard = async () => {
+    let items: ClipboardItems;
+    try {
+      items = await navigator.clipboard.read();
+    } catch {
+      // read() can be denied or unsupported; plain text may still work.
+      pasteTextFromClipboard();
+      return;
+    }
+    let handled: boolean;
+    let attemptedImageRead = false;
+    try {
+      handled = await pasteFromSource({
+        readText: async () => {
+          const item = items.find((it) => it.types.includes("text/plain"));
+          return item ? (await item.getType("text/plain")).text() : "";
+        },
+        readImage: async () => {
+          for (const item of items) {
+            const imageType = item.types.find((type) =>
+              type.startsWith("image/"),
+            );
+            if (imageType) {
+              attemptedImageRead = true;
+              return item.getType(imageType);
+            }
+          }
+          return null;
+        },
       });
+    } catch (err) {
+      // Surface a failed read instead of pasting unrelated clipboard text.
+      console.warn("Clipboard image paste failed:", err);
+      if (attemptedImageRead) term.write("\x07");
+      return;
+    }
+    if (!handled) pasteTextFromClipboard();
   };
 
   const onPaste = (e: ClipboardEvent) => {
-    const text = e.clipboardData?.getData("text/plain");
-    if (!text) return;
+    const data = e.clipboardData;
+    if (!data) return;
+    const text = data.getData("text/plain");
+    const imageItem = Array.from(data.items).find((item) =>
+      item.type.startsWith("image/"),
+    );
+    if (!text && !imageItem) return;
     e.preventDefault();
     e.stopPropagation();
-    pasteText(term, text, opts.isLive);
+    void pasteFromSource({
+      readText: () => text,
+      readImage: () => imageItem?.getAsFile() ?? null,
+    });
   };
   container.addEventListener("paste", onPaste, true);
 
@@ -182,7 +250,7 @@ function attachClipboardHandlers(
         break;
       }
       case "terminal.paste":
-        pasteFromClipboard();
+        void pasteFromClipboard();
         break;
       case "terminal.find":
         onRequestFind();
@@ -205,7 +273,7 @@ function attachClipboardHandlers(
       navigator.clipboard.writeText(sel);
       term.clearSelection();
     } else {
-      pasteFromClipboard();
+      void pasteFromClipboard();
     }
   };
   container.addEventListener("contextmenu", onContextMenu);
@@ -280,6 +348,7 @@ export class TerminalController implements SurfaceController, FindController {
         surfaceId: opts.surfaceId,
         linkHover,
         isLive: () => !this.disposed,
+        getCwd: () => opts.getLiveSurface().cwd,
       }),
       attachDropHandlers(
         opts.container,

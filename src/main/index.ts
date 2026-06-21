@@ -17,6 +17,7 @@ import { BrowserManager } from "./browser-manager";
 import { registerActiveRefIpc } from "./cli/active-ref";
 import { registerAppIdentify } from "./cli/methods/app-identify";
 import { getCliServer } from "./cli/server";
+import { clearPasteImages } from "./clipboard-image";
 import { loadConfig } from "./config";
 import { IS_DEV } from "./env";
 import {
@@ -118,6 +119,7 @@ const startup = app.whenReady().then(async () => {
   installCsp();
   // Dev restarts/crashes orphan pty trees; sweep them on launch
   if (IS_DEV) void reapOrphanedPtys();
+  void clearPasteImages();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
   registerWindowIpc({ getMainWindow });

@@ -102,6 +102,9 @@ contextBridge.exposeInMainWorld("app", {
 
   getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 
+  saveClipboardImage: (bytes: Uint8Array, mime: string): Promise<string> =>
+    ipcRenderer.invoke(IPC.clipboard.saveImage, { bytes, mime }),
+
   setUiZoom: (factor: number) => webFrame.setZoomFactor(factor),
 
   openExternal: (url: string) =>
