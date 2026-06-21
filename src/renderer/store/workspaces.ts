@@ -368,10 +368,7 @@ export function setActiveSurface(paneId: string, surfaceId: string): void {
   else if (notifsChanged) notify();
 }
 
-// Navigates to the surface that triggered a notification. The paneId captured
-// when the notification fired may be stale (panes get split/moved/closed while
-// the app stays open), so we re-resolve the current pane from the surfaceId and
-// only fall back to the captured ids when the surface can't be found.
+// Re-resolves the surface's current pane, as the captured ids may be stale.
 export function navigateToSurface(
   workspaceId: string,
   paneId: string,
