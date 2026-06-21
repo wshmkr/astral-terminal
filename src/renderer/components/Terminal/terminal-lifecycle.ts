@@ -155,6 +155,13 @@ function attachClipboardHandlers(
       });
   };
 
+  const copySelection = (sel: string) => {
+    navigator.clipboard.writeText(sel).catch((err) => {
+      console.warn("Clipboard write failed:", err);
+    });
+    term.clearSelection();
+  };
+
   const onPaste = (e: ClipboardEvent) => {
     const text = e.clipboardData?.getData("text/plain");
     if (!text) return;
@@ -178,8 +185,7 @@ function attachClipboardHandlers(
       const sel = term.getSelection();
       if (!sel) return true; // no selection: let the key reach the PTY (Ctrl+C -> SIGINT)
       e.preventDefault();
-      navigator.clipboard.writeText(sel);
-      term.clearSelection();
+      copySelection(sel);
       return false;
     }
     e.preventDefault();
@@ -205,8 +211,7 @@ function attachClipboardHandlers(
     }
     const sel = term.getSelection();
     if (sel) {
-      navigator.clipboard.writeText(sel);
-      term.clearSelection();
+      copySelection(sel);
     } else {
       pasteFromClipboard();
     }
