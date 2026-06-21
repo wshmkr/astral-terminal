@@ -1,5 +1,7 @@
 export type Scope = "global" | "terminal" | "browser";
 
+export type Platform = "mac" | "other";
+
 export type CommandId =
   | "pane.splitRight"
   | "pane.splitDown"
@@ -39,4 +41,5 @@ export interface Binding {
   command: CommandId;
   combo: string;
   scope: Scope;
+  platform?: Platform; // omitted = every platform
 }

@@ -179,6 +179,7 @@ function attachClipboardHandlers(
       if (!sel) return true; // no selection: let the key reach the PTY (Ctrl+C -> SIGINT)
       e.preventDefault();
       navigator.clipboard.writeText(sel);
+      term.clearSelection();
       return false;
     }
     e.preventDefault();

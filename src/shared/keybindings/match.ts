@@ -151,8 +151,10 @@ export function matchBinding(
   isMac: boolean,
   scope: Scope,
 ): CommandId | null {
+  const platform = isMac ? "mac" : "other";
   for (const binding of bindings) {
     if (binding.scope !== scope) continue;
+    if (binding.platform && binding.platform !== platform) continue;
     if (matches(event, parseCombo(binding.combo), isMac))
       return binding.command;
   }
