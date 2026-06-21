@@ -13,8 +13,7 @@ import {
   formatNotificationDisplay,
   getState,
   markNotificationRead,
-  setActiveSurface,
-  setActiveWorkspace,
+  navigateToSurface,
   subscribeWorkspaceStore,
 } from "../store";
 
@@ -56,8 +55,7 @@ function deriveNotificationPanelState(s: AppState): NotificationPanelState {
 const HANDLERS: NotificationPanelActionMap = {
   select: (workspaceId, paneId, surfaceId, notifId) => {
     markNotificationRead(workspaceId, notifId);
-    setActiveWorkspace(workspaceId);
-    setActiveSurface(paneId, surfaceId);
+    navigateToSurface(workspaceId, paneId, surfaceId);
     window.app.closeNotificationPanel();
   },
   dismiss: (workspaceId, notifId) => {

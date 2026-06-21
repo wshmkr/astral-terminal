@@ -18,9 +18,8 @@ import {
   formatNotificationDisplay,
   getState,
   isUserActivelyViewing,
+  navigateToSurface,
   onNotificationAdded,
-  setActiveSurface,
-  setActiveWorkspace,
   setAgentHook,
   setAgentHookStatuses,
   setUpdateStatus,
@@ -105,8 +104,7 @@ export function App() {
   useEffect(() => {
     return window.app.onNotificationClick(
       ({ workspaceId, paneId, surfaceId }) => {
-        setActiveWorkspace(workspaceId);
-        setActiveSurface(paneId, surfaceId);
+        navigateToSurface(workspaceId, paneId, surfaceId);
       },
     );
   }, []);

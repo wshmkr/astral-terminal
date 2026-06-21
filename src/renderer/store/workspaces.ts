@@ -393,6 +393,17 @@ export function setActiveSurface(paneId: string, surfaceId: string): void {
   else if (notifsChanged) notify();
 }
 
+// Re-resolves the surface's current pane, as the captured ids may be stale.
+export function navigateToSurface(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+): void {
+  const located = findPaneBySurfaceId(surfaceId);
+  setActiveWorkspace(located?.workspaceId ?? workspaceId);
+  setActiveSurface(located?.paneId ?? paneId, surfaceId);
+}
+
 export function resizeSplit(splitNodeId: string, sizes: number[]): void {
   const ws = getActiveWorkspace();
   if (!ws) return;
