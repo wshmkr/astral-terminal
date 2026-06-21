@@ -485,9 +485,7 @@ export function splitPaneWithSurface(
   );
   if (afterSplit === ws.layout) return;
 
-  // Splitting a pane's only tab onto its own edge would prune the now-empty
-  // source and collapse the split back to a no-op; instead leave a fresh
-  // terminal where the dragged tab used to be so the split actually takes.
+  // Leave a fresh terminal behind, or the emptied source prunes and the split collapses
   const isSoleSelfSplit =
     sourcePaneId === targetPaneId && sourceLeaf.surfaces.length === 1;
   const nextLayout = isSoleSelfSplit

@@ -10,11 +10,7 @@ import { getActiveWorkspace, getState } from "../store/core";
 import { getDragData, getDragPaneId, type SplitEdge } from "./dnd-types";
 import { useSurfaceBodyGetter } from "./SurfaceBodyRegistry";
 
-// Browser surfaces are native WebContentsViews that composite above the renderer
-// DOM, so the DOM drop hints (the whole-pane merge tint and the edge split
-// preview) are occluded over a browser pane. This drives a top-most native
-// overlay covering that pane's surface body, rendering the same two layers so
-// browser panes look identical to terminal panes. Terminal panes are untouched.
+// Native browser views occlude the DOM drop hints, so mirror them in a native overlay
 function paneRect(el: HTMLElement, zoom: number): ScreenRect {
   const r = el.getBoundingClientRect();
   return {
@@ -43,9 +39,7 @@ export function SplitPreviewBridge() {
     window.app.setBrowserSplitPreview(rect, edge, merge, color);
   }
 
-  // This component is mounted only for the active workspace, so a workspace
-  // switch mid-drag unmounts it before onDragEnd fires; clear the native
-  // overlay on unmount so it can't get stuck visible.
+  // A workspace switch mid-drag unmounts us before onDragEnd, so clear on unmount too
   useEffect(
     () => () => window.app.setBrowserSplitPreview(null, null, false, ""),
     [],

@@ -30,8 +30,7 @@ export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
 export const INITIAL_WINDOW_BG = "#262624";
-// Fixed blue for drag-to-split drop hints, independent of the active theme so
-// the terminal DOM hints and the native browser overlay always match.
+// Fixed so the drop hint stays consistent regardless of the active theme
 export const SPLIT_PREVIEW_COLOR = "#1976d2";
 export const SETTINGS_FADE_MS = 200;
 export const SETTINGS_FADE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";

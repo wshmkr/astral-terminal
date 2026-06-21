@@ -50,11 +50,7 @@ const SPLIT_ZONE_PREVIEW_BASE = {
   pointerEvents: "none",
 } as const;
 
-// Edge bands are the drop targets; previews show the half the new pane will
-// occupy. Each band spans its full edge (33% deep), so they overlap in the
-// bottom-right corner. That overlap is resolved by the pointerWithin collision
-// detection in AppDndContext, which picks the band whose center is nearer —
-// i.e. the nearer edge — splitting the corner along the diagonal.
+// Bands overlap in the bottom-right corner; pointerWithin resolves it to the nearer edge
 export const SPLIT_ZONE_GEOMETRY = {
   right: {
     band: { position: "absolute", top: 0, right: 0, bottom: 0, width: "33%" },

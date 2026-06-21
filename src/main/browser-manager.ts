@@ -79,9 +79,7 @@ const DIM_HTML =
     </style>`,
   );
 
-// Two stacked layers matching the terminal panes' DOM hints exactly: a
-// full-bleed merge tint at 0.1 and an edge split preview at 0.25, each a
-// separate element with its own opacity so they composite identically.
+// Mirrors the terminal DOM drop hints: a merge tint and an edge split preview
 const SPLIT_PREVIEW_HTML =
   "data:text/html;charset=utf-8," +
   encodeURIComponent(
@@ -215,9 +213,7 @@ export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
   private dimVisible = false;
-  // Top-most overlay covering a browser pane's surface body during a tab drag,
-  // mirroring the renderer's DOM drop hints (which native browser views would
-  // otherwise occlude): a full-pane merge tint plus an edge split preview
+  // Mirrors the DOM drop hints over browser panes, which native views occlude
   private splitPreviewView: WebContentsView | null = null;
   private splitPreviewReady = false;
   private splitPreviewColor: string | null = null;
@@ -260,9 +256,7 @@ export class BrowserManager {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
       if (this.dimVisible) this.applyDimBounds();
-      // The split preview's bounds come from a renderer-measured rect we can't
-      // recompute here, so hide it on window geometry changes rather than let
-      // it sit misaligned; the next drag-over re-shows it with a fresh rect.
+      // Can't recompute the renderer-measured rect here, so hide rather than misalign
       if (this.splitPreviewVisible) {
         this.splitPreviewVisible = false;
         this.splitPreviewView?.setVisible(false);
@@ -275,8 +269,6 @@ export class BrowserManager {
     this.window.on("leave-full-screen", reapplyAll);
   }
 
-  // Shared bootstrap for the transparent, top-most overlay views (dim + split
-  // preview): create hidden, load HTML, fire onReady once loaded, add to top.
   private createOverlayView(
     html: string,
     label: string,
@@ -607,8 +599,7 @@ export class BrowserManager {
     this.window.contentView.addChildView(this.splitPreviewView);
   }
 
-  // Reveal the overlay only after its content/color have actually been applied
-  // (and after the first load), so the first frame is never empty or stale.
+  // Reveal only after state is applied, so the first frame isn't empty or stale
   private showSplitPreviewWhenReady(): void {
     const view = this.splitPreviewView;
     if (!view || !this.splitPreviewReady) return;
