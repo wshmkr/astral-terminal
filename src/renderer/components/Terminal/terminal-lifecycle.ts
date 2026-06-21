@@ -174,13 +174,15 @@ function attachClipboardHandlers(
       "terminal",
     );
     if (!command) return e.key !== "ScrollLock";
+    if (command === "terminal.copy") {
+      const sel = term.getSelection();
+      if (!sel) return true; // no selection: let the key reach the PTY (Ctrl+C -> SIGINT)
+      e.preventDefault();
+      navigator.clipboard.writeText(sel);
+      return false;
+    }
     e.preventDefault();
     switch (command) {
-      case "terminal.copy": {
-        const sel = term.getSelection();
-        if (sel) navigator.clipboard.writeText(sel);
-        break;
-      }
       case "terminal.paste":
         pasteFromClipboard();
         break;
