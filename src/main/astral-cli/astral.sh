@@ -1,6 +1,6 @@
 #!/bin/sh
 # __ASTRAL_CLI_MARKER__
-# astral — query the Astral Terminal instance that spawned this shell.
+# astral — query and control the Astral Terminal instance that spawned this shell.
 # Installed and updated automatically by the app; edits here are overwritten.
 
 CLI_VERSION=__ASTRAL_CLI_VERSION__
@@ -73,20 +73,12 @@ tcp_exchange() {
   return 127
 }
 
-call() {
+# The shared transport behind every command: authenticate, send one request, print its reply.
+# Tries each candidate host, caches the first that answers, and exits non-zero on an unreachable
+# app or a non-ok reply (e.g. unauthorized).
+send_request() {
   method=$1
-  if [ -z "$method" ]; then
-    echo "astral: usage: astral call <method> [json-params]" >&2
-    return 2
-  fi
-  # method goes unescaped into the request JSON; a quote or newline could forge/split the frame
-  case "$method" in
-    *[!A-Za-z0-9._-]*)
-      echo "astral: invalid method name: $method" >&2
-      return 2
-      ;;
-  esac
-  params=${2:-null}
+  params=$2
   if [ -z "${ASTRAL_PORT:-}" ] || [ -z "${ASTRAL_TOKEN:-}" ]; then
     echo "astral: not connected to Astral Terminal (ASTRAL_PORT/ASTRAL_TOKEN unset)" >&2
     return 1
@@ -112,20 +104,82 @@ call() {
   return 1
 }
 
+# Raw-RPC escape hatch: call any server method with hand-written JSON params. Typed commands
+# (e.g. split) are the friendlier front door; this stays for methods without one yet.
+call() {
+  method=$1
+  if [ -z "$method" ]; then
+    echo "astral: usage: astral call <method> [json-params]" >&2
+    return 2
+  fi
+  # method goes unescaped into the request JSON; a quote or newline could forge/split the frame
+  case "$method" in
+    *[!A-Za-z0-9._-]*)
+      echo "astral: invalid method name: $method" >&2
+      return 2
+      ;;
+  esac
+  send_request "$method" "${2:-null}"
+}
+
+split() {
+  dir=right
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --dir)
+        if [ $# -lt 2 ]; then
+          echo "astral split: --dir needs a value" >&2
+          return 2
+        fi
+        dir=$2
+        shift 2
+        ;;
+      --help)
+        echo "usage: astral split [--dir right|down]"
+        return 0
+        ;;
+      *)
+        echo "astral split: unknown option: $1" >&2
+        return 2
+        ;;
+    esac
+  done
+  case "$dir" in
+    right | down) ;;
+    *)
+      echo "astral split: --dir must be right or down" >&2
+      return 2
+      ;;
+  esac
+  send_request surface.split "$(printf '{"direction":"%s"}' "$dir")"
+}
+
 usage() {
   cat <<EOF
 Astral Terminal CLI v$CLI_VERSION
 
 Usage:
-  astral identify              Print this surface's identity as JSON
-  astral call <method> [json]  Call a method on the running app (e.g. app.identify)
-  astral --version             Print the CLI version
-  astral --help                Show this help
+  astral <command> [options]
+
+Commands:
+  identify                  Print this surface's identity as JSON
+  split [--dir right|down]  Split the focused pane (default: right)
+  call <method> [json]      Call a raw method (escape hatch, e.g. app.identify)
+
+Options:
+  --version, -v             Print the CLI version
+  --help, -h                Show this help
+
+Run 'astral <command> --help' for command-specific options.
 EOF
 }
 
 case "${1:-}" in
   identify) identify ;;
+  split)
+    shift
+    split "$@"
+    ;;
   call)
     shift
     call "$@"

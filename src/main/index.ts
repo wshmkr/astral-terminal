@@ -16,6 +16,7 @@ import {
 import { BrowserManager } from "./browser-manager";
 import { registerActiveRefIpc } from "./cli/active-ref";
 import { registerAppIdentify } from "./cli/methods/app-identify";
+import { registerSurfaceSplit } from "./cli/methods/surface-split";
 import { getCliServer } from "./cli/server";
 import { clearPasteImages } from "./clipboard-image";
 import { loadConfig } from "./config";
@@ -132,6 +133,7 @@ const startup = app.whenReady().then(async () => {
   registerActiveRefIpc();
   const cliServer = getCliServer();
   registerAppIdentify(cliServer);
+  registerSurfaceSplit(cliServer);
   await cliServer.start().catch((err) => {
     console.error("[cli] listen failed", err);
   });
