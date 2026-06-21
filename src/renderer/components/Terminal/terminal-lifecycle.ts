@@ -149,9 +149,7 @@ function attachClipboardHandlers(
     getCwd: () => string;
   },
 ): () => void {
-  // Single precedence shared by both paste triggers: non-empty text wins,
-  // otherwise the first image. Keeping it in one place stops the native
-  // `paste` event and the keyboard/right-click path from drifting apart.
+  // Shared by both paste triggers so their precedence can't drift.
   type ClipboardSource = {
     readText: () => string | Promise<string>;
     readImage: () => Blob | null | Promise<Blob | null>;
@@ -183,7 +181,7 @@ function attachClipboardHandlers(
     try {
       items = await navigator.clipboard.read();
     } catch {
-      // read() is unsupported or denied; a plain-text read may still work.
+      // read() can be denied or unsupported; plain text may still work.
       pasteTextFromClipboard();
       return;
     }
@@ -209,8 +207,7 @@ function attachClipboardHandlers(
         },
       });
     } catch (err) {
-      // Reading the chosen item failed; surface it rather than silently
-      // pasting whatever stray text happens to be on the clipboard.
+      // Surface a failed read instead of pasting unrelated clipboard text.
       console.warn("Clipboard image paste failed:", err);
       if (attemptedImageRead) term.write("\x07");
       return;
