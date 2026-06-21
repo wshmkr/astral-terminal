@@ -35,7 +35,11 @@ export async function saveClipboardImage(
 }
 
 export async function clearPasteImages(): Promise<void> {
-  await fs.rm(PASTE_DIR, { recursive: true, force: true });
+  try {
+    await fs.rm(PASTE_DIR, { recursive: true, force: true });
+  } catch (err) {
+    console.warn("Failed to clear pasted images:", err);
+  }
 }
 
 function sniffExtension(bytes: Uint8Array): string | undefined {
