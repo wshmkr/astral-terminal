@@ -79,6 +79,21 @@ const DIM_HTML =
     </style>`,
   );
 
+// Mirrors the terminal DOM drop hints: a merge tint and an edge split preview
+const SPLIT_PREVIEW_HTML =
+  "data:text/html;charset=utf-8," +
+  encodeURIComponent(
+    `<style>
+      html,body { margin:0; height:100%; }
+      #m,#s { position:absolute; background:var(--c,transparent); pointer-events:none; display:none; }
+      #m { inset:0; opacity:0.1; }
+      #s { opacity:0.25; }
+      #s.right { top:0; right:0; bottom:0; width:50%; }
+      #s.bottom { left:0; right:0; bottom:0; height:50%; }
+    </style>
+    <div id="m"></div><div id="s"></div>`,
+  );
+
 const MAX_FAVICON_BYTES = 256 * 1024;
 const FAVICON_SCHEMES = new Set(["http:", "https:", "data:"]);
 const FAVICON_CACHE_MAX = 64;
@@ -198,6 +213,13 @@ export class BrowserManager {
   private entries = new Map<string, Entry>();
   private dimView: WebContentsView | null = null;
   private dimVisible = false;
+  // Mirrors the DOM drop hints over browser panes, which native views occlude
+  private splitPreviewView: WebContentsView | null = null;
+  private splitPreviewReady = false;
+  private splitPreviewColor: string | null = null;
+  private splitPreviewEdge: "right" | "bottom" | null = null;
+  private splitPreviewMerge = false;
+  private splitPreviewVisible = false;
   private dimReady = false;
   private dimFade = createFadeController(SETTINGS_FADE_MS);
   private browserSettings: BrowserSettings = DEFAULT_BROWSER_SETTINGS;
@@ -234,6 +256,11 @@ export class BrowserManager {
         if (!entry.disposed && entry.visible) this.applyBounds(entry);
       }
       if (this.dimVisible) this.applyDimBounds();
+      // Can't recompute the renderer-measured rect here, so hide rather than misalign
+      if (this.splitPreviewVisible) {
+        this.splitPreviewVisible = false;
+        this.splitPreviewView?.setVisible(false);
+      }
     };
     this.window.on("resize", reapplyAll);
     this.window.on("maximize", reapplyAll);
@@ -242,8 +269,11 @@ export class BrowserManager {
     this.window.on("leave-full-screen", reapplyAll);
   }
 
-  private ensureDimView(): WebContentsView {
-    if (this.dimView) return this.dimView;
+  private createOverlayView(
+    html: string,
+    label: string,
+    onReady: () => void,
+  ): WebContentsView {
     const view = new WebContentsView({
       webPreferences: {
         contextIsolation: true,
@@ -253,16 +283,21 @@ export class BrowserManager {
     });
     view.setBackgroundColor("#00000000");
     view.setVisible(false);
-    view.webContents.once("did-finish-load", () => {
+    view.webContents.once("did-finish-load", onReady);
+    view.webContents.loadURL(html).catch((err) => {
+      console.error(`[browser] ${label} loadURL failed:`, err);
+    });
+    this.window.contentView.addChildView(view);
+    return view;
+  }
+
+  private ensureDimView(): WebContentsView {
+    if (this.dimView) return this.dimView;
+    this.dimView = this.createOverlayView(DIM_HTML, "dim", () => {
       this.dimReady = true;
       this.applyDimClass();
     });
-    view.webContents.loadURL(DIM_HTML).catch((err) => {
-      console.error("[browser] dim loadURL failed:", err);
-    });
-    this.window.contentView.addChildView(view);
-    this.dimView = view;
-    return view;
+    return this.dimView;
   }
 
   private applyDimClass(): void {
@@ -461,6 +496,14 @@ export class BrowserManager {
 
   destroyAll(): void {
     for (const id of [...this.entries.keys()]) this.destroy(id);
+    if (this.splitPreviewView) {
+      try {
+        this.window.contentView.removeChildView(this.splitPreviewView);
+        this.splitPreviewView.webContents.close();
+      } catch {}
+      this.splitPreviewView = null;
+      this.splitPreviewReady = false;
+    }
   }
 
   async clearBrowsingData(): Promise<void> {
@@ -514,6 +557,82 @@ export class BrowserManager {
       if (surrenderingFocus) this.window.webContents.focus();
       this.callbacks.onSurfaceHidden(surfaceId);
     }
+  }
+
+  private ensureSplitPreviewView(): WebContentsView {
+    if (this.splitPreviewView) return this.splitPreviewView;
+    this.splitPreviewView = this.createOverlayView(
+      SPLIT_PREVIEW_HTML,
+      "split-preview",
+      () => {
+        this.splitPreviewReady = true;
+        this.showSplitPreviewWhenReady();
+      },
+    );
+    return this.splitPreviewView;
+  }
+
+  private applySplitPreviewState(): Promise<void> {
+    if (!this.splitPreviewView || !this.splitPreviewReady) {
+      return Promise.resolve();
+    }
+    const color = this.splitPreviewColor ?? "transparent";
+    const merge = this.splitPreviewMerge ? "block" : "none";
+    const edge = this.splitPreviewEdge ?? "";
+    return this.splitPreviewView.webContents
+      .executeJavaScript(
+        `(() => {
+          document.documentElement.style.setProperty('--c', ${JSON.stringify(color)});
+          const m = document.getElementById('m');
+          const s = document.getElementById('s');
+          if (m) m.style.display = ${JSON.stringify(merge)};
+          if (s) { s.className = ${JSON.stringify(edge)}; s.style.display = ${JSON.stringify(edge ? "block" : "none")}; }
+        })()`,
+      )
+      .then(() => {})
+      .catch(() => {});
+  }
+
+  private bringSplitPreviewToTop(): void {
+    if (!this.splitPreviewView) return;
+    this.window.contentView.removeChildView(this.splitPreviewView);
+    this.window.contentView.addChildView(this.splitPreviewView);
+  }
+
+  // Reveal only after state is applied, so the first frame isn't empty or stale
+  private showSplitPreviewWhenReady(): void {
+    const view = this.splitPreviewView;
+    if (!view || !this.splitPreviewReady) return;
+    void this.applySplitPreviewState().then(() => {
+      if (!this.splitPreviewVisible) return;
+      this.bringSplitPreviewToTop();
+      view.setVisible(true);
+    });
+  }
+
+  setSplitPreview(
+    rect: ScreenRect | null,
+    edge: "right" | "bottom" | null,
+    merge: boolean,
+    color: string,
+  ): void {
+    if (!rect) {
+      this.splitPreviewVisible = false;
+      this.splitPreviewView?.setVisible(false);
+      return;
+    }
+    this.splitPreviewVisible = true;
+    this.splitPreviewColor = color;
+    this.splitPreviewEdge = edge;
+    this.splitPreviewMerge = merge;
+    const view = this.ensureSplitPreviewView();
+    view.setBounds({
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+    });
+    this.showSplitPreviewWhenReady();
   }
 
   setDimmed(dimmed: boolean): void {

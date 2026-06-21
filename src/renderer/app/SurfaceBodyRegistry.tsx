@@ -80,6 +80,10 @@ export function useSurfaceBodyRegister() {
   return useRegistry().register;
 }
 
+export function useSurfaceBodyGetter() {
+  return useRegistry().get;
+}
+
 export function useSurfaceBody(paneId: string): HTMLElement | null {
   const { subscribe, get } = useRegistry();
   return useSyncExternalStore(

@@ -49,6 +49,7 @@ import {
 } from "../../store";
 import { TERMINAL_THEMES } from "../../theme/terminal-themes";
 import { CloseButton } from "../ui/CloseButton";
+import { PaneSplitZones } from "./PaneSplitZones";
 import {
   ADD_TAB_BUTTON_SX,
   ATTENTION_OUTLINE_SX,
@@ -354,7 +355,9 @@ function TabbedPaneImpl({ pane }: Props) {
         )}
       </Box>
 
-      <Box ref={surfaceBodyRef} sx={SURFACE_BODY_SX} />
+      <Box ref={surfaceBodyRef} sx={SURFACE_BODY_SX}>
+        <PaneSplitZones paneId={pane.id} />
+      </Box>
     </Box>
   );
 }

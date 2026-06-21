@@ -187,6 +187,20 @@ export function setActiveWorkspace(id: string): void {
   commit();
 }
 
+function wrapLeafInSplit(
+  layout: PaneNode,
+  targetPaneId: string,
+  direction: SplitDirection,
+  newLeaf: LeafPane,
+): PaneNode {
+  return mapNode(layout, targetPaneId, (node) => ({
+    kind: "split" as const,
+    id: generateId(),
+    direction,
+    children: [node, newLeaf],
+  }));
+}
+
 export function splitPane(
   targetPaneId: string,
   direction: SplitDirection,
@@ -201,12 +215,12 @@ export function splitPane(
       ? activeSurface.cwd
       : undefined;
   const newLeaf = createLeafPane(cwd);
-  const newLayout = mapNode(ws.layout, targetPaneId, (node) => ({
-    kind: "split" as const,
-    id: generateId(),
+  const newLayout = wrapLeafInSplit(
+    ws.layout,
+    targetPaneId,
     direction,
-    children: [node, newLeaf],
-  }));
+    newLeaf,
+  );
   if (newLayout === ws.layout) return;
   setWorkspaceLayout(ws.id, newLayout);
   setState({ ...getState(), focusedPaneId: newLeaf.id });
@@ -442,5 +456,52 @@ export function moveSurfaceToPane(
   const s = getState();
   if (s.focusedPaneId !== targetPaneId)
     setState({ ...s, focusedPaneId: targetPaneId });
+  commit();
+}
+
+export function splitPaneWithSurface(
+  sourcePaneId: string,
+  surfaceId: string,
+  targetPaneId: string,
+  direction: SplitDirection,
+): void {
+  const ws = getActiveWorkspace();
+  if (!ws) return;
+  const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
+  const surface = sourceLeaf?.surfaces.find((s) => s.id === surfaceId);
+  if (!sourceLeaf || !surface) return;
+
+  const newLeaf: LeafPane = {
+    kind: "leaf",
+    id: generateId(),
+    surfaces: [surface],
+    activeSurfaceId: surface.id,
+  };
+  const afterSplit = wrapLeafInSplit(
+    ws.layout,
+    targetPaneId,
+    direction,
+    newLeaf,
+  );
+  if (afterSplit === ws.layout) return;
+
+  // Leave a fresh terminal behind, or the emptied source prunes and the split collapses
+  const isSoleSelfSplit =
+    sourcePaneId === targetPaneId && sourceLeaf.surfaces.length === 1;
+  const nextLayout = isSoleSelfSplit
+    ? updateLeafInLayout(afterSplit, sourcePaneId, (leaf) => {
+        const cwd = isTerminalSurface(surface) ? surface.cwd : undefined;
+        const replacement = createTerminalSurface(cwd);
+        return {
+          ...leaf,
+          surfaces: [replacement],
+          activeSurfaceId: replacement.id,
+        };
+      })
+    : removeSurfaceFromLayout(afterSplit, sourcePaneId, surfaceId);
+  if (!nextLayout) return;
+
+  setWorkspaceLayout(ws.id, nextLayout);
+  setState({ ...getState(), focusedPaneId: newLeaf.id });
   commit();
 }

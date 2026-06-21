@@ -185,6 +185,18 @@ contextBridge.exposeInMainWorld("app", {
     ipcRenderer.send(IPC.browser.setAnchorOffsets, { surfaceId, offsets }),
   setBrowserVisible: (surfaceId: string, visible: boolean) =>
     ipcRenderer.send(IPC.browser.setVisible, { surfaceId, visible }),
+  setBrowserSplitPreview: (
+    rect: ScreenRect | null,
+    edge: "right" | "bottom" | null,
+    merge: boolean,
+    color: string,
+  ) =>
+    ipcRenderer.send(IPC.browser.setSplitPreview, {
+      rect,
+      edge,
+      merge,
+      color,
+    }),
   loadBrowserURL: (surfaceId: string, url: string) =>
     ipcRenderer.send(IPC.browser.loadURL, { surfaceId, url }),
   browserCommand: (surfaceId: string, cmd: BrowserCommand) =>

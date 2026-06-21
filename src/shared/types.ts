@@ -30,6 +30,8 @@ export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
 export const INITIAL_WINDOW_BG = "#262624";
+// Fixed so the drop hint stays consistent regardless of the active theme
+export const SPLIT_PREVIEW_COLOR = "#1976d2";
 export const SETTINGS_FADE_MS = 200;
 export const SETTINGS_FADE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 
@@ -411,6 +413,7 @@ export const IPC = {
     destroy: "browser:destroy",
     setAnchorOffsets: "browser:set-anchor-offsets",
     setVisible: "browser:set-visible",
+    setSplitPreview: "browser:set-split-preview",
     loadURL: "browser:load-url",
     command: "browser:command",
     openNewTab: "browser:open-new-tab",

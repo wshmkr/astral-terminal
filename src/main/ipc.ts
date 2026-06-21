@@ -419,6 +419,21 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   );
 
   ipcMain.on(
+    IPC.browser.setSplitPreview,
+    (
+      _event,
+      msg: {
+        rect: ScreenRect | null;
+        edge: "right" | "bottom" | null;
+        merge: boolean;
+        color: string;
+      },
+    ) => {
+      browserManager.setSplitPreview(msg.rect, msg.edge, msg.merge, msg.color);
+    },
+  );
+
+  ipcMain.on(
     IPC.browser.loadURL,
     (_event, msg: { surfaceId: string; url: string }) => {
       browserManager.loadURL(ensureSurfaceId(msg.surfaceId), msg.url);

@@ -1,3 +1,5 @@
+import { SPLIT_PREVIEW_COLOR } from "../../../shared/types";
+
 export const ROOT_SX = {
   width: "100%",
   height: "100%",
@@ -27,8 +29,54 @@ export const ATTENTION_OUTLINE_SX = {
 export const DROP_TARGET_OVERLAY_SX = {
   "&::after": {
     ...PANE_OVERLAY_BASE,
-    bgcolor: "primary.main",
+    bgcolor: SPLIT_PREVIEW_COLOR,
     opacity: 0.1,
+  },
+} as const;
+
+export const SPLIT_ZONES_CONTAINER_SX = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 10,
+  pointerEvents: "none",
+} as const;
+
+const SPLIT_ZONE_PREVIEW_BASE = {
+  position: "absolute",
+  bgcolor: SPLIT_PREVIEW_COLOR,
+  opacity: 0.25,
+  border: "1px solid",
+  borderColor: SPLIT_PREVIEW_COLOR,
+  pointerEvents: "none",
+} as const;
+
+// Bands overlap in the bottom-right corner; pointerWithin resolves it to the nearer edge
+export const SPLIT_ZONE_GEOMETRY = {
+  right: {
+    band: { position: "absolute", top: 0, right: 0, bottom: 0, width: "33%" },
+    preview: {
+      ...SPLIT_ZONE_PREVIEW_BASE,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: "50%",
+    },
+  },
+  bottom: {
+    band: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: "33%",
+    },
+    preview: {
+      ...SPLIT_ZONE_PREVIEW_BASE,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: "50%",
+    },
   },
 } as const;
 

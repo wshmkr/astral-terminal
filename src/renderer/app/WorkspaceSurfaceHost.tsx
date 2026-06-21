@@ -5,6 +5,7 @@ import type { PaneNode, Surface, Workspace } from "../../shared/types";
 import { BrowserPane } from "../components/Browser/BrowserPane";
 import { forEachLeaf } from "../components/Layout/pane-tree";
 import { TerminalPane } from "../components/Terminal/TerminalPane";
+import { SplitPreviewBridge } from "./SplitPreviewBridge";
 import { useSurfaceBody } from "./SurfaceBodyRegistry";
 
 interface SurfaceLocation {
@@ -143,6 +144,7 @@ export function WorkspaceSurfaceHost({ workspace, isActive }: Props) {
           isVisible={isActiveInPane && isActive}
         />
       ))}
+      {isActive && <SplitPreviewBridge />}
     </>
   );
 }
