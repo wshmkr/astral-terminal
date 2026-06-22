@@ -112,12 +112,38 @@ call() {
   return 1
 }
 
+# Split the current pane. Targets the pane holding this shell (via ASTRAL_SURFACE_ID) so a
+# split from a background workspace doesn't disturb the focused one; falls back to the focused
+# pane when the surface is unknown. Thin wrapper over `call pane.split`.
+split() {
+  direction=$1
+  case "$direction" in
+    right | down) ;;
+    '')
+      echo "astral: usage: astral split <right|down>" >&2
+      return 2
+      ;;
+    *)
+      echo "astral: invalid direction: $direction (expected right or down)" >&2
+      return 2
+      ;;
+  esac
+  if [ -n "${ASTRAL_SURFACE_ID:-}" ]; then
+    params=$(printf '{"direction":"%s","surfaceId":"%s"}' \
+      "$direction" "$ASTRAL_SURFACE_ID")
+  else
+    params=$(printf '{"direction":"%s"}' "$direction")
+  fi
+  call pane.split "$params"
+}
+
 usage() {
   cat <<EOF
 Astral Terminal CLI v$CLI_VERSION
 
 Usage:
   astral identify              Print this surface's identity as JSON
+  astral split <right|down>    Split the current pane right or down
   astral call <method> [json]  Call a method on the running app (e.g. app.identify)
   astral --version             Print the CLI version
   astral --help                Show this help
@@ -126,6 +152,10 @@ EOF
 
 case "${1:-}" in
   identify) identify ;;
+  split)
+    shift
+    split "$@"
+    ;;
   call)
     shift
     call "$@"
