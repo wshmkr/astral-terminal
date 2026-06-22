@@ -354,7 +354,8 @@ export type CliSplitDirection = "right" | "down";
 export interface CliSplitRequest {
   requestId: string;
   direction: CliSplitDirection;
-  // Optional target. When omitted (or not found in the active workspace) the focused pane is used.
+  // Optional target, resolved across all workspaces. When omitted (or not found) the active
+  // workspace's focused pane is used.
   surfaceId?: string;
   paneId?: string;
 }

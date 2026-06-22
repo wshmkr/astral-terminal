@@ -2,10 +2,11 @@ import type {
   CliSplitDirection,
   CliSplitRequest,
   CliSplitResult,
+  LeafPane,
   SplitDirection,
 } from "../../shared/types";
 import { findLeafPane, forEachLeaf } from "../components/Layout/pane-tree";
-import { getActiveWorkspace, getState } from "./core";
+import { getState, getWorkspace } from "./core";
 import { splitPane } from "./workspaces";
 
 // "right" grows side by side (vertical divider); "down" stacks (horizontal divider).
@@ -14,47 +15,66 @@ const DIRECTION_MAP: Record<CliSplitDirection, SplitDirection> = {
   down: "horizontal",
 };
 
-// Resolve the pane to split within the active workspace. An explicit pane wins, then the pane
-// holding the requested surface (e.g. the shell that ran `astral split`), else the focused pane.
-function resolveTargetPaneId(request: CliSplitRequest): string | null {
-  const ws = getActiveWorkspace();
-  if (!ws) return null;
+interface SplitTarget {
+  workspaceId: string;
+  paneId: string;
+}
 
-  if (request.paneId && findLeafPane(ws.layout, request.paneId)) {
-    return request.paneId;
+// Find the first pane (across all workspaces) whose leaf matches, so `astral split` can target the
+// pane holding the calling shell even when it lives in a background workspace.
+function findPaneAcrossWorkspaces(
+  predicate: (leaf: LeafPane) => boolean,
+): SplitTarget | null {
+  for (const ws of getState().workspaces) {
+    let paneId: string | null = null;
+    forEachLeaf(ws.layout, (leaf) => {
+      if (!paneId && predicate(leaf)) paneId = leaf.id;
+    });
+    if (paneId) return { workspaceId: ws.id, paneId };
+  }
+  return null;
+}
+
+// Resolution order: explicit pane, then the pane owning the requested surface, else the focused
+// pane of the active workspace.
+function resolveTarget(request: CliSplitRequest): SplitTarget | null {
+  if (request.paneId) {
+    const byPane = findPaneAcrossWorkspaces(
+      (leaf) => leaf.id === request.paneId,
+    );
+    if (byPane) return byPane;
   }
   if (request.surfaceId) {
-    let match: string | null = null;
-    forEachLeaf(ws.layout, (leaf) => {
-      if (leaf.surfaces.some((s) => s.id === request.surfaceId))
-        match = leaf.id;
-    });
-    if (match) return match;
+    const bySurface = findPaneAcrossWorkspaces((leaf) =>
+      leaf.surfaces.some((s) => s.id === request.surfaceId),
+    );
+    if (bySurface) return bySurface;
   }
-  return getState().focusedPaneId;
+  const s = getState();
+  if (s.activeWorkspaceId && s.focusedPaneId) {
+    return { workspaceId: s.activeWorkspaceId, paneId: s.focusedPaneId };
+  }
+  return null;
 }
 
 function handleSplit(request: CliSplitRequest): CliSplitResult {
-  const ws = getActiveWorkspace();
-  if (!ws) return { ok: false, reason: "no active workspace" };
+  const target = resolveTarget(request);
+  if (!target) return { ok: false, reason: "no pane to split" };
 
-  const targetPaneId = resolveTargetPaneId(request);
-  if (!targetPaneId) return { ok: false, reason: "no pane to split" };
+  const newPaneId = splitPane(
+    target.paneId,
+    DIRECTION_MAP[request.direction],
+    target.workspaceId,
+  );
+  if (!newPaneId) return { ok: false, reason: "split did not produce a pane" };
 
-  splitPane(targetPaneId, DIRECTION_MAP[request.direction]);
-
-  // splitPane focuses the new leaf, so read it back to report the created pane/surface.
-  const after = getActiveWorkspace();
-  const newPaneId = getState().focusedPaneId;
-  const leaf =
-    after && newPaneId ? findLeafPane(after.layout, newPaneId) : null;
-  if (!leaf) return { ok: false, reason: "split did not produce a pane" };
-
+  const ws = getWorkspace(target.workspaceId);
+  const leaf = ws ? findLeafPane(ws.layout, newPaneId) : null;
   return {
     ok: true,
-    workspaceId: after?.id ?? null,
-    paneId: leaf.id,
-    surfaceId: leaf.activeSurfaceId,
+    workspaceId: target.workspaceId,
+    paneId: newPaneId,
+    surfaceId: leaf?.activeSurfaceId ?? null,
   };
 }
 

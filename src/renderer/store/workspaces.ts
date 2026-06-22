@@ -204,12 +204,14 @@ function wrapLeafInSplit(
 export function splitPane(
   targetPaneId: string,
   direction: SplitDirection,
-): void {
-  const ws = getActiveWorkspace();
-  if (!ws) return;
+  workspaceId?: string,
+): string | null {
+  const ws = workspaceId ? getWorkspace(workspaceId) : getActiveWorkspace();
+  if (!ws) return null;
 
   const targetLeaf = findLeafPane(ws.layout, targetPaneId);
-  const activeSurface = targetLeaf ? getActiveSurface(targetLeaf) : undefined;
+  if (!targetLeaf) return null;
+  const activeSurface = getActiveSurface(targetLeaf);
   const cwd =
     activeSurface && isTerminalSurface(activeSurface)
       ? activeSurface.cwd
@@ -221,10 +223,17 @@ export function splitPane(
     direction,
     newLeaf,
   );
-  if (newLayout === ws.layout) return;
+  if (newLayout === ws.layout) return null;
   setWorkspaceLayout(ws.id, newLayout);
-  setState({ ...getState(), focusedPaneId: newLeaf.id });
+  // Focus is global to the active workspace; for a background split, stash the new pane so it
+  // gets focused when the user switches there (matches setActiveWorkspace's restore behavior).
+  if (ws.id === getState().activeWorkspaceId) {
+    setState({ ...getState(), focusedPaneId: newLeaf.id });
+  } else {
+    lastFocusedPaneByWorkspace.set(ws.id, newLeaf.id);
+  }
   commit();
+  return newLeaf.id;
 }
 
 export function closePane(paneId: string): void {
