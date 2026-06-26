@@ -11,7 +11,7 @@ import {
 import {
   findFirstLeaf,
   findLeafPane,
-  forEachLeaf,
+  findLeafWhere,
   getActiveSurface,
   mapNode,
   pruneNode,
@@ -358,14 +358,10 @@ export function findPaneBySurfaceId(
   surfaceId: string,
 ): { workspaceId: string; paneId: string } | null {
   for (const ws of getState().workspaces) {
-    let match: { workspaceId: string; paneId: string } | null = null;
-    forEachLeaf(ws.layout, (leaf) => {
-      if (match) return;
-      if (leaf.surfaces.some((s) => s.id === surfaceId)) {
-        match = { workspaceId: ws.id, paneId: leaf.id };
-      }
-    });
-    if (match) return match;
+    const leaf = findLeafWhere(ws.layout, (l) =>
+      l.surfaces.some((s) => s.id === surfaceId),
+    );
+    if (leaf) return { workspaceId: ws.id, paneId: leaf.id };
   }
   return null;
 }
