@@ -3,6 +3,7 @@ import {
   isTerminalSurface,
   type LeafPane,
   type PaneNode,
+  type PaneStatus,
   type SplitDirection,
   type SurfaceKind,
   type TerminalSurface,
@@ -143,6 +144,29 @@ export function updateTerminalSurface(
     };
   });
   if (changed) scheduleSave();
+}
+
+// Agent lifecycle tag for a terminal pane. Runtime-only: re-renders the
+// sidebar but never schedules a save, so it is dropped on restart.
+export function setSurfaceStatus(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+  status: PaneStatus | undefined,
+) {
+  const changed = updateLeaf(workspaceId, paneId, (leaf) => {
+    const current = leaf.surfaces.find((s) => s.id === surfaceId);
+    if (!current || !isTerminalSurface(current) || current.status === status) {
+      return leaf;
+    }
+    return {
+      ...leaf,
+      surfaces: leaf.surfaces.map((s) =>
+        s.id === surfaceId ? { ...s, status } : s,
+      ),
+    };
+  });
+  if (changed) notify();
 }
 
 export function createWorkspace(name?: string): Workspace {

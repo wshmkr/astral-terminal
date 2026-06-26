@@ -1,10 +1,11 @@
 import type { AgentName } from "../../shared/agent-hooks";
 import { APP_PACKAGE_NAME } from "../../shared/meta";
+import type { PaneStatusSignal } from "../../shared/types";
 import { AGENT_SESSION_OSC_IDENT, type AgentSessionEvent } from "./osc";
 import sessionScript from "./session.sh?raw";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "4";
+export const HOOK_MARKER_VERSION = "5";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
@@ -22,6 +23,13 @@ function oscNotifyCommand(title: string, body: string): string {
   const b = escapeInSingleQuotes(body);
   const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
   return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; [ -n "$ptty" ] && [ "$ptty" != "?" ] && printf '\\033]777;notify;${t};${b}\\007' > "/dev/$ptty"; fi`;
+}
+
+// Emits an OSC 777 `status` sequence onto the agent pane's tty; the renderer
+// tags that pane from the bytes' arrival point, so no session id is needed.
+function oscStatusCommand(status: PaneStatusSignal): string {
+  const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
+  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; [ -n "$ptty" ] && [ "$ptty" != "?" ] && printf '\\033]777;status;${status}\\007' > "/dev/$ptty"; fi`;
 }
 
 function sessionHookCommand(
@@ -46,6 +54,10 @@ function notifyHook(entry: { title: string; body: string }) {
 
 function sessionHook(agentName: string, event: AgentSessionEvent) {
   return { type: "command", command: sessionHookCommand(agentName, event) };
+}
+
+function statusHook(status: PaneStatusSignal) {
+  return { type: "command", command: oscStatusCommand(status) };
 }
 
 function agentHookStrings(agent: string) {
@@ -77,17 +89,17 @@ const builders: Record<AgentName, () => HooksConfig> = {
         Notification: [
           {
             matcher: "permission_prompt",
-            hooks: [notifyHook(s.permissionPrompt)],
+            hooks: [notifyHook(s.permissionPrompt), statusHook("needs-input")],
           },
           {
             matcher: "elicitation_dialog",
-            hooks: [notifyHook(s.elicitationDialog)],
+            hooks: [notifyHook(s.elicitationDialog), statusHook("needs-input")],
           },
         ],
         PreToolUse: [
           {
             matcher: "AskUserQuestion",
-            hooks: [notifyHook(s.askUserQuestion)],
+            hooks: [notifyHook(s.askUserQuestion), statusHook("needs-input")],
           },
         ],
         PostToolUse: [
@@ -96,9 +108,11 @@ const builders: Record<AgentName, () => HooksConfig> = {
             hooks: [session("update")],
           },
         ],
-        Stop: [{ hooks: [notifyHook(s.stop)] }],
-        SessionStart: [{ hooks: [session("start")] }],
-        SessionEnd: [{ hooks: [session("end")] }],
+        // A new prompt clears any pending tag; the agent is working again.
+        UserPromptSubmit: [{ hooks: [statusHook("working")] }],
+        Stop: [{ hooks: [notifyHook(s.stop), statusHook("ready-for-review")] }],
+        SessionStart: [{ hooks: [session("start"), statusHook("working")] }],
+        SessionEnd: [{ hooks: [session("end"), statusHook("completed")] }],
       },
     };
   },

@@ -45,9 +45,17 @@ export interface BaseSurface {
   name: string;
 }
 
+// Tags surfaced on a terminal pane to reflect an agent's lifecycle state.
+export type PaneStatus = "needs-input" | "ready-for-review" | "completed";
+
+// Wire signal carried over OSC 777 `status`; "working" clears any active tag.
+export type PaneStatusSignal = PaneStatus | "working";
+
 export interface TerminalSurface extends BaseSurface {
   type: "terminal";
   cwd: string;
+  // Runtime-only: driven by agent hooks, never persisted (see saveState).
+  status?: PaneStatus;
 }
 
 export interface BrowserSurface extends BaseSurface {

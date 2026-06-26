@@ -68,6 +68,7 @@ export {
   setActiveWorkspace,
   setBrowserSurfaceUrl,
   setFocusedPane,
+  setSurfaceStatus,
   splitPane,
   updateTerminalSurface,
 } from "./workspaces";

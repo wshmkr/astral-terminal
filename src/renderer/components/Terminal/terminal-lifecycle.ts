@@ -7,7 +7,11 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import { windowsPtyOptions } from "../../../shared/pty-options";
-import type { AppConfig, TerminalTheme } from "../../../shared/types";
+import type {
+  AppConfig,
+  PaneStatusSignal,
+  TerminalTheme,
+} from "../../../shared/types";
 import type { SurfaceController } from "../../app/surface-lifecycle";
 import {
   addSurface,
@@ -224,6 +228,7 @@ export interface TerminalControllerOptions {
   onCwdChange: (cwd: string) => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
+  onStatus: (status: PaneStatusSignal) => void;
   onRequestFind: () => void;
   onSelect: () => void;
 }
@@ -467,5 +472,6 @@ export class TerminalController implements SurfaceController, FindController {
     if (osc.title) this.opts.onTitleChange(osc.title);
     for (const n of osc.notifications)
       this.opts.onNotification(n.title, n.body);
+    if (osc.status) this.opts.onStatus(osc.status);
   }
 }
