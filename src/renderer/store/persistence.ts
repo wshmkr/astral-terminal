@@ -13,8 +13,10 @@ export interface LoadedState {
 
 // `status` is a runtime-only pane tag; drop it so it never reaches disk.
 function stripSurfaceRuntime(s: Surface): Surface {
-  if (s.type !== "terminal" || s.status === undefined) return s;
-  return { id: s.id, name: s.name, type: "terminal", cwd: s.cwd };
+  if (s.type === "terminal" && s.status !== undefined) {
+    return { id: s.id, name: s.name, type: "terminal", cwd: s.cwd };
+  }
+  return s;
 }
 
 function stripLayoutRuntime(node: PaneNode): PaneNode {

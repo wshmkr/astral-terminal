@@ -107,13 +107,8 @@ export function TerminalPane({
             body,
           );
         },
-        onStatus: (signal) =>
-          setSurfaceStatus(
-            workspaceId,
-            paneIdRef.current,
-            surfaceId,
-            signal === "working" ? undefined : signal,
-          ),
+        onStatus: (status) =>
+          setSurfaceStatus(workspaceId, paneIdRef.current, surfaceId, status),
         onRequestFind: () => {
           setFindOpen(true);
           findInputRef.current?.focus();

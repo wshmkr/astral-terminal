@@ -58,6 +58,13 @@ const SURFACE_CAPTION_UNREAD_SX = {
 } as const;
 
 const EMPTY_PLACEHOLDER_SX = { fontSize: "0.675rem", opacity: 0.7 } as const;
+const ROW_CONTAINER_SX = {
+  display: "flex",
+  alignItems: "center",
+  gap: 0.5,
+  minWidth: 0,
+  cursor: "pointer",
+} as const;
 const NBSP = " ";
 
 interface Props {
@@ -108,13 +115,7 @@ export function WorkspaceSurfaceList({ workspace }: Props) {
       {surfaces.map(({ id, paneId, name, status }) => (
         <Box
           key={id}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            minWidth: 0,
-            cursor: "pointer",
-          }}
+          sx={ROW_CONTAINER_SX}
           onClick={(e) => {
             e.stopPropagation();
             setActiveWorkspace(workspace.id);
