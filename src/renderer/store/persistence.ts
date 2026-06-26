@@ -1,9 +1,27 @@
 import type { PersistedSettings } from "../../shared/settings-types";
-import type { AppState, PersistedWorkspaces } from "../../shared/types";
+import type {
+  AppState,
+  PaneNode,
+  PersistedWorkspaces,
+  Surface,
+} from "../../shared/types";
 
 export interface LoadedState {
   settings: PersistedSettings | null;
   workspaces: PersistedWorkspaces | null;
+}
+
+// `status` is a runtime-only pane tag; drop it so it never reaches disk.
+function stripSurfaceRuntime(s: Surface): Surface {
+  if (s.type !== "terminal" || s.status === undefined) return s;
+  return { id: s.id, name: s.name, type: "terminal", cwd: s.cwd };
+}
+
+function stripLayoutRuntime(node: PaneNode): PaneNode {
+  if (node.kind === "split") {
+    return { ...node, children: node.children.map(stripLayoutRuntime) };
+  }
+  return { ...node, surfaces: node.surfaces.map(stripSurfaceRuntime) };
 }
 
 export function saveState(state: AppState): void {
@@ -20,7 +38,7 @@ export function saveState(state: AppState): void {
     workspaces: state.workspaces.map((w) => ({
       id: w.id,
       name: w.name,
-      layout: w.layout,
+      layout: stripLayoutRuntime(w.layout),
     })),
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,

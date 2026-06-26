@@ -46,10 +46,18 @@ export interface BaseSurface {
 }
 
 // Tags surfaced on a terminal pane to reflect an agent's lifecycle state.
-export type PaneStatus = "needs-input" | "ready-for-review" | "completed";
+export const PANE_STATUSES = [
+  "needs-input",
+  "ready-for-review",
+  "completed",
+] as const;
+export type PaneStatus = (typeof PANE_STATUSES)[number];
 
-// Wire signal carried over OSC 777 `status`; "working" clears any active tag.
-export type PaneStatusSignal = PaneStatus | "working";
+// Wire signals carried over OSC 777 `status`; "working" clears any active tag.
+// The renderer derives its allowlist from this array, so the type and the
+// runtime parser can't drift apart.
+export const PANE_STATUS_SIGNAL_VALUES = [...PANE_STATUSES, "working"] as const;
+export type PaneStatusSignal = (typeof PANE_STATUS_SIGNAL_VALUES)[number];
 
 export interface TerminalSurface extends BaseSurface {
   type: "terminal";

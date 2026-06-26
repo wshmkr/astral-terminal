@@ -1,4 +1,7 @@
-import type { PaneStatusSignal } from "../../../shared/types";
+import {
+  PANE_STATUS_SIGNAL_VALUES,
+  type PaneStatusSignal,
+} from "../../../shared/types";
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: OSC sequences use ESC and BEL
 const OSC_PATTERN = /\x1b\](\d+);([^\x07\x1b]*?)(?:\x07|\x1b\\)/g;
@@ -11,12 +14,7 @@ const OSC_RXVT_NOTIFY = "777";
 // ConPTY seeds this as the initial title and bare shells never overwrite
 const WINDOWS_EXE_PATH = /^[A-Za-z]:[\\/].*\.exe\s*$/;
 
-const PANE_STATUS_SIGNALS = new Set<string>([
-  "working",
-  "needs-input",
-  "ready-for-review",
-  "completed",
-]);
+const PANE_STATUS_SIGNALS = new Set<string>(PANE_STATUS_SIGNAL_VALUES);
 
 export interface OscNotification {
   title?: string;

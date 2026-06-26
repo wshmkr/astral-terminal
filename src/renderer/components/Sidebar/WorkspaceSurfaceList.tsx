@@ -20,13 +20,7 @@ const STATUS_LABEL: Record<PaneStatus, string> = {
   completed: "Completed",
 };
 
-const STATUS_COLOR: Record<PaneStatus, string> = {
-  "needs-input": "warning.main",
-  "ready-for-review": "primary.main",
-  completed: "success.main",
-};
-
-const STATUS_TAG_SX = {
+const STATUS_TAG_BASE_SX = {
   fontSize: "0.6rem",
   fontWeight: 600,
   lineHeight: 1,
@@ -34,9 +28,19 @@ const STATUS_TAG_SX = {
   whiteSpace: "nowrap",
 } as const;
 
+// Precomputed per-status so a tagged row doesn't rebuild its sx each render.
+const STATUS_TAG_SX_BY_STATUS = {
+  "needs-input": { ...STATUS_TAG_BASE_SX, color: "warning.main" },
+  "ready-for-review": { ...STATUS_TAG_BASE_SX, color: "primary.main" },
+  completed: { ...STATUS_TAG_BASE_SX, color: "success.main" },
+} as const satisfies Record<PaneStatus, object>;
+
 const SURFACE_CAPTION_BASE_SX = {
   fontSize: "0.675rem",
   cursor: "pointer",
+  // Allow the name to shrink below content width so noWrap can ellipsize it
+  // instead of overflowing past the status tag.
+  minWidth: 0,
 } as const;
 
 const SURFACE_CAPTION_DIM_SX = {
@@ -133,7 +137,7 @@ export function WorkspaceSurfaceList({ workspace }: Props) {
               component="span"
               variant="caption"
               title={STATUS_LABEL[status]}
-              sx={{ ...STATUS_TAG_SX, color: STATUS_COLOR[status] }}
+              sx={STATUS_TAG_SX_BY_STATUS[status]}
             >
               {STATUS_LABEL[status]}
             </Typography>

@@ -18,18 +18,23 @@ function escapeInSingleQuotes(s: string): string {
   return s.replace(/'/g, "'\\''");
 }
 
-function oscNotifyCommand(title: string, body: string): string {
-  const t = escapeInSingleQuotes(title);
-  const b = escapeInSingleQuotes(body);
+// Resolves the agent pane's tty once and writes each OSC 777 payload to it.
+// The renderer tags that pane from where the bytes arrive, so no session id
+// is needed. Batching payloads keeps a single hook event to one `ps` fork.
+function osc777Command(payloads: string[]): string {
   const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
-  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; [ -n "$ptty" ] && [ "$ptty" != "?" ] && printf '\\033]777;notify;${t};${b}\\007' > "/dev/$ptty"; fi`;
+  const writes = payloads
+    .map((p) => `printf '\\033]777;${p}\\007' > "/dev/$ptty"`)
+    .join("; ");
+  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; if [ -n "$ptty" ] && [ "$ptty" != "?" ]; then ${writes}; fi; fi`;
 }
 
-// Emits an OSC 777 `status` sequence onto the agent pane's tty; the renderer
-// tags that pane from the bytes' arrival point, so no session id is needed.
-function oscStatusCommand(status: PaneStatusSignal): string {
-  const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
-  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; [ -n "$ptty" ] && [ "$ptty" != "?" ] && printf '\\033]777;status;${status}\\007' > "/dev/$ptty"; fi`;
+function notifyPayload(title: string, body: string): string {
+  return `notify;${escapeInSingleQuotes(title)};${escapeInSingleQuotes(body)}`;
+}
+
+function statusPayload(status: PaneStatusSignal): string {
+  return `status;${status}`;
 }
 
 function sessionHookCommand(
@@ -45,19 +50,21 @@ ${sessionScript}
 fi`;
 }
 
-function notifyHook(entry: { title: string; body: string }) {
-  return {
-    type: "command",
-    command: oscNotifyCommand(entry.title, entry.body),
-  };
+// Emits an OS notification and/or a pane status tag in a single command so an
+// event resolves the tty (and forks `ps`) just once.
+function eventHook(opts: {
+  notify?: { title: string; body: string };
+  status?: PaneStatusSignal;
+}) {
+  const payloads: string[] = [];
+  if (opts.notify)
+    payloads.push(notifyPayload(opts.notify.title, opts.notify.body));
+  if (opts.status) payloads.push(statusPayload(opts.status));
+  return { type: "command", command: osc777Command(payloads) };
 }
 
 function sessionHook(agentName: string, event: AgentSessionEvent) {
   return { type: "command", command: sessionHookCommand(agentName, event) };
-}
-
-function statusHook(status: PaneStatusSignal) {
-  return { type: "command", command: oscStatusCommand(status) };
 }
 
 function agentHookStrings(agent: string) {
@@ -89,17 +96,23 @@ const builders: Record<AgentName, () => HooksConfig> = {
         Notification: [
           {
             matcher: "permission_prompt",
-            hooks: [notifyHook(s.permissionPrompt), statusHook("needs-input")],
+            hooks: [
+              eventHook({ notify: s.permissionPrompt, status: "needs-input" }),
+            ],
           },
           {
             matcher: "elicitation_dialog",
-            hooks: [notifyHook(s.elicitationDialog), statusHook("needs-input")],
+            hooks: [
+              eventHook({ notify: s.elicitationDialog, status: "needs-input" }),
+            ],
           },
         ],
         PreToolUse: [
           {
             matcher: "AskUserQuestion",
-            hooks: [notifyHook(s.askUserQuestion), statusHook("needs-input")],
+            hooks: [
+              eventHook({ notify: s.askUserQuestion, status: "needs-input" }),
+            ],
           },
         ],
         PostToolUse: [
@@ -109,10 +122,18 @@ const builders: Record<AgentName, () => HooksConfig> = {
           },
         ],
         // A new prompt clears any pending tag; the agent is working again.
-        UserPromptSubmit: [{ hooks: [statusHook("working")] }],
-        Stop: [{ hooks: [notifyHook(s.stop), statusHook("ready-for-review")] }],
-        SessionStart: [{ hooks: [session("start"), statusHook("working")] }],
-        SessionEnd: [{ hooks: [session("end"), statusHook("completed")] }],
+        UserPromptSubmit: [{ hooks: [eventHook({ status: "working" })] }],
+        Stop: [
+          {
+            hooks: [eventHook({ notify: s.stop, status: "ready-for-review" })],
+          },
+        ],
+        SessionStart: [
+          { hooks: [session("start"), eventHook({ status: "working" })] },
+        ],
+        SessionEnd: [
+          { hooks: [session("end"), eventHook({ status: "completed" })] },
+        ],
       },
     };
   },
