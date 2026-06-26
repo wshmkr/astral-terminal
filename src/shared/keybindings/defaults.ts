@@ -46,6 +46,7 @@ export const DEFAULT_KEYBINDINGS: Binding[] = [
   { command: "browser.find", combo: "Mod+F", scope: "browser" },
 
   { command: "terminal.copy", combo: "Mod+Shift+C", scope: "terminal" },
+  { command: "terminal.copy", combo: "Mod+C", scope: "terminal" },
   { command: "terminal.paste", combo: "Mod+Shift+V", scope: "terminal" },
   { command: "terminal.paste", combo: "Mod+V", scope: "terminal" },
   { command: "terminal.find", combo: "Mod+F", scope: "terminal" },
