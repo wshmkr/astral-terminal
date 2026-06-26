@@ -354,6 +354,10 @@ export type CliSplitDirection = "right" | "down";
 export interface CliSplitRequest {
   requestId: string;
   direction: CliSplitDirection;
+  // Epoch ms after which the renderer must not perform the split: the main process will have
+  // stopped waiting, so acting late would create a pane the CLI never learns about (and a retry
+  // would double-split). Same-process wall clock, so main and renderer compare it directly.
+  deadline: number;
   // Optional target, resolved across all workspaces. When omitted (or not found) the active
   // workspace's focused pane is used.
   surfaceId?: string;

@@ -14,7 +14,11 @@ const SPLIT_DIRECTIONS: readonly CliSplitDirection[] = ["right", "down"];
 
 // The renderer owns the layout, so the split is dispatched there and we await a correlated reply.
 // Bounded so a wedged/closed renderer surfaces an error instead of hanging the CLI connection.
+// The renderer treats REPLY_TIMEOUT_MS as a hard deadline and no-ops past it; we wait an extra
+// grace period so a split that started just before the deadline always wins the race to reply
+// (rather than us timing out while it commits, which would strand a pane the CLI never sees).
 const REPLY_TIMEOUT_MS = 5000;
+const REPLY_GRACE_MS = 1000;
 
 interface ParsedParams {
   direction: CliSplitDirection;
@@ -68,7 +72,11 @@ function parseParams(params: unknown): ParsedParams {
 function isReply(value: unknown): value is CliSplitReply {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return typeof v.requestId === "string" && typeof v.result === "object";
+  return (
+    typeof v.requestId === "string" &&
+    typeof v.result === "object" &&
+    v.result !== null
+  );
 }
 
 export function registerPaneSplit(
@@ -101,12 +109,13 @@ export function registerPaneSplit(
     }
 
     const requestId = `split-${nextRequestId++}`;
-    const request: CliSplitRequest = { requestId, ...parsed };
+    const deadline = Date.now() + REPLY_TIMEOUT_MS;
+    const request: CliSplitRequest = { requestId, deadline, ...parsed };
     const result = await new Promise<CliSplitResult>((resolve) => {
       const timer = setTimeout(() => {
         pending.delete(requestId);
         resolve({ ok: false, reason: "timed out waiting for the renderer" });
-      }, REPLY_TIMEOUT_MS);
+      }, REPLY_TIMEOUT_MS + REPLY_GRACE_MS);
       pending.set(requestId, { resolve, timer });
       win.webContents.send(IPC.cli.split, request);
     });

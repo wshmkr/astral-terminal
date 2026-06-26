@@ -204,8 +204,9 @@ function wrapLeafInSplit(
 export function splitPane(
   targetPaneId: string,
   direction: SplitDirection,
-  workspaceId?: string,
-): string | null {
+  opts: { workspaceId?: string; focusNew?: boolean } = {},
+): { paneId: string; surfaceId: string } | null {
+  const { workspaceId, focusNew = true } = opts;
   const ws = workspaceId ? getWorkspace(workspaceId) : getActiveWorkspace();
   if (!ws) return null;
 
@@ -225,15 +226,14 @@ export function splitPane(
   );
   if (newLayout === ws.layout) return null;
   setWorkspaceLayout(ws.id, newLayout);
-  // Focus is global to the active workspace; for a background split, stash the new pane so it
-  // gets focused when the user switches there (matches setActiveWorkspace's restore behavior).
-  if (ws.id === getState().activeWorkspaceId) {
+  // Only move focus to the new pane when asked to (UI/keybind splits) AND the split happened in
+  // the active workspace. A CLI split of a non-focused or background pane leaves the user's focus
+  // — and their keystrokes — exactly where they are.
+  if (focusNew && ws.id === getState().activeWorkspaceId) {
     setState({ ...getState(), focusedPaneId: newLeaf.id });
-  } else {
-    lastFocusedPaneByWorkspace.set(ws.id, newLeaf.id);
   }
   commit();
-  return newLeaf.id;
+  return { paneId: newLeaf.id, surfaceId: newLeaf.activeSurfaceId };
 }
 
 export function closePane(paneId: string): void {
