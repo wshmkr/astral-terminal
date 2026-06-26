@@ -11,7 +11,7 @@ import {
 import {
   findFirstLeaf,
   findLeafPane,
-  forEachLeaf,
+  findLeafWhere,
   getActiveSurface,
   mapNode,
   pruneNode,
@@ -204,12 +204,15 @@ function wrapLeafInSplit(
 export function splitPane(
   targetPaneId: string,
   direction: SplitDirection,
-): void {
-  const ws = getActiveWorkspace();
-  if (!ws) return;
+  opts: { workspaceId?: string; focusNew?: boolean } = {},
+): { paneId: string; surfaceId: string } | null {
+  const { workspaceId, focusNew = true } = opts;
+  const ws = workspaceId ? getWorkspace(workspaceId) : getActiveWorkspace();
+  if (!ws) return null;
 
   const targetLeaf = findLeafPane(ws.layout, targetPaneId);
-  const activeSurface = targetLeaf ? getActiveSurface(targetLeaf) : undefined;
+  if (!targetLeaf) return null;
+  const activeSurface = getActiveSurface(targetLeaf);
   const cwd =
     activeSurface && isTerminalSurface(activeSurface)
       ? activeSurface.cwd
@@ -221,10 +224,16 @@ export function splitPane(
     direction,
     newLeaf,
   );
-  if (newLayout === ws.layout) return;
+  if (newLayout === ws.layout) return null;
   setWorkspaceLayout(ws.id, newLayout);
-  setState({ ...getState(), focusedPaneId: newLeaf.id });
+  // Only move focus to the new pane when asked to (UI/keybind splits) AND the split happened in
+  // the active workspace. A CLI split of a non-focused or background pane leaves the user's focus
+  // — and their keystrokes — exactly where they are.
+  if (focusNew && ws.id === getState().activeWorkspaceId) {
+    setState({ ...getState(), focusedPaneId: newLeaf.id });
+  }
   commit();
+  return { paneId: newLeaf.id, surfaceId: newLeaf.activeSurfaceId };
 }
 
 export function closePane(paneId: string): void {
@@ -349,14 +358,10 @@ export function findPaneBySurfaceId(
   surfaceId: string,
 ): { workspaceId: string; paneId: string } | null {
   for (const ws of getState().workspaces) {
-    let match: { workspaceId: string; paneId: string } | null = null;
-    forEachLeaf(ws.layout, (leaf) => {
-      if (match) return;
-      if (leaf.surfaces.some((s) => s.id === surfaceId)) {
-        match = { workspaceId: ws.id, paneId: leaf.id };
-      }
-    });
-    if (match) return match;
+    const leaf = findLeafWhere(ws.layout, (l) =>
+      l.surfaces.some((s) => s.id === surfaceId),
+    );
+    if (leaf) return { workspaceId: ws.id, paneId: leaf.id };
   }
   return null;
 }
