@@ -121,7 +121,13 @@ const builders: Record<AgentName, () => HooksConfig> = {
             hooks: [session("update")],
           },
         ],
-        // A new prompt clears any pending tag; the agent is working again.
+        // Tags clear back to "working" only on a new prompt or session start.
+        // Known gaps we accept: resuming after a granted permission/elicitation
+        // (no new prompt) keeps "needs-input" until the next Stop, and an agent
+        // killed before SessionEnd leaves its last tag stuck. Closing these
+        // would need a per-tool-call hook (a `ps` fork on every tool) for a
+        // brief cosmetic mismatch; a stale tag never survives restart anyway
+        // (saveState strips it).
         UserPromptSubmit: [{ hooks: [eventHook({ status: "working" })] }],
         Stop: [
           {
