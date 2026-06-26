@@ -27,24 +27,45 @@ type Resolution = { target: SplitTarget } | { error: string };
 // whatever pane the user happens to be looking at.
 function resolveTarget(request: CliSplitRequest): Resolution {
   if (request.paneId !== undefined || request.surfaceId !== undefined) {
+    let paneTarget: SplitTarget | null = null;
     if (request.paneId !== undefined) {
       for (const ws of getState().workspaces) {
         if (findLeafPane(ws.layout, request.paneId)) {
-          return { target: { workspaceId: ws.id, paneId: request.paneId } };
+          paneTarget = { workspaceId: ws.id, paneId: request.paneId };
+          break;
         }
       }
+      if (!paneTarget) {
+        return { error: `split target not found: pane ${request.paneId}` };
+      }
     }
+
+    let surfaceTarget: SplitTarget | null = null;
     if (request.surfaceId !== undefined) {
-      const found = findPaneBySurfaceId(request.surfaceId);
-      if (found) return { target: found };
+      surfaceTarget = findPaneBySurfaceId(request.surfaceId);
+      if (!surfaceTarget) {
+        return {
+          error: `split target not found: surface ${request.surfaceId}`,
+        };
+      }
     }
-    const requested = [
-      request.paneId !== undefined ? `pane ${request.paneId}` : null,
-      request.surfaceId !== undefined ? `surface ${request.surfaceId}` : null,
-    ]
-      .filter(Boolean)
-      .join(" / ");
-    return { error: `split target not found: ${requested}` };
+
+    // If both identifiers were supplied they must resolve to the same pane; otherwise one is
+    // stale and we'd silently split one of two different panes.
+    if (
+      paneTarget &&
+      surfaceTarget &&
+      (paneTarget.workspaceId !== surfaceTarget.workspaceId ||
+        paneTarget.paneId !== surfaceTarget.paneId)
+    ) {
+      return {
+        error:
+          "split target mismatch: paneId and surfaceId resolve to different panes",
+      };
+    }
+
+    const target = paneTarget ?? surfaceTarget;
+    if (target) return { target };
   }
 
   const s = getState();
@@ -89,7 +110,7 @@ export function startCliSplitBridge(): void {
   window.app.onCliSplit((request) => {
     // The main process stops waiting at request.deadline. If we only unblocked after it, applying
     // the split would strand a pane the CLI never sees — and a retry would double-split — so no-op.
-    if (Date.now() > request.deadline) {
+    if (Date.now() >= request.deadline) {
       window.app.sendCliSplitResult({
         requestId: request.requestId,
         result: {

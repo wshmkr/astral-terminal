@@ -117,7 +117,18 @@ export function registerPaneSplit(
         resolve({ ok: false, reason: "timed out waiting for the renderer" });
       }, REPLY_TIMEOUT_MS + REPLY_GRACE_MS);
       pending.set(requestId, { resolve, timer });
-      win.webContents.send(IPC.cli.split, request);
+      // The window passed isDestroyed() above, but it can tear down before this send; a sync
+      // throw here would otherwise leak the timer/pending entry and surface a raw error.
+      try {
+        win.webContents.send(IPC.cli.split, request);
+      } catch (err) {
+        clearTimeout(timer);
+        pending.delete(requestId);
+        resolve({
+          ok: false,
+          reason: `failed to dispatch split to renderer: ${String(err)}`,
+        });
+      }
     });
 
     if (!result.ok) {

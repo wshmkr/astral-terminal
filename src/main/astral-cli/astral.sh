@@ -112,9 +112,11 @@ call() {
   return 1
 }
 
-# Split the current pane. Targets the pane holding this shell (via ASTRAL_SURFACE_ID) so a
-# split from a background workspace doesn't disturb the focused one; falls back to the focused
-# pane when the surface is unknown. Thin wrapper over `call pane.split`.
+# Split the current pane. When ASTRAL_SURFACE_ID is set we target the pane holding this shell so a
+# split from a background workspace doesn't disturb the focused one; if that surface no longer
+# exists the app reports an error rather than splitting an unrelated pane. Only when the env var is
+# unset do we omit the target and let the app split the focused pane. Thin wrapper over
+# `call pane.split`.
 split() {
   direction=$1
   case "$direction" in
