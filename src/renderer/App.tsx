@@ -7,6 +7,7 @@ import { AppDndContext } from "./app/AppDndContext";
 import { SurfaceBodyRegistryProvider } from "./app/SurfaceBodyRegistry";
 import { WorkspaceSurfaceHost } from "./app/WorkspaceSurfaceHost";
 import { installBrowserPopupListener } from "./components/Browser/popup-listener";
+import { paneMinSize } from "./components/Layout/layout-math";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
@@ -55,6 +56,9 @@ export function App() {
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
   const welcomeOpen = useWorkspaceStore((s) => s.welcomeOpen);
+  const activeLayout = workspaces.find(
+    (w) => w.id === activeWorkspaceId,
+  )?.layout;
   const workspacesContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{
     width: number;
@@ -73,6 +77,22 @@ export function App() {
   useEffect(() => {
     window.app.setUiZoom(uiScale);
   }, [uiScale]);
+
+  // Keep the OS window from shrinking below what the active layout needs, so
+  // panes can't be forced under their minimum by resizing the whole window.
+  useEffect(() => {
+    if (!activeLayout || !containerSize) return;
+    const min = paneMinSize(activeLayout);
+    // chrome (sidebar, title bar, borders) = window minus the pane area, CSS px
+    const chromeWidth = Math.max(0, window.innerWidth - containerSize.width);
+    const chromeHeight = Math.max(0, window.innerHeight - containerSize.height);
+    // webFrame zoom scales every CSS px, so convert to device-independent px
+    const scale = uiScale || 1;
+    window.app.setMinimumWindowSize(
+      Math.ceil((chromeWidth + min.width) * scale),
+      Math.ceil((chromeHeight + min.height) * scale),
+    );
+  }, [activeLayout, containerSize, uiScale]);
 
   useEffect(() => {
     const el = workspacesContainerRef.current;

@@ -112,6 +112,8 @@ contextBridge.exposeInMainWorld("app", {
   showLinkMenu: (payload: { url: string; sourceSurfaceId: string }) =>
     ipcRenderer.send(IPC.shell.showLinkMenu, payload),
 
+  setMinimumWindowSize: (width: number, height: number) =>
+    ipcRenderer.send(IPC.window.setMinimumSize, { width, height }),
   windowMinimize: () => ipcRenderer.send(IPC.window.minimize),
   windowMaximize: () => ipcRenderer.send(IPC.window.maximize),
   windowClose: () => ipcRenderer.send(IPC.window.close),

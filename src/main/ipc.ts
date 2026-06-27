@@ -59,6 +59,7 @@ import {
 } from "./settings-window";
 import { getUsage } from "./usage/monitor";
 import { focusMainWindow } from "./window";
+import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from "./window-state";
 import { loadWorkspaces, saveWorkspaces } from "./workspaces-store";
 import { listWslDistros } from "./wsl-distros";
 
@@ -183,6 +184,17 @@ export function registerWindowIpc({ getMainWindow }: WindowDeps): void {
   ipcMain.on(IPC.window.close, () => {
     getMainWindow()?.close();
   });
+
+  ipcMain.on(
+    IPC.window.setMinimumSize,
+    (_event, msg: { width: number; height: number }) => {
+      const win = getMainWindow();
+      if (!win || win.isDestroyed()) return;
+      const width = Math.max(MIN_WINDOW_WIDTH, Math.round(msg?.width ?? 0));
+      const height = Math.max(MIN_WINDOW_HEIGHT, Math.round(msg?.height ?? 0));
+      win.setMinimumSize(width, height);
+    },
+  );
 
   ipcMain.on(IPC.shell.openExternal, (_event, msg: { url: string }) => {
     if (typeof msg?.url === "string") openInSystemBrowser(msg.url);

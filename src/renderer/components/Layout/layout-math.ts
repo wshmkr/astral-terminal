@@ -1,5 +1,9 @@
 import type { LeafPane, PaneNode, SplitDirection } from "../../../shared/types";
-import { PANE_SPLIT_GAP_PX, RESIZE_HANDLE_SIZE_PX } from "./layout-constants";
+import {
+  MIN_PANE_SIZE_PX,
+  PANE_SPLIT_GAP_PX,
+  RESIZE_HANDLE_SIZE_PX,
+} from "./layout-constants";
 
 export interface Rect {
   left: number;
@@ -32,6 +36,81 @@ export interface ComputedLayout {
   splits: Map<string, SplitInfo>;
 }
 
+export interface MinSize {
+  width: number;
+  height: number;
+}
+
+// Smallest box a node can occupy: a leaf is MIN_PANE_SIZE_PX square; a split
+// sums its children along its own axis (plus gaps) and takes their max across.
+export function paneMinSize(node: PaneNode): MinSize {
+  if (node.kind === "leaf") {
+    return { width: MIN_PANE_SIZE_PX, height: MIN_PANE_SIZE_PX };
+  }
+  const childMins = node.children.map(paneMinSize);
+  const totalGaps = (node.children.length - 1) * PANE_SPLIT_GAP_PX;
+  if (node.direction === "vertical") {
+    return {
+      width: childMins.reduce((sum, m) => sum + m.width, 0) + totalGaps,
+      height: Math.max(...childMins.map((m) => m.height)),
+    };
+  }
+  return {
+    width: Math.max(...childMins.map((m) => m.width)),
+    height: childMins.reduce((sum, m) => sum + m.height, 0) + totalGaps,
+  };
+}
+
+// Distribute `available` px across children by fraction, but never below each
+// child's minimum. When the minimums don't fit, every child still gets its min
+// and the surplus is clipped by the container (overflow: hidden).
+function distributeWithMin(
+  available: number,
+  fractions: number[],
+  mins: number[],
+): number[] {
+  const n = fractions.length;
+  const sizes = new Array<number>(n).fill(0);
+  const locked = new Array<boolean>(n).fill(false);
+  let freeSpace = available;
+  let freeFraction = fractions.reduce((sum, f) => sum + f, 0);
+
+  // Repeatedly pin any child whose proportional share is below its min, then
+  // redistribute the remaining space among the rest until nothing else pins.
+  for (;;) {
+    let unlockedCount = 0;
+    for (let i = 0; i < n; i++) if (!locked[i]) unlockedCount++;
+    if (unlockedCount === 0) break;
+
+    let pinnedAny = false;
+    for (let i = 0; i < n; i++) {
+      if (locked[i]) continue;
+      const share =
+        freeFraction > 0
+          ? freeSpace * ((fractions[i] ?? 0) / freeFraction)
+          : freeSpace / unlockedCount;
+      if (share < (mins[i] ?? 0)) {
+        locked[i] = true;
+        sizes[i] = mins[i] ?? 0;
+        freeSpace -= mins[i] ?? 0;
+        freeFraction -= fractions[i] ?? 0;
+        pinnedAny = true;
+      }
+    }
+    if (!pinnedAny) {
+      for (let i = 0; i < n; i++) {
+        if (locked[i]) continue;
+        sizes[i] =
+          freeFraction > 0
+            ? freeSpace * ((fractions[i] ?? 0) / freeFraction)
+            : freeSpace / unlockedCount;
+      }
+      break;
+    }
+  }
+  return sizes;
+}
+
 export function computeLayout(root: PaneNode, bounds: Rect): ComputedLayout {
   const out: ComputedLayout = { leaves: [], handles: [], splits: new Map() };
   walk(root, bounds, out);
@@ -53,9 +132,15 @@ function walk(node: PaneNode, bounds: Rect, out: ComputedLayout): void {
   const fractions = normalizeFractions(sizes, children.length);
   out.splits.set(node.id, { sizes: fractions, availableSpace: available });
 
+  const childMins = children.map((child) => {
+    const m = paneMinSize(child);
+    return isVertical ? m.width : m.height;
+  });
+  const childSizes = distributeWithMin(available, fractions, childMins);
+
   let offset = isVertical ? bounds.left : bounds.top;
   for (const [i, child] of children.entries()) {
-    const childSize = available * (fractions[i] ?? 1 / children.length);
+    const childSize = childSizes[i] ?? available / children.length;
     const childBounds: Rect = isVertical
       ? {
           left: offset,
@@ -135,13 +220,14 @@ export function resizeSiblings(
   sizes: number[],
   childIndex: number,
   deltaFrac: number,
-  minFrac: number,
+  minLeftFrac: number,
+  minRightFrac: number,
 ): number[] {
   const origLeft = sizes[childIndex] ?? 0;
   const origRight = sizes[childIndex + 1] ?? 0;
   const clamped = Math.max(
-    -(origLeft - minFrac),
-    Math.min(origRight - minFrac, deltaFrac),
+    -(origLeft - minLeftFrac),
+    Math.min(origRight - minRightFrac, deltaFrac),
   );
   const next = [...sizes];
   next[childIndex] = origLeft + clamped;
