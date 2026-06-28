@@ -190,8 +190,13 @@ export function registerWindowIpc({ getMainWindow }: WindowDeps): void {
     (_event, msg: { width: number; height: number }) => {
       const win = getMainWindow();
       if (!win || win.isDestroyed()) return;
-      const width = Math.max(MIN_WINDOW_WIDTH, Math.round(msg?.width ?? 0));
-      const height = Math.max(MIN_WINDOW_HEIGHT, Math.round(msg?.height ?? 0));
+      const finite = (v: unknown) =>
+        typeof v === "number" && Number.isFinite(v) ? v : 0;
+      const width = Math.max(MIN_WINDOW_WIDTH, Math.round(finite(msg?.width)));
+      const height = Math.max(
+        MIN_WINDOW_HEIGHT,
+        Math.round(finite(msg?.height)),
+      );
       win.setMinimumSize(width, height);
     },
   );

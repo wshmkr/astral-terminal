@@ -81,8 +81,13 @@ export function App() {
   // Keep the OS window from shrinking below what the active layout needs, so
   // panes can't be forced under their minimum by resizing the whole window.
   useEffect(() => {
-    if (!activeLayout || !containerSize) return;
-    const min = paneMinSize(activeLayout);
+    if (!containerSize) return;
+    // No workspace open: drop back to the chrome-only floor (the main process
+    // clamps up to MIN_WINDOW_WIDTH/HEIGHT) so a stale larger minimum doesn't
+    // stick after the last workspace closes.
+    const min = activeLayout
+      ? paneMinSize(activeLayout)
+      : { width: 0, height: 0 };
     // chrome (sidebar, title bar, borders) = window minus the pane area, CSS px
     const chromeWidth = Math.max(0, window.innerWidth - containerSize.width);
     const chromeHeight = Math.max(0, window.innerHeight - containerSize.height);

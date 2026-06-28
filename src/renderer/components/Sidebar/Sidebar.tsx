@@ -129,6 +129,16 @@ function SidebarImpl() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
   const renderedWidth = clampSidebarWidth(sidebarWidth, viewportWidth);
+  // onDrag writes inline width/minWidth straight to the node for smoothness;
+  // those win over the sx width, so re-apply renderedWidth whenever it changes
+  // (window resize, drag end) or a shrunk window would keep a stale rail width.
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const px = `${renderedWidth}px`;
+    el.style.width = px;
+    el.style.minWidth = px;
+  }, [renderedWidth]);
 
   const dragRef = useRef({ startX: 0, startWidth: 0, latestWidth: 0 });
 

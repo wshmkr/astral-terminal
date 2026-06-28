@@ -130,13 +130,22 @@ function walk(node: PaneNode, bounds: Rect, out: ComputedLayout): void {
   const available = totalSpace - totalGaps;
 
   const fractions = normalizeFractions(sizes, children.length);
-  out.splits.set(node.id, { sizes: fractions, availableSpace: available });
 
   const childMins = children.map((child) => {
     const m = paneMinSize(child);
     return isVertical ? m.width : m.height;
   });
   const childSizes = distributeWithMin(available, fractions, childMins);
+
+  // Expose the rendered fractions (after min-clamping), not the raw input, so a
+  // drag started on a pinned split seeds from the visible handle position.
+  out.splits.set(node.id, {
+    sizes:
+      available > 0
+        ? childSizes.map((size) => size / available)
+        : [...fractions],
+    availableSpace: available,
+  });
 
   let offset = isVertical ? bounds.left : bounds.top;
   for (const [i, child] of children.entries()) {
