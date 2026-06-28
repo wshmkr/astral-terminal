@@ -198,6 +198,16 @@ export function registerWindowIpc({ getMainWindow }: WindowDeps): void {
         Math.round(finite(msg?.height)),
       );
       win.setMinimumSize(width, height);
+      // setMinimumSize only constrains future user resizes; on Windows/Linux it
+      // won't grow a window that is already smaller than the new minimum. Grow
+      // it ourselves so a layout whose requirement just increased (e.g. a fresh
+      // split) isn't left clipped until the user drags the window larger.
+      if (!win.isMaximized() && !win.isFullScreen()) {
+        const [curWidth = 0, curHeight = 0] = win.getSize();
+        if (curWidth < width || curHeight < height) {
+          win.setSize(Math.max(curWidth, width), Math.max(curHeight, height));
+        }
+      }
     },
   );
 
