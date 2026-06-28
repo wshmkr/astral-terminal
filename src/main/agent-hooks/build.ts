@@ -1,10 +1,11 @@
 import type { AgentName } from "../../shared/agent-hooks";
 import { APP_PACKAGE_NAME } from "../../shared/meta";
+import notifyScript from "./notify.sh?raw";
 import { AGENT_SESSION_OSC_IDENT, type AgentSessionEvent } from "./osc";
 import sessionScript from "./session.sh?raw";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "4";
+export const HOOK_MARKER_VERSION = "5";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
@@ -37,11 +38,27 @@ ${sessionScript}
 fi`;
 }
 
-function notifyHook(entry: { title: string; body: string }) {
-  return {
-    type: "command",
-    command: oscNotifyCommand(entry.title, entry.body),
-  };
+// Builds the body from a field in the hook's stdin JSON (e.g. the notification
+// "message" or an AskUserQuestion "question"), falling back to a static string.
+function notifyDynamicCommand(
+  title: string,
+  fallbackBody: string,
+  field: string,
+): string {
+  return `: ${HOOK_MARKER}
+if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then
+NOTIFY_TITLE=${shellSingleQuote(title)}
+NOTIFY_FALLBACK=${shellSingleQuote(fallbackBody)}
+NOTIFY_FIELD=${shellSingleQuote(field)}
+${notifyScript}
+fi`;
+}
+
+function notifyHook(entry: { title: string; body: string; field?: string }) {
+  const command = entry.field
+    ? notifyDynamicCommand(entry.title, entry.body, entry.field)
+    : oscNotifyCommand(entry.title, entry.body);
+  return { type: "command", command };
 }
 
 function sessionHook(agentName: string, event: AgentSessionEvent) {
@@ -50,18 +67,24 @@ function sessionHook(agentName: string, event: AgentSessionEvent) {
 
 function agentHookStrings(agent: string) {
   return {
+    // `message` carries Claude's own text, e.g. "Permission required to
+    // execute: Bash(npm test)"; the static body is the fallback.
     permissionPrompt: {
       title: "Permission Needed",
       body: `${agent} needs tool approval`,
+      field: "message",
     },
     elicitationDialog: {
       title: "Input Required",
       body: "An MCP server is requesting input",
+      field: "message",
     },
     stop: { title: "Ready for Input", body: `${agent} finished responding` },
+    // `question` is the actual prompt text from AskUserQuestion's tool_input.
     askUserQuestion: {
       title: "Question Pending",
       body: `${agent} is asking a question`,
+      field: "question",
     },
   };
 }
