@@ -6,7 +6,7 @@ import sessionScript from "./session.sh?raw";
 import stopScript from "./stop.sh?raw";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "6";
+export const HOOK_MARKER_VERSION = "5";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
