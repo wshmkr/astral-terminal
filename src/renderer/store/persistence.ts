@@ -1,29 +1,33 @@
 import type { PersistedSettings } from "../../shared/settings-types";
-import type {
-  AppState,
-  PaneNode,
-  PersistedWorkspaces,
-  Surface,
+import {
+  type AppState,
+  isTerminalSurface,
+  type PaneNode,
+  type PersistedWorkspaces,
+  type Surface,
 } from "../../shared/types";
+import { mapLeaves } from "../components/Layout/pane-tree";
 
 export interface LoadedState {
   settings: PersistedSettings | null;
   workspaces: PersistedWorkspaces | null;
 }
 
-// `status` is a runtime-only pane tag; drop it so it never reaches disk.
 function stripSurfaceRuntime(s: Surface): Surface {
-  if (s.type === "terminal" && s.status !== undefined) {
-    return { id: s.id, name: s.name, type: "terminal", cwd: s.cwd };
+  if (isTerminalSurface(s) && s.status !== undefined) {
+    const { status: _s, ...rest } = s;
+    return rest;
   }
   return s;
 }
 
 function stripLayoutRuntime(node: PaneNode): PaneNode {
-  if (node.kind === "split") {
-    return { ...node, children: node.children.map(stripLayoutRuntime) };
-  }
-  return { ...node, surfaces: node.surfaces.map(stripSurfaceRuntime) };
+  return mapLeaves(node, (leaf) => {
+    const surfaces = leaf.surfaces.map(stripSurfaceRuntime);
+    return surfaces.every((s, i) => s === leaf.surfaces[i])
+      ? leaf
+      : { ...leaf, surfaces };
+  });
 }
 
 export function saveState(state: AppState): void {

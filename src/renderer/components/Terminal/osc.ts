@@ -1,7 +1,4 @@
-import {
-  PANE_STATUS_SIGNAL_VALUES,
-  type PaneStatusSignal,
-} from "../../../shared/types";
+import { isPaneStatusSignal, type PaneStatus } from "../../../shared/types";
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: OSC sequences use ESC and BEL
 const OSC_PATTERN = /\x1b\](\d+);([^\x07\x1b]*?)(?:\x07|\x1b\\)/g;
@@ -14,8 +11,6 @@ const OSC_RXVT_NOTIFY = "777";
 // ConPTY seeds this as the initial title and bare shells never overwrite
 const WINDOWS_EXE_PATH = /^[A-Za-z]:[\\/].*\.exe\s*$/;
 
-const PANE_STATUS_SIGNALS = new Set<string>(PANE_STATUS_SIGNAL_VALUES);
-
 export interface OscNotification {
   title?: string;
   body?: string;
@@ -25,7 +20,8 @@ export interface OscResult {
   title?: string;
   cwd?: string;
   notifications: OscNotification[];
-  status?: PaneStatusSignal;
+  // Absent = no signal in this chunk; `next: undefined` = clear the tag.
+  status?: { next: PaneStatus | undefined };
 }
 
 export function parseOsc(data: string): OscResult {
@@ -34,7 +30,7 @@ export function parseOsc(data: string): OscResult {
   }
   let title: string | undefined;
   let cwd: string | undefined;
-  let status: PaneStatusSignal | undefined;
+  let status: OscResult["status"];
   const notifications: OscNotification[] = [];
 
   for (const [, code, payload] of data.matchAll(OSC_PATTERN)) {
@@ -54,10 +50,8 @@ export function parseOsc(data: string): OscResult {
           title: parts[1] || "Notification",
           body: parts[2],
         });
-      } else if (parts[0] === "status" && parts[1]) {
-        if (PANE_STATUS_SIGNALS.has(parts[1])) {
-          status = parts[1] as PaneStatusSignal;
-        }
+      } else if (parts[0] === "status" && isPaneStatusSignal(parts[1])) {
+        status = { next: parts[1] === "working" ? undefined : parts[1] };
       }
     }
   }

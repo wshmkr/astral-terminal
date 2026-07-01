@@ -472,7 +472,6 @@ export class TerminalController implements SurfaceController, FindController {
     if (osc.title) this.opts.onTitleChange(osc.title);
     for (const n of osc.notifications)
       this.opts.onNotification(n.title, n.body);
-    if (osc.status)
-      this.opts.onStatus(osc.status === "working" ? undefined : osc.status);
+    if (osc.status) this.opts.onStatus(osc.status.next);
   }
 }

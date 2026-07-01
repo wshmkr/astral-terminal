@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   isTerminalSurface,
   type PaneStatus,
@@ -28,16 +28,14 @@ const STATUS_TAG_BASE_SX = {
   whiteSpace: "nowrap",
 } as const;
 
-// Precomputed per-status so a tagged row doesn't rebuild its sx each render.
-const STATUS_TAG_SX_BY_STATUS = {
-  "needs-input": { ...STATUS_TAG_BASE_SX, color: "warning.main" },
-  "ready-for-review": { ...STATUS_TAG_BASE_SX, color: "primary.main" },
-  completed: { ...STATUS_TAG_BASE_SX, color: "success.main" },
-} as const satisfies Record<PaneStatus, object>;
+const STATUS_COLOR: Record<PaneStatus, string> = {
+  "needs-input": "warning.main",
+  "ready-for-review": "primary.main",
+  completed: "success.main",
+};
 
 const SURFACE_CAPTION_BASE_SX = {
   fontSize: "0.675rem",
-  cursor: "pointer",
   // Allow the name to shrink below content width so noWrap can ellipsize it
   // instead of overflowing past the status tag.
   minWidth: 0,
@@ -66,6 +64,53 @@ const ROW_CONTAINER_SX = {
   cursor: "pointer",
 } as const;
 const NBSP = " ";
+
+interface SurfaceRowProps {
+  workspaceId: string;
+  paneId: string;
+  surfaceId: string;
+  name: string;
+  status: PaneStatus | undefined;
+  unread: boolean;
+}
+
+// Memoized so a status flip on one row doesn't re-render every sibling.
+const SurfaceRow = memo(function SurfaceRow({
+  workspaceId,
+  paneId,
+  surfaceId,
+  name,
+  status,
+  unread,
+}: SurfaceRowProps) {
+  return (
+    <Box
+      sx={ROW_CONTAINER_SX}
+      onClick={(e) => {
+        e.stopPropagation();
+        setActiveWorkspace(workspaceId);
+        setActiveSurface(paneId, surfaceId);
+      }}
+    >
+      <Typography
+        variant="caption"
+        noWrap
+        sx={unread ? SURFACE_CAPTION_UNREAD_SX : SURFACE_CAPTION_DIM_SX}
+      >
+        {name}
+      </Typography>
+      {status && (
+        <Typography
+          component="span"
+          variant="caption"
+          sx={{ ...STATUS_TAG_BASE_SX, color: STATUS_COLOR[status] }}
+        >
+          {STATUS_LABEL[status]}
+        </Typography>
+      )}
+    </Box>
+  );
+});
 
 interface Props {
   workspace: Workspace;
@@ -113,37 +158,15 @@ export function WorkspaceSurfaceList({ workspace }: Props) {
   return (
     <>
       {surfaces.map(({ id, paneId, name, status }) => (
-        <Box
+        <SurfaceRow
           key={id}
-          sx={ROW_CONTAINER_SX}
-          onClick={(e) => {
-            e.stopPropagation();
-            setActiveWorkspace(workspace.id);
-            setActiveSurface(paneId, id);
-          }}
-        >
-          <Typography
-            variant="caption"
-            noWrap
-            sx={
-              unreadIds.has(id)
-                ? SURFACE_CAPTION_UNREAD_SX
-                : SURFACE_CAPTION_DIM_SX
-            }
-          >
-            {name}
-          </Typography>
-          {status && (
-            <Typography
-              component="span"
-              variant="caption"
-              title={STATUS_LABEL[status]}
-              sx={STATUS_TAG_SX_BY_STATUS[status]}
-            >
-              {STATUS_LABEL[status]}
-            </Typography>
-          )}
-        </Box>
+          workspaceId={workspace.id}
+          paneId={paneId}
+          surfaceId={id}
+          name={name}
+          status={status}
+          unread={unreadIds.has(id)}
+        />
       ))}
     </>
   );

@@ -43,7 +43,10 @@ export function findFirstLeaf(node: PaneNode): string {
   return findFirstLeaf(first);
 }
 
-function mapLeaves(node: PaneNode, fn: (leaf: LeafPane) => LeafPane): PaneNode {
+export function mapLeaves(
+  node: PaneNode,
+  fn: (leaf: LeafPane) => LeafPane,
+): PaneNode {
   if (node.kind === "leaf") {
     const updated = fn(node);
     return updated === node ? node : updated;
