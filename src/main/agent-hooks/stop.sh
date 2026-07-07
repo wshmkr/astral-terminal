@@ -10,12 +10,20 @@ transcript=$(printf '%s' "$in" | sed -nE 's/.*[^A-Za-z0-9_]"transcript_path"[[:s
 
 body=""
 if [ -n "$transcript" ] && [ -f "$transcript" ]; then
-  # Transcript is JSONL (one entry per line). Take the last main-agent assistant
-  # entry and extract its text block. Keys are alphabetically sorted, so match
-  # the "text" key directly rather than assuming it follows "type":"text".
-  body=$(grep '"type":"assistant"' "$transcript" 2>/dev/null | grep -v '"isSidechain":true' | tail -n 1 \
-    | sed -nE 's/.*"text"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' \
-    | sed -E 's/\\n/ /g; s/\\t/ /g; s/\\"/"/g' | tr -d '\000-\037' | tr ';' ',' | cut -c1-160)
+  # Match "type":"assistant" / "isSidechain":true tolerantly — the transcript
+  # is compact today, but relying on zero-whitespace serialization would silently
+  # regress into fallback (or leak a subagent turn) the moment that drifts.
+  # Then scope the text pull to a "text":"...","type":"text" block — the pair
+  # is adjacent because transcript keys serialize alphabetically — so a tool_use
+  # block whose input has a "text" field can't slip past the greedy match, and
+  # accept \" inside the value so quoted content isn't truncated.
+  raw=$(grep -E '"type"[[:space:]]*:[[:space:]]*"assistant"' "$transcript" 2>/dev/null \
+    | grep -vE '"isSidechain"[[:space:]]*:[[:space:]]*true' \
+    | tail -n 1 \
+    | grep -oE '"text"[[:space:]]*:[[:space:]]*"([^"\]|\\.)*"[[:space:]]*,[[:space:]]*"type"[[:space:]]*:[[:space:]]*"text"' \
+    | tail -n 1)
+  value=$(printf '%s' "$raw" | sed -E 's/^"text"[[:space:]]*:[[:space:]]*"//; s/"[[:space:]]*,[[:space:]]*"type"[[:space:]]*:[[:space:]]*"text"$//')
+  body=$(sanitize_body "$value")
 fi
 [ -n "$body" ] || body="$NOTIFY_FALLBACK"
 

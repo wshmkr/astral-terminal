@@ -2,6 +2,7 @@ import type { AgentName } from "../../shared/agent-hooks";
 import { APP_PACKAGE_NAME } from "../../shared/meta";
 import notifyScript from "./notify.sh?raw";
 import { AGENT_SESSION_OSC_IDENT, type AgentSessionEvent } from "./osc";
+import sanitizeScript from "./sanitize.sh?raw";
 import sessionScript from "./session.sh?raw";
 import stopScript from "./stop.sh?raw";
 
@@ -40,6 +41,7 @@ if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then
 NOTIFY_TITLE=${shellSingleQuote(title)}
 NOTIFY_FALLBACK=${shellSingleQuote(fallbackBody)}
 NOTIFY_FIELD=${shellSingleQuote(field)}
+${sanitizeScript}
 ${notifyScript}
 fi`;
 }
@@ -51,6 +53,7 @@ function stopNotifyCommand(title: string, fallbackBody: string): string {
 if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then
 NOTIFY_TITLE=${shellSingleQuote(title)}
 NOTIFY_FALLBACK=${shellSingleQuote(fallbackBody)}
+${sanitizeScript}
 ${stopScript}
 fi`;
 }

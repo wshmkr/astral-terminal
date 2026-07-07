@@ -6,10 +6,12 @@ ptty=$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')
 [ -n "$ptty" ] && [ "$ptty" != "?" ] || exit 0
 
 in=$(cat)
-body=$(printf '%s' "$in" | sed -nE "s/.*[^A-Za-z0-9_]\"$NOTIFY_FIELD\"[[:space:]]*:[[:space:]]*\"([^\"]*)\".*/\\1/p" | head -n 1)
-# Unescape the common JSON escapes, drop control chars (they would terminate the
-# OSC sequence), swap the ';' field separator for ',', and cap the length.
-body=$(printf '%s' "$body" | sed -E 's/\\n/ /g; s/\\t/ /g; s/\\"/"/g' | tr -d '\000-\037' | tr ';' ',' | cut -c1-160)
+# grep -oE accepts \" inside the value (so quoted text isn't truncated) and
+# head -n 1 picks the FIRST occurrence — matters for AskUserQuestion, whose
+# tool_input has a "questions" array with more than one "question" entry.
+raw=$(printf '%s' "$in" | grep -oE '"'"$NOTIFY_FIELD"'"[[:space:]]*:[[:space:]]*"([^"\]|\\.)*"' | head -n 1)
+value=$(printf '%s' "$raw" | sed -E 's/^"'"$NOTIFY_FIELD"'"[[:space:]]*:[[:space:]]*"//; s/"$//')
+body=$(sanitize_body "$value")
 [ -n "$body" ] || body="$NOTIFY_FALLBACK"
 
 printf '\033]777;notify;%s;%s\007' "$NOTIFY_TITLE" "$body" > "/dev/$ptty"
