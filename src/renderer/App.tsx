@@ -78,20 +78,17 @@ export function App() {
     window.app.setUiZoom(uiScale);
   }, [uiScale]);
 
-  // Keep the OS window from shrinking below what the active layout needs, so
-  // panes can't be forced under their minimum by resizing the whole window.
+  // Hold the OS window minimum at the active layout's minimum so a whole-window
+  // resize can't force panes under their min.
   useEffect(() => {
     if (!containerSize) return;
-    // No workspace open: drop back to the chrome-only floor (the main process
-    // clamps up to MIN_WINDOW_WIDTH/HEIGHT) so a stale larger minimum doesn't
-    // stick after the last workspace closes.
+    // No workspace: chrome-only floor (main clamps up to MIN_WINDOW_*).
     const min = activeLayout
       ? paneMinSize(activeLayout)
       : { width: 0, height: 0 };
-    // chrome (sidebar, title bar, borders) = window minus the pane area, CSS px
     const chromeWidth = Math.max(0, window.innerWidth - containerSize.width);
     const chromeHeight = Math.max(0, window.innerHeight - containerSize.height);
-    // webFrame zoom scales every CSS px, so convert to device-independent px
+    // uiScale is the webFrame zoom: CSS px * scale = device-independent px.
     const scale = uiScale || 1;
     window.app.setMinimumWindowSize(
       Math.ceil((chromeWidth + min.width) * scale),

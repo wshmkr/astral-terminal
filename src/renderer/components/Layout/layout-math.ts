@@ -41,8 +41,7 @@ export interface MinSize {
   height: number;
 }
 
-// Smallest box a node can occupy: a leaf is MIN_PANE_SIZE_PX square; a split
-// sums its children along its own axis (plus gaps) and takes their max across.
+// Leaf = MIN_PANE_SIZE_PX square; split sums children along its axis (+ gaps), max across.
 export function paneMinSize(node: PaneNode): MinSize {
   if (node.kind === "leaf") {
     return { width: MIN_PANE_SIZE_PX, height: MIN_PANE_SIZE_PX };
@@ -61,9 +60,8 @@ export function paneMinSize(node: PaneNode): MinSize {
   };
 }
 
-// Distribute `available` px across children by fraction, but never below each
-// child's minimum. When the minimums don't fit, every child still gets its min
-// and the surplus is clipped by the container (overflow: hidden).
+// Allocate by fraction but never below each child's min; when mins don't fit,
+// each gets its min and the surplus clips (container is overflow: hidden).
 function distributeWithMin(
   available: number,
   fractions: number[],
@@ -75,8 +73,7 @@ function distributeWithMin(
   let freeSpace = available;
   let freeFraction = fractions.reduce((sum, f) => sum + f, 0);
 
-  // Repeatedly pin any child whose proportional share is below its min, then
-  // redistribute the remaining space among the rest until nothing else pins.
+  // Pin any child below its min, redistribute the rest, repeat until stable.
   for (;;) {
     let unlockedCount = 0;
     for (let i = 0; i < n; i++) if (!locked[i]) unlockedCount++;
@@ -130,9 +127,8 @@ function walk(node: PaneNode, bounds: Rect, out: ComputedLayout): void {
   const available = totalSpace - totalGaps;
 
   const fractions = normalizeFractions(sizes, children.length);
-  // Expose the stored fractions (not the min-clamped render sizes): a drag
-  // persists this whole array via resizeSplit, so reflowed values would
-  // overwrite the saved proportions of panes the user never touched.
+  // Stored fractions, not clamped render sizes — a drag persists this array and
+  // would otherwise clobber untouched panes' proportions.
   out.splits.set(node.id, { sizes: fractions, availableSpace: available });
 
   const childMins = children.map((child) => {

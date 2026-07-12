@@ -119,9 +119,7 @@ function SidebarImpl() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
-  // Clamp the rail to the current viewport so a shrinking window can't let the
-  // sidebar exceed half the width. This is visual only — the stored preference
-  // is kept, so the rail returns to its set width when the window grows back.
+  // Clamp visually to the viewport (stored width is preserved) so a narrow window can't let the rail exceed half.
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -129,9 +127,7 @@ function SidebarImpl() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
   const renderedWidth = clampSidebarWidth(sidebarWidth, viewportWidth);
-  // onDrag writes inline width/minWidth straight to the node for smoothness;
-  // those win over the sx width, so re-apply renderedWidth whenever it changes
-  // (window resize, drag end) or a shrunk window would keep a stale rail width.
+  // onDrag writes inline width directly and it overrides sx, so re-sync it here.
   useEffect(() => {
     const el = innerRef.current;
     if (!el) return;
