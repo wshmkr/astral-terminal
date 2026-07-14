@@ -371,6 +371,7 @@ export const IPC = {
     minimize: "window:minimize",
     maximize: "window:maximize",
     close: "window:close",
+    setMinimumSize: "window:set-minimum-size",
     maximizedChanged: "window:maximized-changed",
     focusChanged: "window:focus-changed",
   },

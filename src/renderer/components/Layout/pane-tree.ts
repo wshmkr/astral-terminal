@@ -27,6 +27,17 @@ export function pruneNode(node: PaneNode, targetId: string): PaneNode | null {
   return node;
 }
 
+export function findNode(node: PaneNode, id: string): PaneNode | null {
+  if (node.id === id) return node;
+  if (node.kind === "split") {
+    for (const child of node.children) {
+      const found = findNode(child, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export function findLeafPane(node: PaneNode, paneId: string): LeafPane | null {
   if (node.kind === "leaf") return node.id === paneId ? node : null;
   for (const child of node.children) {

@@ -59,6 +59,7 @@ import {
 } from "./settings-window";
 import { getUsage } from "./usage/monitor";
 import { focusMainWindow } from "./window";
+import { MIN_WINDOW_HEIGHT, MIN_WINDOW_WIDTH } from "./window-state";
 import { loadWorkspaces, saveWorkspaces } from "./workspaces-store";
 import { listWslDistros } from "./wsl-distros";
 
@@ -183,6 +184,29 @@ export function registerWindowIpc({ getMainWindow }: WindowDeps): void {
   ipcMain.on(IPC.window.close, () => {
     getMainWindow()?.close();
   });
+
+  ipcMain.on(
+    IPC.window.setMinimumSize,
+    (_event, msg: { width: number; height: number }) => {
+      const win = getMainWindow();
+      if (!win || win.isDestroyed()) return;
+      const finite = (v: unknown) =>
+        typeof v === "number" && Number.isFinite(v) ? v : 0;
+      const width = Math.max(MIN_WINDOW_WIDTH, Math.round(finite(msg?.width)));
+      const height = Math.max(
+        MIN_WINDOW_HEIGHT,
+        Math.round(finite(msg?.height)),
+      );
+      win.setMinimumSize(width, height);
+      // setMinimumSize only limits future resizes; grow the window now if it's already too small.
+      if (!win.isMaximized() && !win.isFullScreen()) {
+        const [curWidth = 0, curHeight = 0] = win.getSize();
+        if (curWidth < width || curHeight < height) {
+          win.setSize(Math.max(curWidth, width), Math.max(curHeight, height));
+        }
+      }
+    },
+  );
 
   ipcMain.on(IPC.shell.openExternal, (_event, msg: { url: string }) => {
     if (typeof msg?.url === "string") openInSystemBrowser(msg.url);

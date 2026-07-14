@@ -7,6 +7,7 @@ import { AppDndContext } from "./app/AppDndContext";
 import { SurfaceBodyRegistryProvider } from "./app/SurfaceBodyRegistry";
 import { WorkspaceSurfaceHost } from "./app/WorkspaceSurfaceHost";
 import { installBrowserPopupListener } from "./components/Browser/popup-listener";
+import { paneMinSize } from "./components/Layout/layout-math";
 import { WorkspaceLayout } from "./components/Layout/WorkspaceLayout";
 import { playNotificationSound } from "./components/Sidebar/notification-sound";
 import { Sidebar } from "./components/Sidebar/Sidebar";
@@ -55,6 +56,9 @@ export function App() {
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const appThemeId = useWorkspaceStore((s) => s.appearance.appThemeId);
   const welcomeOpen = useWorkspaceStore((s) => s.welcomeOpen);
+  const activeLayout = workspaces.find(
+    (w) => w.id === activeWorkspaceId,
+  )?.layout;
   const workspacesContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{
     width: number;
@@ -73,6 +77,24 @@ export function App() {
   useEffect(() => {
     window.app.setUiZoom(uiScale);
   }, [uiScale]);
+
+  // Hold the OS window minimum at the active layout's minimum so a whole-window
+  // resize can't force panes under their min.
+  useEffect(() => {
+    if (!containerSize) return;
+    // No workspace: chrome-only floor (main clamps up to MIN_WINDOW_*).
+    const min = activeLayout
+      ? paneMinSize(activeLayout)
+      : { width: 0, height: 0 };
+    const chromeWidth = Math.max(0, window.innerWidth - containerSize.width);
+    const chromeHeight = Math.max(0, window.innerHeight - containerSize.height);
+    // uiScale is the webFrame zoom: CSS px * scale = device-independent px.
+    const scale = uiScale || 1;
+    window.app.setMinimumWindowSize(
+      Math.ceil((chromeWidth + min.width) * scale),
+      Math.ceil((chromeHeight + min.height) * scale),
+    );
+  }, [activeLayout, containerSize, uiScale]);
 
   useEffect(() => {
     const el = workspacesContainerRef.current;

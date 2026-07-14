@@ -7,7 +7,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { VscAdd, VscGear } from "react-icons/vsc";
 import { useDrag } from "../../hooks/useDrag";
 import { commandTooltip } from "../../keybindings/shortcutHint";
@@ -119,6 +119,23 @@ function SidebarImpl() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
+  // Clamp visually to the viewport (stored width is preserved) so a narrow window can't let the rail exceed half.
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const renderedWidth = clampSidebarWidth(sidebarWidth, viewportWidth);
+  // onDrag writes inline width directly and it overrides sx, so re-sync it here.
+  useEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const px = `${renderedWidth}px`;
+    el.style.width = px;
+    el.style.minWidth = px;
+  }, [renderedWidth]);
+
   const dragRef = useRef({ startX: 0, startWidth: 0, latestWidth: 0 });
 
   const onHandleMouseDown = useDrag({
@@ -163,7 +180,7 @@ function SidebarImpl() {
     <Box sx={ROOT_SX}>
       <Box
         ref={innerRef}
-        sx={[INNER_SX, { width: sidebarWidth, minWidth: sidebarWidth }]}
+        sx={[INNER_SX, { width: renderedWidth, minWidth: renderedWidth }]}
       >
         <Box sx={HEADER_SX}>
           <Typography variant="caption" sx={HEADER_TITLE_SX}>
