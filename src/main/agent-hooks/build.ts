@@ -1,27 +1,19 @@
 import type { AgentName } from "../../shared/agent-hooks";
 import { APP_PACKAGE_NAME } from "../../shared/meta";
+import notifyScript from "./notify.sh?raw";
 import { AGENT_SESSION_OSC_IDENT, type AgentSessionEvent } from "./osc";
+import sanitizeScript from "./sanitize.sh?raw";
 import sessionScript from "./session.sh?raw";
+import stopScript from "./stop.sh?raw";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "4";
+export const HOOK_MARKER_VERSION = "5";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
 
 function shellSingleQuote(s: string): string {
   return `'${s.replace(/'/g, "'\\''")}'`;
-}
-
-function escapeInSingleQuotes(s: string): string {
-  return s.replace(/'/g, "'\\''");
-}
-
-function oscNotifyCommand(title: string, body: string): string {
-  const t = escapeInSingleQuotes(title);
-  const b = escapeInSingleQuotes(body);
-  const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
-  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; [ -n "$ptty" ] && [ "$ptty" != "?" ] && printf '\\033]777;notify;${t};${b}\\007' > "/dev/$ptty"; fi`;
 }
 
 function sessionHookCommand(
@@ -37,11 +29,47 @@ ${sessionScript}
 fi`;
 }
 
-function notifyHook(entry: { title: string; body: string }) {
-  return {
-    type: "command",
-    command: oscNotifyCommand(entry.title, entry.body),
-  };
+// Builds the body from a field in the hook's stdin JSON (e.g. the notification
+// "message" or an AskUserQuestion "question"), falling back to a static string.
+function notifyDynamicCommand(
+  title: string,
+  fallbackBody: string,
+  field: string,
+): string {
+  return `: ${HOOK_MARKER}
+if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then
+NOTIFY_TITLE=${shellSingleQuote(title)}
+NOTIFY_FALLBACK=${shellSingleQuote(fallbackBody)}
+NOTIFY_FIELD=${shellSingleQuote(field)}
+${sanitizeScript}
+${notifyScript}
+fi`;
+}
+
+// Summarizes Claude's final response by reading the Stop hook's transcript_path,
+// falling back to a static string when no text is found.
+function stopNotifyCommand(title: string, fallbackBody: string): string {
+  return `: ${HOOK_MARKER}
+if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then
+NOTIFY_TITLE=${shellSingleQuote(title)}
+NOTIFY_FALLBACK=${shellSingleQuote(fallbackBody)}
+${sanitizeScript}
+${stopScript}
+fi`;
+}
+
+function notifyHook(entry: {
+  title: string;
+  body: string;
+  field?: string;
+  summary?: boolean;
+}) {
+  let command: string;
+  if (entry.summary) command = stopNotifyCommand(entry.title, entry.body);
+  else if (entry.field)
+    command = notifyDynamicCommand(entry.title, entry.body, entry.field);
+  else command = notifyDynamicCommand(entry.title, entry.body, "message");
+  return { type: "command", command };
 }
 
 function sessionHook(agentName: string, event: AgentSessionEvent) {
@@ -50,18 +78,29 @@ function sessionHook(agentName: string, event: AgentSessionEvent) {
 
 function agentHookStrings(agent: string) {
   return {
+    // `message` carries Claude's own text, e.g. "Permission required to
+    // execute: Bash(npm test)"; the static body is the fallback.
     permissionPrompt: {
       title: "Permission Needed",
       body: `${agent} needs tool approval`,
+      field: "message",
     },
     elicitationDialog: {
       title: "Input Required",
       body: "An MCP server is requesting input",
+      field: "message",
     },
-    stop: { title: "Ready for Input", body: `${agent} finished responding` },
+    // Summary of the final assistant turn comes from the transcript.
+    stop: {
+      title: "Ready for Input",
+      body: `${agent} finished responding`,
+      summary: true,
+    },
+    // `question` is the actual prompt text from AskUserQuestion's tool_input.
     askUserQuestion: {
       title: "Question Pending",
       body: `${agent} is asking a question`,
+      field: "question",
     },
   };
 }
