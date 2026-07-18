@@ -15,6 +15,7 @@ import {
   buildWslenvFragment,
 } from "../shared/cli-env";
 import { APP_PACKAGE_NAME } from "../shared/meta";
+import { quoteForPosixShell } from "../shared/path-quoting";
 import { windowsPtyOptions } from "../shared/pty-options";
 import { PTY_SHELL_EXPANSION } from "../shared/pty-shell";
 import { type AppConfig, DEFAULT_CWD } from "../shared/types";
@@ -98,7 +99,7 @@ function buildShellArgs(opts: {
   const { isWindows, wslCwd, wslDistro, startupCommand } = opts;
   const sh = `"${PTY_SHELL_EXPANSION}"`;
   const inner = startupCommand
-    ? `exec ${sh} -lic '${startupCommand.replace(/'/g, "'\\''")}; exec ${sh}'`
+    ? `exec ${sh} -lic ${quoteForPosixShell(`${startupCommand}; exec ${sh}`)}`
     : `exec ${sh} -l`;
   if (isWindows) {
     const distroArgs = wslDistro ? ["-d", wslDistro] : [];
@@ -131,7 +132,20 @@ interface PtyEntry {
   pendingForward: ((data: string) => void) | undefined;
   agentSession: AgentSession | undefined;
   initialReplay: { cols: number; rows: number; content: string } | null;
+  // PTY output that arrived before the renderer began its replay. It's kept
+  // out of the headless terminal until then: headless.write() parses
+  // asynchronously, so snapshotting mid-parse would drop or duplicate data.
+  // null once replay has begun (or the cap was hit) and writes flow directly.
+  preReplay: string[] | null;
+  preReplayBytes: number;
+  // Resolves once the restored scrollback has been fully parsed, so replay
+  // snapshots never see a half-written buffer.
+  restoreParsed: Promise<void>;
 }
+
+// Safety valve if a renderer never calls replay: past this, buffered output is
+// flushed into the headless terminal (bounded by its scrollback) instead.
+const MAX_PRE_REPLAY_BYTES = 4 * 1024 * 1024;
 
 export class PtyManager {
   private entries = new Map<string, PtyEntry>();
@@ -186,7 +200,9 @@ export class PtyManager {
     } catch {}
   }
 
-  private async loadAndConsumeAgentSession(
+  // The meta file is deleted by create() only after the PTY spawns, so a
+  // failed spawn doesn't discard the resume session.
+  private async loadAgentSession(
     surfaceId: string,
   ): Promise<AgentSession | undefined> {
     try {
@@ -206,8 +222,6 @@ export class PtyManager {
       };
     } catch {
       return undefined;
-    } finally {
-      this.deleteMeta(surfaceId);
     }
   }
 
@@ -226,10 +240,13 @@ export class PtyManager {
   }
 
   private snapshot(entry: PtyEntry): StoredBuffer {
+    // PTY output buffered before replay hasn't reached the headless terminal
+    // yet; append it raw so eviction/shutdown snapshots don't lose it.
+    const pending = entry.preReplay?.join("") ?? "";
     return {
       cols: entry.headless.cols,
       rows: entry.headless.rows,
-      content: entry.serializeAddon.serialize(SERIALIZE_OPTS),
+      content: entry.serializeAddon.serialize(SERIALIZE_OPTS) + pending,
     };
   }
 
@@ -237,20 +254,25 @@ export class PtyManager {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
-    const carried = this.evictBySurfaceId(surfaceId);
     const [restoredAgentSession, loadedBuffer] = await Promise.all([
-      this.loadAndConsumeAgentSession(surfaceId),
-      carried ? Promise.resolve(null) : this.loadBuffer(surfaceId),
+      this.loadAgentSession(surfaceId),
+      this.loadBuffer(surfaceId),
     ]);
+    // Evict after the awaits: from here to entries.set() nothing yields, so a
+    // concurrent create for the same surface can't slip past the eviction and
+    // leak a second live PTY.
+    const carried = this.evictBySurfaceId(surfaceId);
 
     // Skip scrollback restore when auto-resuming
     const restored = restoredAgentSession ? null : (carried ?? loadedBuffer);
 
+    const reqCols = Math.floor(opts.cols ?? 0);
+    const reqRows = Math.floor(opts.rows ?? 0);
     let targetCols: number;
     let targetRows: number;
-    if (opts.cols && opts.cols > 0 && opts.rows && opts.rows > 0) {
-      targetCols = Math.floor(opts.cols);
-      targetRows = Math.floor(opts.rows);
+    if (reqCols >= 1 && reqRows >= 1) {
+      targetCols = reqCols;
+      targetRows = reqRows;
     } else if (restored) {
       targetCols = restored.cols;
       targetRows = restored.rows;
@@ -310,6 +332,7 @@ export class PtyManager {
       // ConPTY emits ESC[2J on startup otherwise, wiping replayed scrollback
       conptyInheritCursor: true,
     });
+    if (restoredAgentSession) this.deleteMeta(surfaceId);
 
     const initialCols = restored?.cols ?? targetCols;
     const initialRows = restored?.rows ?? targetRows;
@@ -329,7 +352,12 @@ export class PtyManager {
     );
     headless.unicode.activeVersion = "11";
 
-    if (restored) headless.write(restored.content);
+    let restoreParsed: Promise<void> = Promise.resolve();
+    if (restored) {
+      restoreParsed = new Promise((resolve) =>
+        headless.write(restored.content, resolve),
+      );
+    }
     if (initialCols !== targetCols || initialRows !== targetRows) {
       headless.resize(targetCols, targetRows);
     }
@@ -345,6 +373,9 @@ export class PtyManager {
         restored && restored.cols === targetCols && restored.rows === targetRows
           ? { cols: targetCols, rows: targetRows, content: restored.content }
           : null,
+      preReplay: [],
+      preReplayBytes: 0,
+      restoreParsed,
     };
     this.entries.set(id, entry);
 
@@ -377,7 +408,16 @@ export class PtyManager {
     });
 
     proc.onData((data) => {
-      entry.initialReplay = null;
+      if (entry.preReplay) {
+        entry.preReplay.push(data);
+        entry.preReplayBytes += data.length;
+        if (entry.preReplayBytes > MAX_PRE_REPLAY_BYTES) {
+          for (const chunk of entry.preReplay) headless.write(chunk);
+          entry.preReplay = null;
+          entry.initialReplay = null;
+        }
+        return;
+      }
       headless.write(data);
     });
     proc.onExit(({ exitCode, signal }) => {
@@ -388,16 +428,31 @@ export class PtyManager {
     return id;
   }
 
-  beginReplay(id: string): { cols: number; rows: number; content: string } {
+  async beginReplay(
+    id: string,
+  ): Promise<{ cols: number; rows: number; content: string }> {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+    await entry.restoreParsed;
+    if (!this.entries.has(id)) {
+      return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+    }
+    // Take the buffered output first: snapshot() must not double-count it,
+    // and it's appended to the replay so the renderer sees it exactly once.
+    const pending = entry.preReplay ?? [];
+    entry.preReplay = null;
     const snap = entry.initialReplay ?? this.snapshot(entry);
     entry.initialReplay = null;
+    for (const chunk of pending) entry.headless.write(chunk);
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
     }
-    return snap;
+    return {
+      cols: snap.cols,
+      rows: snap.rows,
+      content: snap.content + pending.join(""),
+    };
   }
 
   write(id: string, data: string): void {

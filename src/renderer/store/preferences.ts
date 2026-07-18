@@ -7,6 +7,7 @@ import type {
 } from "../../shared/settings-types";
 import { DEFAULT_BROWSER_SETTINGS } from "../../shared/settings-types";
 import type {
+  AppState,
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
 } from "../../shared/types";
@@ -54,20 +55,24 @@ export function setSidebarWidth(width: number): void {
   commit();
 }
 
+// Shared shallow-diff-then-merge for the flat settings slices.
+function updateSettingsSlice<
+  K extends "notificationSettings" | "updateSettings" | "browserSettings",
+>(key: K, patch: Partial<AppState[K]>): void {
+  const s = getState();
+  const current = s[key];
+  const changed = (Object.keys(patch) as (keyof AppState[K])[]).some(
+    (k) => patch[k] !== current[k],
+  );
+  if (!changed) return;
+  setState({ ...s, [key]: { ...current, ...patch } });
+  commit();
+}
+
 export function updateNotificationSettings(
   settings: Partial<NotificationSettings>,
 ): void {
-  const s = getState();
-  const current = s.notificationSettings;
-  const changed = (
-    Object.keys(settings) as (keyof NotificationSettings)[]
-  ).some((k) => settings[k] !== current[k]);
-  if (!changed) return;
-  setState({
-    ...s,
-    notificationSettings: { ...current, ...settings },
-  });
-  commit();
+  updateSettingsSlice("notificationSettings", settings);
 }
 
 export function setWslDistro(distro: string | null): void {
@@ -81,33 +86,13 @@ export function setWslDistro(distro: string | null): void {
 }
 
 export function updateUpdateSettings(settings: Partial<UpdateSettings>): void {
-  const s = getState();
-  const current = s.updateSettings;
-  const changed = (Object.keys(settings) as (keyof UpdateSettings)[]).some(
-    (k) => settings[k] !== current[k],
-  );
-  if (!changed) return;
-  setState({
-    ...s,
-    updateSettings: { ...current, ...settings },
-  });
-  commit();
+  updateSettingsSlice("updateSettings", settings);
 }
 
 export function updateBrowserSettings(
   settings: Partial<BrowserSettings>,
 ): void {
-  const s = getState();
-  const current = s.browserSettings;
-  const changed = (Object.keys(settings) as (keyof BrowserSettings)[]).some(
-    (k) => settings[k] !== current[k],
-  );
-  if (!changed) return;
-  setState({
-    ...s,
-    browserSettings: { ...current, ...settings },
-  });
-  commit();
+  updateSettingsSlice("browserSettings", settings);
 }
 
 export async function setAgentHook(

@@ -1,10 +1,14 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { app } from "electron";
+import { withKeyedLock } from "./keyed-lock";
 
 function userDataPath(fileName: string): string {
   return path.join(app.getPath("userData"), fileName);
 }
+
+const writeLocks = new Map<string, Promise<unknown>>();
 
 export function readUserDataJson<T>(
   fileName: string,
@@ -38,12 +42,21 @@ export function writeUserDataJsonSync(fileName: string, value: unknown): void {
   }
 }
 
-export async function writeUserDataJsonAtomic(
+// Serialized per file so overlapping saves can't interleave, and the tmp name
+// is unique so a concurrent writer can't truncate a file mid-rename.
+export function writeUserDataJsonAtomic(
   fileName: string,
   value: unknown,
 ): Promise<void> {
-  const finalPath = userDataPath(fileName);
-  const tmpPath = `${finalPath}.tmp`;
-  await fs.promises.writeFile(tmpPath, JSON.stringify(value, null, 2));
-  await fs.promises.rename(tmpPath, finalPath);
+  return withKeyedLock(writeLocks, fileName, async () => {
+    const finalPath = userDataPath(fileName);
+    const tmpPath = `${finalPath}.${randomUUID().slice(0, 8)}.tmp`;
+    try {
+      await fs.promises.writeFile(tmpPath, JSON.stringify(value, null, 2));
+      await fs.promises.rename(tmpPath, finalPath);
+    } catch (err) {
+      await fs.promises.unlink(tmpPath).catch(() => {});
+      throw err;
+    }
+  });
 }

@@ -621,6 +621,13 @@ export class BrowserManager {
       this.splitPreviewView?.setVisible(false);
       return;
     }
+    // This runs at pointer-move frequency during pane drags; only setBounds is
+    // per-move work. Skip the JS eval + view re-stacking when nothing changed.
+    const stateChanged =
+      !this.splitPreviewVisible ||
+      color !== this.splitPreviewColor ||
+      edge !== this.splitPreviewEdge ||
+      merge !== this.splitPreviewMerge;
     this.splitPreviewVisible = true;
     this.splitPreviewColor = color;
     this.splitPreviewEdge = edge;
@@ -632,7 +639,7 @@ export class BrowserManager {
       width: rect.width,
       height: rect.height,
     });
-    this.showSplitPreviewWhenReady();
+    if (stateChanged) this.showSplitPreviewWhenReady();
   }
 
   setDimmed(dimmed: boolean): void {

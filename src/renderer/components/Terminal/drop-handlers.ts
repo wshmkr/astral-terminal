@@ -1,11 +1,10 @@
 import type { Terminal } from "@xterm/xterm";
-import { quotePathForCwd } from "../../../shared/path-quoting";
+import { quotePathForShell } from "../../../shared/path-quoting";
 import { pasteText } from "./paste";
 
 export function attachDropHandlers(
   container: HTMLElement,
   term: Terminal,
-  getCwd: () => string,
   onSelect: () => void,
   isLive: () => boolean,
 ): () => void {
@@ -27,11 +26,10 @@ export function attachDropHandlers(
     onSelect();
 
     if (files.length > 0) {
-      const cwd = getCwd();
       const quoted = files
         .map((f) => window.app.getPathForFile(f))
         .filter((p) => p.length > 0)
-        .map((p) => quotePathForCwd(p, cwd));
+        .map((p) => quotePathForShell(p));
       if (quoted.length > 0) pasteText(term, quoted.join(" "), isLive);
     } else {
       pasteText(term, text, isLive);

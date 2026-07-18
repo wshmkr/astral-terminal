@@ -85,11 +85,13 @@ export function BrowserFindApp() {
   const [surfaceId, setSurfaceId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const refreshAppearance = () => {
     void window.app.readSettings().then((s) => {
       setAppearance({ ...DEFAULT_APPEARANCE, ...(s?.appearance ?? {}) });
     });
-  }, []);
+  };
+
+  useEffect(refreshAppearance, []);
 
   useEffect(() => {
     document.documentElement.style.overflow = "hidden";
@@ -97,10 +99,14 @@ export function BrowserFindApp() {
     document.body.style.margin = "0";
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: subscribe once on mount
   useEffect(
     () =>
       window.app.onBrowserFindTargetChanged((payload) => {
         setSurfaceId(payload.surfaceId);
+        // This window lives for the whole app session; refresh appearance on
+        // each open so theme/accent changes made since launch are picked up.
+        refreshAppearance();
         queueMicrotask(() => {
           inputRef.current?.focus();
           inputRef.current?.select();

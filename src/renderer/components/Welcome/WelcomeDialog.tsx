@@ -53,6 +53,12 @@ import {
   LabeledSelect,
   SettingRow,
 } from "../Settings/shared";
+import {
+  DEFAULT_DISTRO_VALUE,
+  findEffectiveDistro,
+  systemDistroWarning,
+  wslDistroOptions,
+} from "../Settings/wsl-distro-select";
 import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";
 import { TITLE_BAR_HEIGHT } from "../ui/TitleBarButton";
 import { ThemePreview } from "./ThemePreview";
@@ -116,8 +122,6 @@ const BUTTON_SX = {
   letterSpacing: "0.05em",
 } as const;
 
-const DEFAULT_DISTRO_VALUE = "__default__";
-
 export function WelcomeDialog() {
   const persistedAppTheme = useWorkspaceStore((s) => s.appearance.appThemeId);
   const persistedTerminalTheme = useWorkspaceStore(
@@ -179,9 +183,7 @@ export function WelcomeDialog() {
   );
 
   const shellSupported = distros.length > 0;
-  const selectedDistro = distros.find((d) =>
-    draftWslDistro ? d.name === draftWslDistro : d.isDefault,
-  );
+  const selectedDistro = findEffectiveDistro(distros, draftWslDistro);
   const selectedIsSystem = selectedDistro?.isSystem ?? false;
 
   const handleGetStarted = () => {
@@ -270,27 +272,7 @@ export function WelcomeDialog() {
                     <LabeledSelect
                       label="WSL distro"
                       value={draftWslDistro ?? DEFAULT_DISTRO_VALUE}
-                      options={[
-                        {
-                          value: DEFAULT_DISTRO_VALUE,
-                          label: distros.find((d) => d.isDefault)
-                            ? `Default (${distros.find((d) => d.isDefault)?.name})`
-                            : "Default",
-                        },
-                        ...distros.map((d) => ({
-                          value: d.name,
-                          label: d.isSystem ? (
-                            <Box
-                              component="span"
-                              sx={{ color: "text.disabled" }}
-                            >
-                              {d.name}
-                            </Box>
-                          ) : (
-                            d.name
-                          ),
-                        })),
-                      ]}
+                      options={wslDistroOptions(distros)}
                       onChange={(value) =>
                         setDraftWslDistro(
                           value === DEFAULT_DISTRO_VALUE ? null : value,
@@ -347,8 +329,7 @@ export function WelcomeDialog() {
             <Stack spacing={1.5} sx={{ mt: 1 }}>
               {selectedIsSystem ? (
                 <Alert severity="error" variant="outlined" sx={ALERT_SX}>
-                  {selectedDistro?.name} is a system distro for containers and
-                  is not meant as an interactive shell.
+                  {systemDistroWarning(selectedDistro?.name)}
                 </Alert>
               ) : (
                 <NoHooksAlert

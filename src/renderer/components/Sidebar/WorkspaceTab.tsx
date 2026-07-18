@@ -3,7 +3,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Typography from "@mui/material/Typography";
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { VscClose, VscEdit } from "react-icons/vsc";
 import type { Workspace } from "../../../shared/types";
 import {
@@ -127,6 +127,13 @@ export const WorkspaceTab = memo(function WorkspaceTab({
     data: { type: "workspace" },
     disabled: editing,
   });
+  // During a sortable drag every sibling row re-renders per pointer frame;
+  // memoize so emotion doesn't re-serialize a fresh sx object each time.
+  const sx = useMemo(
+    () => rootSx(isActive, showDivider),
+    [isActive, showDivider],
+  );
+  const nameSx = useMemo(() => nameTypographySx(isActive), [isActive]);
 
   return (
     <Box
@@ -140,7 +147,7 @@ export const WorkspaceTab = memo(function WorkspaceTab({
         opacity: isDragging ? 0.5 : 1,
         zIndex: isDragging ? 1 : undefined,
       }}
-      sx={rootSx(isActive, showDivider)}
+      sx={sx}
       {...attributes}
       {...listeners}
     >
@@ -166,7 +173,7 @@ export const WorkspaceTab = memo(function WorkspaceTab({
               e.stopPropagation();
               setEditing(true);
             }}
-            sx={nameTypographySx(isActive)}
+            sx={nameSx}
           >
             {workspace.name}
           </Typography>

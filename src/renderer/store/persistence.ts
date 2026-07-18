@@ -6,6 +6,11 @@ export interface LoadedState {
   workspaces: PersistedWorkspaces | null;
 }
 
+// Skip writes whose payload hasn't changed since the last successful send, so
+// e.g. a terminal title change doesn't also rewrite settings.json.
+let lastSettingsJson: string | null = null;
+let lastWorkspacesJson: string | null = null;
+
 export function saveState(state: AppState): void {
   // keep first-run signal alive until the user clicks through the welcome
   if (state.welcomeOpen) return;
@@ -25,12 +30,22 @@ export function saveState(state: AppState): void {
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,
   };
-  window.app.writeSettings(settings).catch((err) => {
-    console.error("Failed to save settings:", err);
-  });
-  window.app.writeWorkspaces(workspaces).catch((err) => {
-    console.error("Failed to save workspaces:", err);
-  });
+  const settingsJson = JSON.stringify(settings);
+  if (settingsJson !== lastSettingsJson) {
+    lastSettingsJson = settingsJson;
+    window.app.writeSettings(settings).catch((err) => {
+      lastSettingsJson = null;
+      console.error("Failed to save settings:", err);
+    });
+  }
+  const workspacesJson = JSON.stringify(workspaces);
+  if (workspacesJson !== lastWorkspacesJson) {
+    lastWorkspacesJson = workspacesJson;
+    window.app.writeWorkspaces(workspaces).catch((err) => {
+      lastWorkspacesJson = null;
+      console.error("Failed to save workspaces:", err);
+    });
+  }
 }
 
 export async function loadState(): Promise<LoadedState> {

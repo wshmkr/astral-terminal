@@ -147,6 +147,8 @@ export function updateTerminalSurface(
   const changed = updateLeaf(workspaceId, paneId, (leaf) => {
     const current = leaf.surfaces.find((s) => s.id === surfaceId);
     if (!current || !isTerminalSurface(current)) return leaf;
+    const keys = Object.keys(patch) as (keyof typeof patch)[];
+    if (keys.every((k) => patch[k] === current[k])) return leaf;
     return {
       ...leaf,
       surfaces: leaf.surfaces.map((s) =>
@@ -154,6 +156,9 @@ export function updateTerminalSurface(
       ),
     };
   });
+  // Persist without notifying (no notify()): nothing renders cwd reactively,
+  // and OSC 7 fires on every shell prompt — notifying would re-render the
+  // whole tree per prompt. Revisit if a component ever subscribes to cwd.
   if (changed) scheduleSave();
 }
 
@@ -281,6 +286,8 @@ export function setBrowserSurfaceUrl(
       ),
     };
   });
+  // Persist without notifying, like updateTerminalSurface: BrowserPane keeps
+  // its own live copy of the URL, and navigations can be frequent.
   if (changed) scheduleSave();
 }
 
@@ -359,6 +366,23 @@ export function findPaneBySurfaceId(
     if (match) return match;
   }
   return null;
+}
+
+// Opens a browser surface in the pane that contains sourceSurfaceId,
+// activating its workspace first (addSurface acts on the active workspace).
+// Returns false when the source surface no longer exists.
+export function openUrlNearSurface(
+  sourceSurfaceId: string,
+  url: string,
+  background: boolean,
+): boolean {
+  const location = findPaneBySurfaceId(sourceSurfaceId);
+  if (!location) return false;
+  if (getState().activeWorkspaceId !== location.workspaceId) {
+    setActiveWorkspace(location.workspaceId);
+  }
+  addSurface(location.paneId, "browser", { url, activate: !background });
+  return true;
 }
 
 export function closeSurface(paneId: string, surfaceId: string): void {

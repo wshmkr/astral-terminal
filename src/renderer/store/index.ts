@@ -64,6 +64,7 @@ export {
   findPaneBySurfaceId,
   moveSurfaceToPane,
   navigateToSurface,
+  openUrlNearSurface,
   renameSurface,
   renameWorkspace,
   reorderSurfaces,

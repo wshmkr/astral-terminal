@@ -55,17 +55,25 @@ if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", flushPendingSave);
 }
 
+// Isolate listener failures so one throwing subscriber can't starve the rest
+// (or, in commit's case, prevent the state change from being persisted).
+function notifyListeners(): void {
+  for (const fn of listeners) {
+    try {
+      fn();
+    } catch (err) {
+      console.error("Store listener failed:", err);
+    }
+  }
+}
+
 export function commit(): void {
-  listeners.forEach((fn) => {
-    fn();
-  });
   scheduleSave();
+  notifyListeners();
 }
 
 export function notify(): void {
-  listeners.forEach((fn) => {
-    fn();
-  });
+  notifyListeners();
 }
 
 export function subscribeWorkspaceStore(listener: () => void): () => void {

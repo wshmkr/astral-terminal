@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -23,6 +24,22 @@ import {
 } from "./build";
 
 const settingsFileLocks = new Map<string, Promise<unknown>>();
+
+// This rewrites the user's own agent settings file (often over a \\wsl$ UNC
+// share); write-then-rename so a crash mid-write can't truncate it.
+async function writeSettingsAtomic(
+  filePath: string,
+  settings: Record<string, unknown>,
+): Promise<void> {
+  const tmpPath = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
+  try {
+    await fs.writeFile(tmpPath, JSON.stringify(settings, null, 2), "utf-8");
+    await fs.rename(tmpPath, filePath);
+  } catch (err) {
+    await fs.unlink(tmpPath).catch(() => {});
+    throw err;
+  }
+}
 
 function isOwnHookCommand(value: unknown): boolean {
   return typeof value === "string" && value.includes(HOOK_MARKER_PREFIX);
@@ -191,7 +208,7 @@ async function runConfigure(
     }
     settings.hooks = merged;
 
-    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
+    await writeSettingsAtomic(filePath, settings);
 
     console.log(`Installed notification hooks in ~/${settingsPath}`);
     return { status: "configured" };
@@ -234,7 +251,7 @@ async function runUninstall(
     } else {
       settings.hooks = purged;
     }
-    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
+    await writeSettingsAtomic(filePath, settings);
 
     console.log(`Removed notification hooks from ~/${settingsPath}`);
     return { status: "uninstalled" };
