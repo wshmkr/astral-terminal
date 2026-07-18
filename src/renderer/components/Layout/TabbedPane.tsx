@@ -40,7 +40,7 @@ import {
   addSurface,
   closePane,
   closeSurface,
-  selectActiveWorkspace,
+  selectWorkspace,
   setActiveSurface,
   setFocusedPane,
   splitPane,
@@ -65,6 +65,7 @@ import {
 import { TabContent, tabItemSx } from "./TabVisual";
 
 interface Props {
+  workspaceId: string;
   pane: LeafPane;
 }
 
@@ -98,6 +99,12 @@ function TabItem({
     id: surface.id,
     data: { type: "tab", paneId },
   });
+  // Memoized: during a sortable drag every sibling tab re-renders per pointer
+  // frame, and a fresh sx object would make emotion re-serialize each time.
+  const sx = useMemo(
+    () => tabItemSx({ isActive, showDivider, activeBg, activeFg }),
+    [isActive, showDivider, activeBg, activeFg],
+  );
   return (
     <Box
       ref={setNodeRef}
@@ -110,7 +117,7 @@ function TabItem({
       }}
       {...attributes}
       {...listeners}
-      sx={tabItemSx({ isActive, showDivider, activeBg, activeFg })}
+      sx={sx}
     >
       <TabContent
         surface={surface}
@@ -249,22 +256,19 @@ function NewTabButton({ paneId }: { paneId: string }) {
   );
 }
 
-function onTabScrollerWheel(e: React.WheelEvent<HTMLDivElement>) {
-  if (e.deltaY !== 0) {
-    e.currentTarget.scrollLeft += e.deltaY;
-    e.preventDefault();
-  }
-}
-
-function selectActiveNotifications(s: AppState): Notification[] | null {
-  return selectActiveWorkspace(s)?.notifications ?? null;
-}
-
-function TabbedPaneImpl({ pane }: Props) {
+function TabbedPaneImpl({ workspaceId, pane }: Props) {
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
-  const notifications = useWorkspaceStore(selectActiveNotifications);
+  // Scope to the pane's own workspace: selecting the active workspace's
+  // notifications would re-render every mounted pane on each notification
+  // and compare unread ids against the wrong workspace.
+  const selectNotifications = useCallback(
+    (s: AppState): Notification[] | null =>
+      selectWorkspace(s, workspaceId)?.notifications ?? null,
+    [workspaceId],
+  );
+  const notifications = useWorkspaceStore(selectNotifications);
   const unreadIds = useMemo(
     () => unreadSurfaceIds(notifications),
     [notifications],
@@ -313,6 +317,22 @@ function TabbedPaneImpl({ pane }: Props) {
     return () => el.removeEventListener("mousedown", onDown, { capture: true });
   }, [pane.id]);
 
+  // Native non-passive listener: React registers root wheel handlers as
+  // passive, so preventDefault from a React onWheel would be a no-op.
+  const tabScrollerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tabScrollerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   return (
     <Box
       ref={wrapperRef}
@@ -323,7 +343,7 @@ function TabbedPaneImpl({ pane }: Props) {
       ]}
     >
       <Box sx={TAB_BAR_SX}>
-        <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
+        <Box ref={tabScrollerRef} sx={TAB_SCROLLER_SX}>
           <SortableContext
             items={sortableItems}
             strategy={horizontalListSortingStrategy}
@@ -364,5 +384,6 @@ function TabbedPaneImpl({ pane }: Props) {
 
 export const TabbedPane = memo(
   TabbedPaneImpl,
-  (prev, next) => prev.pane === next.pane,
+  (prev, next) =>
+    prev.pane === next.pane && prev.workspaceId === next.workspaceId,
 );

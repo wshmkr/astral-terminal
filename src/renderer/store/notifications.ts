@@ -4,7 +4,13 @@ import {
   type Workspace,
 } from "../../shared/types";
 import { findLeafPane, forEachLeaf } from "../components/Layout/pane-tree";
-import { getState, getWorkspace, notify, setState } from "./core";
+import {
+  getState,
+  getWorkspace,
+  notify,
+  selectWorkspace,
+  setState,
+} from "./core";
 import { generateId } from "./factories";
 
 export interface NotificationDisplay {
@@ -89,7 +95,7 @@ export function isUserActivelyViewing(
   if (!s.windowFocused) return false;
   if (s.activeWorkspaceId !== workspaceId) return false;
   if (s.focusedPaneId !== paneId) return false;
-  const ws = s.workspaces.find((w) => w.id === workspaceId);
+  const ws = selectWorkspace(s, workspaceId);
   if (!ws) return false;
   const leaf = findLeafPane(ws.layout, paneId);
   return leaf?.activeSurfaceId === surfaceId;

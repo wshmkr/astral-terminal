@@ -12,5 +12,8 @@ sanitize_body() {
     -e 's/\\t/ /g' \
     -e 's/\\"/"/g' \
     -e "s/${_sep}/\\\\/g" \
-    | tr -d '\000-\037' | tr ';' ',' | cut -c1-160
+    | tr -d '\000-\037' | tr ';' ',' | cut -c1-160 \
+    | { iconv -c -f UTF-8 -t UTF-8 2>/dev/null || cat; }
+    # cut is byte-based and can split a multi-byte char at the cap; iconv -c
+    # drops the dangling partial sequence (cat fallback if iconv is missing)
 }

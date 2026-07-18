@@ -47,7 +47,7 @@ function SwatchIcon({ hex, selected }: { hex: string; selected: boolean }) {
           : undefined,
       }}
     >
-      <SwatchDot style={{ backgroundColor: hex }} />
+      <SwatchDot className="swatch-dot" style={{ backgroundColor: hex }} />
     </Box>
   );
 }
@@ -71,7 +71,9 @@ export function AccentSwatchPicker({ value, onChange }: Props) {
             slotProps={{ input: { "aria-label": opt.label } }}
             sx={{
               p: 0,
-              [`&:hover ${SwatchDot}`]: { transform: "scale(1.08)" },
+              // class selector, not `${SwatchDot}`: component selectors need
+              // @emotion/babel-plugin, which this build doesn't run
+              "&:hover .swatch-dot": { transform: "scale(1.08)" },
             }}
           />
         </Tooltip>

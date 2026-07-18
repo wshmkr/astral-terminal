@@ -13,6 +13,7 @@ import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
 } from "../../shared/types";
+import { writeFileAtomic } from "../atomic-file";
 import { withKeyedLock } from "../keyed-lock";
 import { resolveWslPath } from "../wsl/home";
 import {
@@ -23,6 +24,15 @@ import {
 } from "./build";
 
 const settingsFileLocks = new Map<string, Promise<unknown>>();
+
+// This rewrites the user's own agent settings file (often over a \\wsl$ UNC
+// share); write-then-rename so a crash mid-write can't truncate it.
+function writeSettingsAtomic(
+  filePath: string,
+  settings: Record<string, unknown>,
+): Promise<void> {
+  return writeFileAtomic(filePath, JSON.stringify(settings, null, 2));
+}
 
 function isOwnHookCommand(value: unknown): boolean {
   return typeof value === "string" && value.includes(HOOK_MARKER_PREFIX);
@@ -191,7 +201,7 @@ async function runConfigure(
     }
     settings.hooks = merged;
 
-    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
+    await writeSettingsAtomic(filePath, settings);
 
     console.log(`Installed notification hooks in ~/${settingsPath}`);
     return { status: "configured" };
@@ -234,7 +244,7 @@ async function runUninstall(
     } else {
       settings.hooks = purged;
     }
-    await fs.writeFile(filePath, JSON.stringify(settings, null, 2), "utf-8");
+    await writeSettingsAtomic(filePath, settings);
 
     console.log(`Removed notification hooks from ~/${settingsPath}`);
     return { status: "uninstalled" };

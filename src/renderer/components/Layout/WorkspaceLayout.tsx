@@ -7,6 +7,7 @@ import { ResizeHandle } from "./ResizeHandle";
 import { TabbedPane } from "./TabbedPane";
 
 interface Props {
+  workspaceId: string;
   layout: PaneNode;
   containerSize: { width: number; height: number };
 }
@@ -21,7 +22,7 @@ interface DragState {
   minRightFrac: number;
 }
 
-function WorkspaceLayoutImpl({ layout, containerSize }: Props) {
+function WorkspaceLayoutImpl({ workspaceId, layout, containerSize }: Props) {
   const leafRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const handleRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const dragRef = useRef<DragState | null>(null);
@@ -151,7 +152,7 @@ function WorkspaceLayoutImpl({ layout, containerSize }: Props) {
             overflow: "hidden",
           }}
         >
-          <TabbedPane pane={pane} />
+          <TabbedPane workspaceId={workspaceId} pane={pane} />
         </div>
       ))}
       {handles.map((handle) => (
@@ -179,6 +180,7 @@ function WorkspaceLayoutImpl({ layout, containerSize }: Props) {
 export const WorkspaceLayout = memo(
   WorkspaceLayoutImpl,
   (prev, next) =>
+    prev.workspaceId === next.workspaceId &&
     prev.layout === next.layout &&
     prev.containerSize.width === next.containerSize.width &&
     prev.containerSize.height === next.containerSize.height,

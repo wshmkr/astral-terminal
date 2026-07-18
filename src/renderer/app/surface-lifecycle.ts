@@ -40,7 +40,13 @@ export function useSurfaceLifecycle<C extends SurfaceController>(
         // setVisible effect ran during commit with a null ref; replay current value
         controller.setVisible(isVisibleRef.current);
       })
-      .catch(() => {});
+      .catch((err) => {
+        // An aborted create is expected teardown; anything else is a dead
+        // pane and must not fail silently.
+        if (!abort.signal.aborted) {
+          console.error("Surface create failed:", err);
+        }
+      });
     return () => {
       abort.abort();
       if (controllerRef.current) {

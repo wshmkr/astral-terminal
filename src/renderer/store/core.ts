@@ -21,9 +21,18 @@ export function setState(next: AppState): void {
   state = next;
 }
 
-export function getWorkspace(id: string | null): Workspace | undefined {
+// State-parameterized so subscribers can use it in selectors; the get*
+// variants below are conveniences over the current state.
+export function selectWorkspace(
+  s: AppState,
+  id: string | null,
+): Workspace | undefined {
   if (id === null) return undefined;
-  return getState().workspaces.find((w) => w.id === id);
+  return s.workspaces.find((w) => w.id === id);
+}
+
+export function getWorkspace(id: string | null): Workspace | undefined {
+  return selectWorkspace(getState(), id);
 }
 
 export function getActiveWorkspace(): Workspace | undefined {
@@ -31,7 +40,7 @@ export function getActiveWorkspace(): Workspace | undefined {
 }
 
 export function selectActiveWorkspace(s: AppState): Workspace | undefined {
-  return s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+  return selectWorkspace(s, s.activeWorkspaceId);
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -45,27 +54,38 @@ export function scheduleSave(): void {
 }
 
 function flushPendingSave(): void {
-  if (saveTimer === null) return;
-  clearTimeout(saveTimer);
-  saveTimer = null;
-  saveState(getState());
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  // Forced: on quit, rewrite both files even if the payload is unchanged so
+  // an externally deleted/clobbered file is healed before the state is lost.
+  saveState(getState(), { force: true });
 }
 
 if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", flushPendingSave);
 }
 
+// Isolate listener failures so one throwing subscriber can't starve the rest
+// (or, in commit's case, prevent the state change from being persisted).
+function notifyListeners(): void {
+  for (const fn of listeners) {
+    try {
+      fn();
+    } catch (err) {
+      console.error("Store listener failed:", err);
+    }
+  }
+}
+
 export function commit(): void {
-  listeners.forEach((fn) => {
-    fn();
-  });
   scheduleSave();
+  notifyListeners();
 }
 
 export function notify(): void {
-  listeners.forEach((fn) => {
-    fn();
-  });
+  notifyListeners();
 }
 
 export function subscribeWorkspaceStore(listener: () => void): () => void {

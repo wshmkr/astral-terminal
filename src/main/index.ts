@@ -3,6 +3,7 @@ import { app, BrowserWindow, dialog, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import { DEFAULT_BROWSER_SETTINGS } from "../shared/settings-types";
+import { singleFlight } from "../shared/single-flight";
 import { type AppConfig, browserStateChannel, IPC } from "../shared/types";
 import { checkForUpdatesOnStartup, initAutoUpdater } from "./auto-update";
 import {
@@ -78,20 +79,16 @@ if (squirrelStartup) {
 }
 
 let ptyManager: PtyManager | null = null;
-let ptyManagerPromise: Promise<PtyManager> | null = null;
 let browserManager: BrowserManager | null = null;
 let cleanupUsageMonitor: (() => void) | null = null;
 
-function getPtyManager(): Promise<PtyManager> {
-  ptyManagerPromise ??= (async () => {
-    const { PtyManager } = await import("./pty-manager");
-    ptyManager = new PtyManager(
-      path.join(app.getPath("userData"), "terminal-buffers"),
-    );
-    return ptyManager;
-  })();
-  return ptyManagerPromise;
-}
+const getPtyManager = singleFlight(async () => {
+  const { PtyManager } = await import("./pty-manager");
+  ptyManager = new PtyManager(
+    path.join(app.getPath("userData"), "terminal-buffers"),
+  );
+  return ptyManager;
+});
 
 let cachedConfig: AppConfig | null = null;
 function getConfig(): AppConfig {
@@ -114,11 +111,61 @@ function installCsp() {
   });
 }
 
+// Everything bound to a specific main window; re-run after the window is
+// recreated (macOS activate) so these aren't left pointing at a destroyed one.
+function initWindowBoundServices(): void {
+  const win = getMainWindow();
+  if (!win) return;
+  try {
+    browserManager?.destroyAll();
+  } catch {}
+  initNotificationWindow(win);
+  initSettingsWindow(win);
+  initBrowserFindWindow(win);
+  browserManager = new BrowserManager(win, {
+    onState: (surfaceId, state) => {
+      getMainWindow()?.webContents.send(browserStateChannel(surfaceId), state);
+    },
+    onOpenNewTab: (payload) => {
+      getMainWindow()?.webContents.send(IPC.browser.openNewTab, payload);
+    },
+    onFindRequested: (surfaceId, anchor) => {
+      const parent = getMainWindow();
+      if (parent) openBrowserFindWindow(parent, anchor, surfaceId);
+    },
+    onFindResult: (surfaceId, result) => {
+      sendBrowserFindResult(surfaceId, result);
+    },
+    onFocusAddressBar: (surfaceId) => {
+      const win = getMainWindow();
+      win?.webContents.focus();
+      win?.webContents.send(IPC.browser.focusAddressBar, {
+        surfaceId,
+      });
+    },
+    onRunGlobalCommand: (command) => {
+      getMainWindow()?.webContents.send(IPC.keymap.runCommand, { command });
+    },
+    onSurfaceHidden: (surfaceId) => {
+      hideBrowserFindWindow(surfaceId);
+    },
+    onSurfaceAnchorChanged: (surfaceId, anchor) => {
+      updateBrowserFindAnchor(surfaceId, anchor);
+    },
+  });
+  browserManager.setBrowserSettings({
+    ...DEFAULT_BROWSER_SETTINGS,
+    ...loadSettings()?.browserSettings,
+  });
+}
+
 const startup = app.whenReady().then(async () => {
   installAppMenu();
   installCsp();
-  // Dev restarts/crashes orphan pty trees; sweep them on launch
-  if (IS_DEV) void reapOrphanedPtys();
+  // Ungraceful exits (crashes, dev restarts) orphan pty trees; sweep after
+  // launch settles — the PowerShell/WMI scan shouldn't compete with first
+  // paint and the first terminal spawn.
+  setTimeout(() => void reapOrphanedPtys(), 5_000);
   void clearPasteImages();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });
@@ -139,55 +186,12 @@ const startup = app.whenReady().then(async () => {
   createWindow();
   checkForUpdatesOnStartup();
 
-  const win = getMainWindow();
-  if (win) {
-    initNotificationWindow(win);
-    cleanupUsageMonitor = initUsageMonitor(getMainWindow, onMainWindowFocus);
-    initSettingsWindow(win);
-    initBrowserFindWindow(win);
-    browserManager = new BrowserManager(win, {
-      onState: (surfaceId, state) => {
-        getMainWindow()?.webContents.send(
-          browserStateChannel(surfaceId),
-          state,
-        );
-      },
-      onOpenNewTab: (payload) => {
-        getMainWindow()?.webContents.send(IPC.browser.openNewTab, payload);
-      },
-      onFindRequested: (surfaceId, anchor) => {
-        const parent = getMainWindow();
-        if (parent) openBrowserFindWindow(parent, anchor, surfaceId);
-      },
-      onFindResult: (surfaceId, result) => {
-        sendBrowserFindResult(surfaceId, result);
-      },
-      onFocusAddressBar: (surfaceId) => {
-        const win = getMainWindow();
-        win?.webContents.focus();
-        win?.webContents.send(IPC.browser.focusAddressBar, {
-          surfaceId,
-        });
-      },
-      onRunGlobalCommand: (command) => {
-        getMainWindow()?.webContents.send(IPC.keymap.runCommand, { command });
-      },
-      onSurfaceHidden: (surfaceId) => {
-        hideBrowserFindWindow(surfaceId);
-      },
-      onSurfaceAnchorChanged: (surfaceId, anchor) => {
-        updateBrowserFindAnchor(surfaceId, anchor);
-      },
-    });
-    browserManager.setBrowserSettings({
-      ...DEFAULT_BROWSER_SETTINGS,
-      ...loadSettings()?.browserSettings,
-    });
-    registerBrowserIpc({ browserManager });
-    onSettingsVisibilityChange((visible) => {
-      browserManager?.setDimmed(visible);
-    });
-  }
+  cleanupUsageMonitor = initUsageMonitor(getMainWindow, onMainWindowFocus);
+  registerBrowserIpc({ getBrowserManager: () => browserManager });
+  onSettingsVisibilityChange((visible) => {
+    browserManager?.setDimmed(visible);
+  });
+  initWindowBoundServices();
 });
 
 startup.catch((error) => {
@@ -214,5 +218,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+    initWindowBoundServices();
+  }
 });

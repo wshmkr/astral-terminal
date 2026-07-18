@@ -250,6 +250,7 @@ export function App() {
                     <SurfaceBodyRegistryProvider>
                       {containerSize && (
                         <WorkspaceLayout
+                          workspaceId={ws.id}
                           layout={ws.layout}
                           containerSize={containerSize}
                         />

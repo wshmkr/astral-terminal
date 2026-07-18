@@ -15,6 +15,7 @@ import {
   buildWslenvFragment,
 } from "../shared/cli-env";
 import { APP_PACKAGE_NAME } from "../shared/meta";
+import { quoteForPosixShell } from "../shared/path-quoting";
 import { windowsPtyOptions } from "../shared/pty-options";
 import { PTY_SHELL_EXPANSION } from "../shared/pty-shell";
 import { type AppConfig, DEFAULT_CWD } from "../shared/types";
@@ -98,7 +99,7 @@ function buildShellArgs(opts: {
   const { isWindows, wslCwd, wslDistro, startupCommand } = opts;
   const sh = `"${PTY_SHELL_EXPANSION}"`;
   const inner = startupCommand
-    ? `exec ${sh} -lic '${startupCommand.replace(/'/g, "'\\''")}; exec ${sh}'`
+    ? `exec ${sh} -lic ${quoteForPosixShell(`${startupCommand}; exec ${sh}`)}`
     : `exec ${sh} -l`;
   if (isWindows) {
     const distroArgs = wslDistro ? ["-d", wslDistro] : [];
@@ -131,6 +132,41 @@ interface PtyEntry {
   pendingForward: ((data: string) => void) | undefined;
   agentSession: AgentSession | undefined;
   initialReplay: { cols: number; rows: number; content: string } | null;
+  // PTY output that arrived before the renderer began its replay. It's kept
+  // out of the headless terminal until then: headless.write() parses
+  // asynchronously, so snapshotting mid-parse would drop or duplicate data.
+  // null once replay has begun (or the cap was hit) and writes flow directly.
+  preReplay: string[] | null;
+  preReplayBytes: number;
+  // Raw restored buffer, kept until the headless parser has consumed it so
+  // synchronous snapshots (evict, quit) taken mid-parse don't persist a
+  // truncated scrollback. null once parsed.
+  restoreRaw: StoredBuffer | null;
+  // Completion of the most recent tracked headless write (restore, cap
+  // flush, replay flush). Post-replay PTY writes are deliberately untracked:
+  // they're the hot path, and the sync save paths were always best-effort
+  // about a chunk still in the parser there.
+  parseSettled: Promise<void>;
+  // Settles on teardown; raced against parseSettled because disposing the
+  // headless terminal drops queued write callbacks.
+  torndown: Promise<void>;
+  markTorndown: () => void;
+}
+
+// Safety valve if a renderer never calls replay: past this, buffered output is
+// flushed into the headless terminal (bounded by its scrollback) instead.
+const MAX_PRE_REPLAY_BYTES = 4 * 1024 * 1024;
+
+// Write chunks and advance parseSettled to the last chunk's completion.
+function writeTracked(entry: PtyEntry, chunks: string[]): void {
+  const last = chunks[chunks.length - 1];
+  if (last === undefined) return;
+  entry.parseSettled = new Promise((resolve) => {
+    for (let i = 0; i < chunks.length - 1; i++) {
+      entry.headless.write(chunks[i] as string);
+    }
+    entry.headless.write(last, resolve);
+  });
 }
 
 export class PtyManager {
@@ -186,6 +222,10 @@ export class PtyManager {
     } catch {}
   }
 
+  // Consumes the meta on read so overlapping create() calls can't both spawn
+  // a resume for the same session (and a corrupt file is cleaned up instead
+  // of re-read forever); create() rewrites it if the spawn fails, so a
+  // transient spawn error doesn't discard the resume session.
   private async loadAndConsumeAgentSession(
     surfaceId: string,
   ): Promise<AgentSession | undefined> {
@@ -226,10 +266,22 @@ export class PtyManager {
   }
 
   private snapshot(entry: PtyEntry): StoredBuffer {
+    // PTY output buffered before replay hasn't reached the headless terminal
+    // yet; append it raw so eviction/shutdown snapshots don't lose it.
+    const pending = entry.preReplay?.join("") ?? "";
+    // Mid-restore-parse the serialized buffer would be truncated; fall back
+    // to the raw restored content the parser hasn't finished consuming.
+    if (entry.restoreRaw) {
+      return {
+        cols: entry.restoreRaw.cols,
+        rows: entry.restoreRaw.rows,
+        content: entry.restoreRaw.content + pending,
+      };
+    }
     return {
       cols: entry.headless.cols,
       rows: entry.headless.rows,
-      content: entry.serializeAddon.serialize(SERIALIZE_OPTS),
+      content: entry.serializeAddon.serialize(SERIALIZE_OPTS) + pending,
     };
   }
 
@@ -237,20 +289,30 @@ export class PtyManager {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
-    const carried = this.evictBySurfaceId(surfaceId);
+    // Peek (don't evict yet) to skip reading the possibly-large scrollback
+    // file when a live entry will supersede it anyway.
+    const hasLive = [...this.entries.values()].some(
+      (e) => e.surfaceId === surfaceId,
+    );
     const [restoredAgentSession, loadedBuffer] = await Promise.all([
       this.loadAndConsumeAgentSession(surfaceId),
-      carried ? Promise.resolve(null) : this.loadBuffer(surfaceId),
+      hasLive ? Promise.resolve(null) : this.loadBuffer(surfaceId),
     ]);
+    // Evict after the awaits: from here to entries.set() nothing yields, so a
+    // concurrent create for the same surface can't slip past the eviction and
+    // leak a second live PTY.
+    const carried = this.evictBySurfaceId(surfaceId);
 
     // Skip scrollback restore when auto-resuming
     const restored = restoredAgentSession ? null : (carried ?? loadedBuffer);
 
+    const reqCols = Math.floor(opts.cols ?? 0);
+    const reqRows = Math.floor(opts.rows ?? 0);
     let targetCols: number;
     let targetRows: number;
-    if (opts.cols && opts.cols > 0 && opts.rows && opts.rows > 0) {
-      targetCols = Math.floor(opts.cols);
-      targetRows = Math.floor(opts.rows);
+    if (reqCols >= 1 && reqRows >= 1) {
+      targetCols = reqCols;
+      targetRows = reqRows;
     } else if (restored) {
       targetCols = restored.cols;
       targetRows = restored.rows;
@@ -301,15 +363,23 @@ export class PtyManager {
       ensureAstralCliOnce(opts.wslDistro ?? null);
     }
 
-    const proc = pty.spawn(shell, args, {
-      name: "xterm-256color",
-      cols: targetCols,
-      rows: targetRows,
-      cwd: spawnCwd,
-      env,
-      // ConPTY emits ESC[2J on startup otherwise, wiping replayed scrollback
-      conptyInheritCursor: true,
-    });
+    let proc: IPty;
+    try {
+      proc = pty.spawn(shell, args, {
+        name: "xterm-256color",
+        cols: targetCols,
+        rows: targetRows,
+        cwd: spawnCwd,
+        env,
+        // ConPTY emits ESC[2J on startup otherwise, wiping replayed scrollback
+        conptyInheritCursor: true,
+      });
+    } catch (err) {
+      // The meta was consumed on read; put it back so the resume session
+      // survives a transient spawn failure.
+      if (restoredAgentSession) this.writeMeta(surfaceId, restoredAgentSession);
+      throw err;
+    }
 
     const initialCols = restored?.cols ?? targetCols;
     const initialRows = restored?.rows ?? targetRows;
@@ -329,11 +399,10 @@ export class PtyManager {
     );
     headless.unicode.activeVersion = "11";
 
-    if (restored) headless.write(restored.content);
-    if (initialCols !== targetCols || initialRows !== targetRows) {
-      headless.resize(targetCols, targetRows);
-    }
-
+    let markTorndown = () => {};
+    const torndown = new Promise<void>((resolve) => {
+      markTorndown = resolve;
+    });
     const entry: PtyEntry = {
       pty: proc,
       surfaceId,
@@ -345,7 +414,22 @@ export class PtyManager {
         restored && restored.cols === targetCols && restored.rows === targetRows
           ? { cols: targetCols, rows: targetRows, content: restored.content }
           : null,
+      preReplay: [],
+      preReplayBytes: 0,
+      restoreRaw: restored,
+      parseSettled: Promise.resolve(),
+      torndown,
+      markTorndown,
     };
+    if (restored) {
+      writeTracked(entry, [restored.content]);
+      void entry.parseSettled.then(() => {
+        entry.restoreRaw = null;
+      });
+    }
+    if (initialCols !== targetCols || initialRows !== targetRows) {
+      headless.resize(targetCols, targetRows);
+    }
     this.entries.set(id, entry);
 
     headless.parser.registerOscHandler(AGENT_SESSION_OSC_IDENT, (data) => {
@@ -377,7 +461,20 @@ export class PtyManager {
     });
 
     proc.onData((data) => {
-      entry.initialReplay = null;
+      if (entry.preReplay) {
+        entry.preReplay.push(data);
+        entry.preReplayBytes += data.length;
+        if (entry.preReplayBytes > MAX_PRE_REPLAY_BYTES) {
+          // Tracked so a later beginReplay snapshot waits for this parse
+          // instead of serializing a buffer that's missing the tail.
+          const chunks = entry.preReplay;
+          entry.preReplay = null;
+          entry.initialReplay = null;
+          entry.restoreRaw = null;
+          writeTracked(entry, chunks);
+        }
+        return;
+      }
       headless.write(data);
     });
     proc.onExit(({ exitCode, signal }) => {
@@ -388,16 +485,38 @@ export class PtyManager {
     return id;
   }
 
-  beginReplay(id: string): { cols: number; rows: number; content: string } {
+  async beginReplay(
+    id: string,
+  ): Promise<{ cols: number; rows: number; content: string }> {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+    // The parsed headless state is only needed when snapshot() will run; the
+    // initialReplay fast path returns the raw restored string, so don't stall
+    // it behind the (potentially large) restore parse. Race against teardown:
+    // disposing the headless terminal drops queued write callbacks, so a bare
+    // await could hang this IPC handler forever.
+    if (!entry.initialReplay) {
+      await Promise.race([entry.parseSettled, entry.torndown]);
+      if (!this.entries.has(id)) {
+        return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+      }
+    }
+    // Take the buffered output first: snapshot() must not double-count it,
+    // and it's appended to the replay so the renderer sees it exactly once.
+    const pending = entry.preReplay ?? [];
+    entry.preReplay = null;
     const snap = entry.initialReplay ?? this.snapshot(entry);
     entry.initialReplay = null;
+    writeTracked(entry, pending);
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
     }
-    return snap;
+    return {
+      cols: snap.cols,
+      rows: snap.rows,
+      content: snap.content + pending.join(""),
+    };
   }
 
   write(id: string, data: string): void {
@@ -432,6 +551,7 @@ export class PtyManager {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.entries.delete(id);
+    entry.markTorndown();
     if (deleteBuffer) {
       this.deleteBuffer(entry.surfaceId);
       this.deleteMeta(entry.surfaceId);

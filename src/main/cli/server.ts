@@ -19,6 +19,11 @@ import {
 
 const MAX_LINE_BYTES = 1024 * 1024;
 const AUTH_HELLO_METHOD = "auth.hello";
+// Unauthenticated TCP peers only ever need to send a tiny auth.hello line;
+// bound what they can make us buffer and how long they can sit unauthenticated.
+const PRE_AUTH_MAX_LINE_BYTES = 4 * 1024;
+const PRE_AUTH_TIMEOUT_MS = 10_000;
+const MAX_FAILED_AUTH_ATTEMPTS = 3;
 
 export type CliMethodHandler = (params: unknown) => Promise<unknown> | unknown;
 
@@ -50,49 +55,95 @@ interface ConnectionContext {
 
 function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
   let authed = ctx.requiredToken === null;
-  let buf = Buffer.alloc(0);
+  let failedAuthAttempts = 0;
+  // Accumulate chunks and only concat when a newline arrives, so a line
+  // delivered in k chunks costs one copy instead of k quadratic re-copies.
+  let chunks: Buffer[] = [];
+  let buffered = 0;
   let overflowed = false;
+  let sawFirstLine = false;
   let dispatchChain = Promise.resolve();
+
+  const authTimer = authed
+    ? null
+    : setTimeout(() => socket.destroy(), PRE_AUTH_TIMEOUT_MS);
+  const markAuthed = () => {
+    authed = true;
+    if (authTimer) clearTimeout(authTimer);
+  };
+  // The strict cap applies only to the FIRST line (auth.hello, ~100 bytes).
+  // `authed` flips asynchronously in the dispatch chain, so a client that
+  // pipelines auth + request in one write must not have the pre-auth cap
+  // applied to its request line; the auth timeout and failed-attempt limit
+  // still bound what an unauthenticated peer can do after line one.
+  const maxLineBytes = () =>
+    authed || sawFirstLine ? MAX_LINE_BYTES : PRE_AUTH_MAX_LINE_BYTES;
+
   const rejectOversize = () => {
     overflowed = true;
-    buf = Buffer.alloc(0);
+    chunks = [];
+    buffered = 0;
     socket.write(
       formatReply(
-        makeErr(null, CLI_ERROR_CODES.badEnvelope, "line exceeds 1 MiB"),
+        makeErr(null, CLI_ERROR_CODES.badEnvelope, "line exceeds limit"),
       ),
       () => socket.destroy(),
     );
   };
   socket.on("data", (chunk) => {
     if (overflowed) return;
-    buf = Buffer.concat([buf, chunk]);
+    if (chunk.indexOf(0x0a) === -1) {
+      chunks.push(chunk);
+      buffered += chunk.length;
+      if (buffered > maxLineBytes()) rejectOversize();
+      return;
+    }
+    let buf = chunks.length > 0 ? Buffer.concat([...chunks, chunk]) : chunk;
+    chunks = [];
+    buffered = 0;
     while (true) {
       const nl = buf.indexOf(0x0a);
       if (nl === -1) {
-        if (buf.length > MAX_LINE_BYTES) rejectOversize();
+        if (buf.length > maxLineBytes()) {
+          rejectOversize();
+          return;
+        }
         break;
       }
-      if (nl > MAX_LINE_BYTES) {
+      if (nl > maxLineBytes()) {
         rejectOversize();
-        break;
+        return;
       }
       const line = buf.subarray(0, nl).toString("utf8");
       buf = buf.subarray(nl + 1);
+      sawFirstLine = true;
       if (line.trim().length === 0) continue;
       dispatchChain = dispatchChain
         .then(async () => {
+          const wasAuthed = authed;
           const reply = await dispatch(line, ctx, {
             isAuthed: () => authed,
-            markAuthed: () => {
-              authed = true;
-            },
+            markAuthed,
           });
           if (!socket.destroyed) socket.write(formatReply(reply));
+          if (!wasAuthed && !authed) {
+            failedAuthAttempts += 1;
+            if (failedAuthAttempts >= MAX_FAILED_AUTH_ATTEMPTS) {
+              socket.destroy();
+            }
+          }
         })
         .catch(() => {
           // a failed dispatch/write must not stall later replies
         });
     }
+    if (buf.length > 0) {
+      chunks = [buf];
+      buffered = buf.length;
+    }
+  });
+  socket.on("close", () => {
+    if (authTimer) clearTimeout(authTimer);
   });
   socket.on("error", () => {
     // ignore client-side errors
