@@ -9,6 +9,7 @@ import {
   getWorkspace,
   renameSurface,
   setFocusedPane,
+  setSurfaceStatus,
   updateTerminalSurface,
   useWorkspaceStore,
 } from "../../store";
@@ -106,6 +107,8 @@ export function TerminalPane({
             body,
           );
         },
+        onStatus: (status) =>
+          setSurfaceStatus(workspaceId, paneIdRef.current, surfaceId, status),
         onRequestFind: () => {
           setFindOpen(true);
           findInputRef.current?.focus();

@@ -1,3 +1,5 @@
+import { isPaneStatusSignal, type PaneStatus } from "../../../shared/types";
+
 // biome-ignore lint/suspicious/noControlCharactersInRegex: OSC sequences use ESC and BEL
 const OSC_PATTERN = /\x1b\](\d+);([^\x07\x1b]*?)(?:\x07|\x1b\\)/g;
 
@@ -18,6 +20,8 @@ export interface OscResult {
   title?: string;
   cwd?: string;
   notifications: OscNotification[];
+  // Absent = no signal in this chunk; `next: undefined` = clear the tag.
+  status?: { next: PaneStatus | undefined };
 }
 
 export function parseOsc(data: string): OscResult {
@@ -26,6 +30,7 @@ export function parseOsc(data: string): OscResult {
   }
   let title: string | undefined;
   let cwd: string | undefined;
+  let status: OscResult["status"];
   const notifications: OscNotification[] = [];
 
   for (const [, code, payload] of data.matchAll(OSC_PATTERN)) {
@@ -45,9 +50,11 @@ export function parseOsc(data: string): OscResult {
           title: parts[1] || "Notification",
           body: parts[2],
         });
+      } else if (parts[0] === "status" && isPaneStatusSignal(parts[1])) {
+        status = { next: parts[1] === "working" ? undefined : parts[1] };
       }
     }
   }
 
-  return { title, cwd, notifications };
+  return { title, cwd, notifications, status };
 }

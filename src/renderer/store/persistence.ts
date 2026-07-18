@@ -1,9 +1,33 @@
 import type { PersistedSettings } from "../../shared/settings-types";
-import type { AppState, PersistedWorkspaces } from "../../shared/types";
+import {
+  type AppState,
+  isTerminalSurface,
+  type PaneNode,
+  type PersistedWorkspaces,
+  type Surface,
+} from "../../shared/types";
+import { mapLeaves } from "../components/Layout/pane-tree";
 
 export interface LoadedState {
   settings: PersistedSettings | null;
   workspaces: PersistedWorkspaces | null;
+}
+
+function stripSurfaceRuntime(s: Surface): Surface {
+  if (isTerminalSurface(s) && s.status !== undefined) {
+    const { status: _s, ...rest } = s;
+    return rest;
+  }
+  return s;
+}
+
+function stripLayoutRuntime(node: PaneNode): PaneNode {
+  return mapLeaves(node, (leaf) => {
+    const surfaces = leaf.surfaces.map(stripSurfaceRuntime);
+    return surfaces.every((s, i) => s === leaf.surfaces[i])
+      ? leaf
+      : { ...leaf, surfaces };
+  });
 }
 
 export function saveState(state: AppState): void {
@@ -20,7 +44,7 @@ export function saveState(state: AppState): void {
     workspaces: state.workspaces.map((w) => ({
       id: w.id,
       name: w.name,
-      layout: w.layout,
+      layout: stripLayoutRuntime(w.layout),
     })),
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,

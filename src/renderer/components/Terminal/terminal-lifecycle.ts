@@ -12,7 +12,11 @@ import {
   resolveBindings,
 } from "../../../shared/keybindings/match";
 import { windowsPtyOptions } from "../../../shared/pty-options";
-import type { AppConfig, TerminalTheme } from "../../../shared/types";
+import type {
+  AppConfig,
+  PaneStatus,
+  TerminalTheme,
+} from "../../../shared/types";
 import type { SurfaceController } from "../../app/surface-lifecycle";
 import {
   addSurface,
@@ -305,6 +309,7 @@ export interface TerminalControllerOptions {
   onCwdChange: (cwd: string) => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
+  onStatus: (status: PaneStatus | undefined) => void;
   onRequestFind: () => void;
   onSelect: () => void;
 }
@@ -549,5 +554,6 @@ export class TerminalController implements SurfaceController, FindController {
     if (osc.title) this.opts.onTitleChange(osc.title);
     for (const n of osc.notifications)
       this.opts.onNotification(n.title, n.body);
+    if (osc.status) this.opts.onStatus(osc.status.next);
   }
 }

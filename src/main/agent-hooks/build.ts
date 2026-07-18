@@ -1,10 +1,11 @@
 import type { AgentName } from "../../shared/agent-hooks";
 import { APP_PACKAGE_NAME } from "../../shared/meta";
+import type { PaneStatusSignal } from "../../shared/types";
 import { AGENT_SESSION_OSC_IDENT, type AgentSessionEvent } from "./osc";
 import sessionScript from "./session.sh?raw";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "4";
+export const HOOK_MARKER_VERSION = "5";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
@@ -17,11 +18,23 @@ function escapeInSingleQuotes(s: string): string {
   return s.replace(/'/g, "'\\''");
 }
 
-function oscNotifyCommand(title: string, body: string): string {
-  const t = escapeInSingleQuotes(title);
-  const b = escapeInSingleQuotes(body);
+// Resolves the agent pane's tty once and writes each OSC 777 payload to it.
+// The renderer tags that pane from where the bytes arrive, so no session id
+// is needed. Batching payloads keeps a single hook event to one `ps` fork.
+function osc777Command(payloads: string[]): string {
   const parentTty = `$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')`;
-  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; [ -n "$ptty" ] && [ "$ptty" != "?" ] && printf '\\033]777;notify;${t};${b}\\007' > "/dev/$ptty"; fi`;
+  const writes = payloads
+    .map((p) => `printf '\\033]777;${p}\\007' > "/dev/$ptty"`)
+    .join("; ");
+  return `: ${HOOK_MARKER}; if [ "$TERM_PROGRAM" = "${APP_PACKAGE_NAME}" ]; then ptty=${parentTty}; if [ -n "$ptty" ] && [ "$ptty" != "?" ]; then ${writes}; fi; fi`;
+}
+
+function notifyPayload(title: string, body: string): string {
+  return `notify;${escapeInSingleQuotes(title)};${escapeInSingleQuotes(body)}`;
+}
+
+function statusPayload(status: PaneStatusSignal): string {
+  return `status;${status}`;
 }
 
 function sessionHookCommand(
@@ -37,11 +50,17 @@ ${sessionScript}
 fi`;
 }
 
-function notifyHook(entry: { title: string; body: string }) {
-  return {
-    type: "command",
-    command: oscNotifyCommand(entry.title, entry.body),
-  };
+// Emits an OS notification and/or a pane status tag in a single command so an
+// event resolves the tty (and forks `ps`) just once.
+function eventHook(opts: {
+  notify?: { title: string; body: string };
+  status?: PaneStatusSignal;
+}) {
+  const payloads: string[] = [];
+  if (opts.notify)
+    payloads.push(notifyPayload(opts.notify.title, opts.notify.body));
+  if (opts.status) payloads.push(statusPayload(opts.status));
+  return { type: "command", command: osc777Command(payloads) };
 }
 
 function sessionHook(agentName: string, event: AgentSessionEvent) {
@@ -77,17 +96,23 @@ const builders: Record<AgentName, () => HooksConfig> = {
         Notification: [
           {
             matcher: "permission_prompt",
-            hooks: [notifyHook(s.permissionPrompt)],
+            hooks: [
+              eventHook({ notify: s.permissionPrompt, status: "needs-input" }),
+            ],
           },
           {
             matcher: "elicitation_dialog",
-            hooks: [notifyHook(s.elicitationDialog)],
+            hooks: [
+              eventHook({ notify: s.elicitationDialog, status: "needs-input" }),
+            ],
           },
         ],
         PreToolUse: [
           {
             matcher: "AskUserQuestion",
-            hooks: [notifyHook(s.askUserQuestion)],
+            hooks: [
+              eventHook({ notify: s.askUserQuestion, status: "needs-input" }),
+            ],
           },
         ],
         PostToolUse: [
@@ -96,9 +121,25 @@ const builders: Record<AgentName, () => HooksConfig> = {
             hooks: [session("update")],
           },
         ],
-        Stop: [{ hooks: [notifyHook(s.stop)] }],
-        SessionStart: [{ hooks: [session("start")] }],
-        SessionEnd: [{ hooks: [session("end")] }],
+        // Tags clear back to "working" only on a new prompt or session start.
+        // Known gaps we accept: resuming after a granted permission/elicitation
+        // (no new prompt) keeps "needs-input" until the next Stop, and an agent
+        // killed before SessionEnd leaves its last tag stuck. Closing these
+        // would need a per-tool-call hook (a `ps` fork on every tool) for a
+        // brief cosmetic mismatch; a stale tag never survives restart anyway
+        // (saveState strips it).
+        UserPromptSubmit: [{ hooks: [eventHook({ status: "working" })] }],
+        Stop: [
+          {
+            hooks: [eventHook({ notify: s.stop, status: "ready-for-review" })],
+          },
+        ],
+        SessionStart: [
+          { hooks: [session("start"), eventHook({ status: "working" })] },
+        ],
+        SessionEnd: [
+          { hooks: [session("end"), eventHook({ status: "completed" })] },
+        ],
       },
     };
   },

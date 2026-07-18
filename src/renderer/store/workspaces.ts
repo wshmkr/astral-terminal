@@ -3,6 +3,7 @@ import {
   isTerminalSurface,
   type LeafPane,
   type PaneNode,
+  type PaneStatus,
   type SplitDirection,
   type SurfaceKind,
   type TerminalSurface,
@@ -138,23 +139,51 @@ function closeLeafInActiveWorkspace(ws: Workspace, paneId: string) {
   }
 }
 
+// Rewrites a single terminal surface within a leaf, returning the leaf
+// unchanged (same ref) when the surface is missing, non-terminal, or already
+// matches the patch — so callers can short-circuit save/notify.
+function patchTerminalSurface(
+  leaf: LeafPane,
+  surfaceId: string,
+  patch: Partial<TerminalSurface>,
+): LeafPane {
+  const current = leaf.surfaces.find((s) => s.id === surfaceId);
+  if (!current || !isTerminalSurface(current)) return leaf;
+  const unchanged = Object.entries(patch).every(
+    ([k, v]) => current[k as keyof TerminalSurface] === v,
+  );
+  if (unchanged) return leaf;
+  const patched: TerminalSurface = { ...current, ...patch };
+  return {
+    ...leaf,
+    surfaces: leaf.surfaces.map((s) => (s.id === surfaceId ? patched : s)),
+  };
+}
+
 export function updateTerminalSurface(
   workspaceId: string,
   paneId: string,
   surfaceId: string,
   patch: Partial<Pick<TerminalSurface, "cwd">>,
 ) {
-  const changed = updateLeaf(workspaceId, paneId, (leaf) => {
-    const current = leaf.surfaces.find((s) => s.id === surfaceId);
-    if (!current || !isTerminalSurface(current)) return leaf;
-    return {
-      ...leaf,
-      surfaces: leaf.surfaces.map((s) =>
-        s.id === surfaceId ? { ...s, ...patch } : s,
-      ),
-    };
-  });
+  const changed = updateLeaf(workspaceId, paneId, (leaf) =>
+    patchTerminalSurface(leaf, surfaceId, patch),
+  );
   if (changed) scheduleSave();
+}
+
+// Agent lifecycle tag for a terminal pane. Runtime-only: re-renders the
+// sidebar but never schedules a save, so it is dropped on restart.
+export function setSurfaceStatus(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+  status: PaneStatus | undefined,
+) {
+  const changed = updateLeaf(workspaceId, paneId, (leaf) =>
+    patchTerminalSurface(leaf, surfaceId, { status }),
+  );
+  if (changed) notify();
 }
 
 export function createWorkspace(name?: string): Workspace {

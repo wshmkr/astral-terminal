@@ -47,9 +47,30 @@ export interface BaseSurface {
   name: string;
 }
 
+// Tags surfaced on a terminal pane to reflect an agent's lifecycle state.
+export const PANE_STATUSES = [
+  "needs-input",
+  "ready-for-review",
+  "completed",
+] as const;
+export type PaneStatus = (typeof PANE_STATUSES)[number];
+
+// Wire values carried over OSC 777 `status`; "working" clears any active tag.
+export const PANE_STATUS_SIGNAL_VALUES = [...PANE_STATUSES, "working"] as const;
+export type PaneStatusSignal = (typeof PANE_STATUS_SIGNAL_VALUES)[number];
+const PANE_STATUS_SIGNAL_SET: ReadonlySet<string> = new Set(
+  PANE_STATUS_SIGNAL_VALUES,
+);
+
+export function isPaneStatusSignal(x: unknown): x is PaneStatusSignal {
+  return typeof x === "string" && PANE_STATUS_SIGNAL_SET.has(x);
+}
+
 export interface TerminalSurface extends BaseSurface {
   type: "terminal";
   cwd: string;
+  // Runtime-only: driven by agent hooks, never persisted (see saveState).
+  status?: PaneStatus;
 }
 
 export interface BrowserSurface extends BaseSurface {
