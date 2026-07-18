@@ -10,13 +10,9 @@ transcript=$(printf '%s' "$in" | sed -nE 's/.*[^A-Za-z0-9_]"transcript_path"[[:s
 
 body=""
 if [ -n "$transcript" ] && [ -f "$transcript" ]; then
-  # Match "type":"assistant" / "isSidechain":true tolerantly — the transcript
-  # is compact today, but relying on zero-whitespace serialization would silently
-  # regress into fallback (or leak a subagent turn) the moment that drifts.
-  # Then scope the text pull to a "text":"...","type":"text" block — the pair
-  # is adjacent because transcript keys serialize alphabetically — so a tool_use
-  # block whose input has a "text" field can't slip past the greedy match, and
-  # accept \" inside the value so quoted content isn't truncated.
+  # Whitespace-tolerant matchers in case the compact serialization ever drifts.
+  # Scope the pull to an adjacent "text":"...","type":"text" block (keys sort
+  # alphabetically) so a tool_use "text" input can't leak; escaped quotes stay.
   raw=$(grep -E '"type"[[:space:]]*:[[:space:]]*"assistant"' "$transcript" 2>/dev/null \
     | grep -vE '"isSidechain"[[:space:]]*:[[:space:]]*true' \
     | tail -n 1 \

@@ -3,9 +3,8 @@
 # OSC sequence), swaps the ';' field separator for ',' so it can't split the OSC
 # payload, and caps the length.
 sanitize_body() {
-  # Collapse JSON's \\ (literal backslash) to a placeholder FIRST so the
-  # following \n / \t / \" rules can't misread a Windows path like C:\\notes
-  # (\\ + n) as the \n control escape.
+  # Collapse JSON's \\ to a placeholder first so the \n/\t/\" rules below can't
+  # misread a Windows path like C:\\notes (\\ + n) as a \n escape; restored last.
   _sep=$(printf '\001')
   printf '%s' "$1" | sed \
     -e "s/\\\\\\\\/${_sep}/g" \

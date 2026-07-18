@@ -6,9 +6,8 @@ ptty=$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')
 [ -n "$ptty" ] && [ "$ptty" != "?" ] || exit 0
 
 in=$(cat)
-# grep -oE accepts \" inside the value (so quoted text isn't truncated) and
-# head -n 1 picks the FIRST occurrence — matters for AskUserQuestion, whose
-# tool_input has a "questions" array with more than one "question" entry.
+# grep -oE keeps escaped quotes in the value (so quoted text isn't truncated);
+# head -n 1 takes the first match (AskUserQuestion's tool_input has several).
 raw=$(printf '%s' "$in" | grep -oE '"'"$NOTIFY_FIELD"'"[[:space:]]*:[[:space:]]*"([^"\]|\\.)*"' | head -n 1)
 value=$(printf '%s' "$raw" | sed -E 's/^"'"$NOTIFY_FIELD"'"[[:space:]]*:[[:space:]]*"//; s/"$//')
 body=$(sanitize_body "$value")
