@@ -8,15 +8,17 @@ export interface LoadedState {
 
 // Skip writes whose payload hasn't changed since the last successful send, so
 // e.g. a terminal title change doesn't also rewrite settings.json. On write
-// failure the cache resets so the next save retries.
+// failure the cache resets so the next save retries. `force` bypasses the
+// dedupe — used on quit so a file deleted or clobbered externally mid-session
+// still gets rewritten at least once before the state is lost.
 function makeDedupedWriter<T>(
   label: string,
   write: (value: T) => Promise<void>,
-): (value: T) => void {
+): (value: T, force?: boolean) => void {
   let lastJson: string | null = null;
-  return (value) => {
+  return (value, force = false) => {
     const json = JSON.stringify(value);
-    if (json === lastJson) return;
+    if (!force && json === lastJson) return;
     lastJson = json;
     write(value).catch((err) => {
       lastJson = null;
@@ -33,7 +35,7 @@ const writeWorkspaces = makeDedupedWriter<PersistedWorkspaces>(
   (v) => window.app.writeWorkspaces(v),
 );
 
-export function saveState(state: AppState): void {
+export function saveState(state: AppState, opts?: { force?: boolean }): void {
   // keep first-run signal alive until the user clicks through the welcome
   if (state.welcomeOpen) return;
   const settings: PersistedSettings = {
@@ -52,8 +54,8 @@ export function saveState(state: AppState): void {
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,
   };
-  writeSettings(settings);
-  writeWorkspaces(workspaces);
+  writeSettings(settings, opts?.force);
+  writeWorkspaces(workspaces, opts?.force);
 }
 
 export async function loadState(): Promise<LoadedState> {

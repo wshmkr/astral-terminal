@@ -6,6 +6,10 @@ export function quoteForPosixShell(path: string): string {
 
 const WIN_DRIVE_RE = /^([A-Za-z]):[\\/]/;
 // Files living inside WSL surface as \\wsl$\<distro>\... or \\wsl.localhost\<distro>\...
+// Known limitation: the distro segment is dropped, so a file from a distro
+// other than the terminal's resolves against the wrong filesystem — there is
+// no cross-distro path a shell could use, and the same-distro case (the
+// common one) is correct where the raw UNC path never was.
 const WSL_UNC_RE = /^\\\\wsl(?:\$|\.localhost)\\[^\\]+/i;
 
 export function windowsPathToWsl(path: string): string {

@@ -54,10 +54,13 @@ export function scheduleSave(): void {
 }
 
 function flushPendingSave(): void {
-  if (saveTimer === null) return;
-  clearTimeout(saveTimer);
-  saveTimer = null;
-  saveState(getState());
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  // Forced: on quit, rewrite both files even if the payload is unchanged so
+  // an externally deleted/clobbered file is healed before the state is lost.
+  saveState(getState(), { force: true });
 }
 
 if (typeof window !== "undefined") {

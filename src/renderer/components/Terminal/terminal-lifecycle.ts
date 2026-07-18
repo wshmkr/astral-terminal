@@ -12,6 +12,7 @@ import {
   resolveBindings,
 } from "../../../shared/keybindings/match";
 import { windowsPtyOptions } from "../../../shared/pty-options";
+import { keyedSingleFlight } from "../../../shared/single-flight";
 import type { AppConfig, TerminalTheme } from "../../../shared/types";
 import type { SurfaceController } from "../../app/surface-lifecycle";
 import { getState, openUrlNearSurface } from "../../store";
@@ -33,27 +34,16 @@ function findDecorationsFromTheme(
   };
 }
 
-const fontPreloadCache = new Map<string, Promise<unknown>>();
-
-export function preloadFont(fontStack: string, size: number): Promise<unknown> {
-  const key = `${size}|${fontStack}`;
-  let cached = fontPreloadCache.get(key);
-  if (!cached) {
-    const loading = Promise.all([
+export const preloadFont = keyedSingleFlight(
+  (fontStack: string, size: number) => `${size}|${fontStack}`,
+  (fontStack: string, size: number) =>
+    Promise.all([
       document.fonts.load(`${size}px ${fontStack}`),
       document.fonts.load(`bold ${size}px ${fontStack}`),
       document.fonts.load(`italic ${size}px ${fontStack}`),
       document.fonts.load(`bold italic ${size}px ${fontStack}`),
-    ]);
-    // A transient load failure must not poison the cache for later terminals
-    loading.catch(() => {
-      if (fontPreloadCache.get(key) === loading) fontPreloadCache.delete(key);
-    });
-    fontPreloadCache.set(key, loading);
-    cached = loading;
-  }
-  return cached;
-}
+    ]),
+);
 
 interface TerminalAddons {
   term: Terminal;
@@ -309,6 +299,10 @@ export class TerminalController implements SurfaceController, FindController {
   private ptyId: string | null = null;
   private disposed = false;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  // Holds pty data that arrives before the replay reply. Main gates
+  // forwarding on beginReplay, but it attaches the forward listener before
+  // its reply is serialized, so a data event CAN land here first — this
+  // buffer is the ordering guarantee on the renderer side, not dead code.
   private preReplayBuffer: string[] | null = [];
   private pendingOpen = false;
 
@@ -447,18 +441,22 @@ export class TerminalController implements SurfaceController, FindController {
     this.term.dispose();
   }
 
-  private safeFit(): void {
+  // Returns whether the container was measurable (and therefore opened/fit).
+  private safeFit(): boolean {
     const { container } = this.opts;
-    if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+      return false;
+    }
     if (this.pendingOpen) {
       this.pendingOpen = false;
       this.term.open(container);
     }
     const proposed = this.fitAddon.proposeDimensions();
-    if (!proposed) return;
+    if (!proposed) return true;
     if (proposed.cols === this.term.cols && proposed.rows === this.term.rows)
-      return;
+      return true;
     this.fitAddon.fit();
+    return true;
   }
 
   private async startPty(): Promise<void> {
@@ -512,14 +510,9 @@ export class TerminalController implements SurfaceController, FindController {
       window.app.resizePty(id, cols, rows),
     );
 
-    this.safeFit();
     // Only push dims that came from a real fit of a visible container;
     // otherwise this would send 80×24 or stale saved dims to main.
-    const measurable =
-      !this.pendingOpen &&
-      this.opts.container.offsetWidth > 0 &&
-      this.opts.container.offsetHeight > 0;
-    if (measurable) {
+    if (this.safeFit()) {
       window.app.resizePty(id, this.term.cols, this.term.rows);
     }
     if (!this.pendingOpen) this.term.focus();

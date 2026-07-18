@@ -639,7 +639,13 @@ export class BrowserManager {
       width: rect.width,
       height: rect.height,
     });
-    if (stateChanged) this.showSplitPreviewWhenReady();
+    if (stateChanged) {
+      this.showSplitPreviewWhenReady();
+    } else {
+      // Cheap native restack every move so a view added mid-drag can't bury
+      // the preview; only the executeJavaScript round-trip is skipped.
+      this.bringSplitPreviewToTop();
+    }
   }
 
   setDimmed(dimmed: boolean): void {

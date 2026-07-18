@@ -3,6 +3,7 @@ import { app, BrowserWindow, dialog, session } from "electron";
 import squirrelStartup from "electron-squirrel-startup";
 import { APP_ID, DEV_SUFFIX } from "../shared/meta";
 import { DEFAULT_BROWSER_SETTINGS } from "../shared/settings-types";
+import { singleFlight } from "../shared/single-flight";
 import { type AppConfig, browserStateChannel, IPC } from "../shared/types";
 import { checkForUpdatesOnStartup, initAutoUpdater } from "./auto-update";
 import {
@@ -78,25 +79,16 @@ if (squirrelStartup) {
 }
 
 let ptyManager: PtyManager | null = null;
-let ptyManagerPromise: Promise<PtyManager> | null = null;
 let browserManager: BrowserManager | null = null;
 let cleanupUsageMonitor: (() => void) | null = null;
 
-function getPtyManager(): Promise<PtyManager> {
-  ptyManagerPromise ??= (async () => {
-    const { PtyManager } = await import("./pty-manager");
-    ptyManager = new PtyManager(
-      path.join(app.getPath("userData"), "terminal-buffers"),
-    );
-    return ptyManager;
-  })().catch((err) => {
-    // Don't cache the rejection: a transient import failure would otherwise
-    // permanently kill all PTY IPC for the rest of the session.
-    ptyManagerPromise = null;
-    throw err;
-  });
-  return ptyManagerPromise;
-}
+const getPtyManager = singleFlight(async () => {
+  const { PtyManager } = await import("./pty-manager");
+  ptyManager = new PtyManager(
+    path.join(app.getPath("userData"), "terminal-buffers"),
+  );
+  return ptyManager;
+});
 
 let cachedConfig: AppConfig | null = null;
 function getConfig(): AppConfig {
