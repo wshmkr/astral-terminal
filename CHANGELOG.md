@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.0](https://github.com/wshmkr/astral-terminal/compare/v0.7.0...v0.8.0) (2026-07-18)
+
+
+### Features
+
+* Ctrl-C copies selection, else sends SIGINT ([#108](https://github.com/wshmkr/astral-terminal/issues/108)) ([3ac64be](https://github.com/wshmkr/astral-terminal/commit/3ac64be73a1f7797bd48ae5a21a04785aa170133))
+* drag tabs to pane edges to split ([#105](https://github.com/wshmkr/astral-terminal/issues/105)) ([f0105ee](https://github.com/wshmkr/astral-terminal/commit/f0105ee9942f98b47dcf41dbced05c4e9a654458))
+* enrich agent notifications with hook context ([#112](https://github.com/wshmkr/astral-terminal/issues/112)) ([ac4aa2b](https://github.com/wshmkr/astral-terminal/commit/ac4aa2bf660526338a2d7fdc50091795a0849646))
+* paste images into the terminal ([#106](https://github.com/wshmkr/astral-terminal/issues/106)) ([1f808a2](https://github.com/wshmkr/astral-terminal/commit/1f808a2f176ec632c754b30da7811793f5f3d0f6))
+
+
+### Bug Fixes
+
+* enforce pane minimums on window resize and stabilize sidebar ([#111](https://github.com/wshmkr/astral-terminal/issues/111)) ([9927049](https://github.com/wshmkr/astral-terminal/commit/99270494c731f5aaab80e3ce7823979b773ca96b))
+* navigate to notification's live pane on click ([#102](https://github.com/wshmkr/astral-terminal/issues/102)) ([b1ba38a](https://github.com/wshmkr/astral-terminal/commit/b1ba38a15d66bcf9b8e81ea8bb07e51d61d8d75b))
+
 ## [0.7.0](https://github.com/wshmkr/astral-terminal/compare/v0.6.1...v0.7.0) (2026-06-08)
 
 
