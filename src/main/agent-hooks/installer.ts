@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -14,6 +13,7 @@ import type {
   ConfigureAgentHooksResult,
   UninstallAgentHooksResult,
 } from "../../shared/types";
+import { writeFileAtomic } from "../atomic-file";
 import { withKeyedLock } from "../keyed-lock";
 import { resolveWslPath } from "../wsl/home";
 import {
@@ -27,18 +27,11 @@ const settingsFileLocks = new Map<string, Promise<unknown>>();
 
 // This rewrites the user's own agent settings file (often over a \\wsl$ UNC
 // share); write-then-rename so a crash mid-write can't truncate it.
-async function writeSettingsAtomic(
+function writeSettingsAtomic(
   filePath: string,
   settings: Record<string, unknown>,
 ): Promise<void> {
-  const tmpPath = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
-  try {
-    await fs.writeFile(tmpPath, JSON.stringify(settings, null, 2), "utf-8");
-    await fs.rename(tmpPath, filePath);
-  } catch (err) {
-    await fs.unlink(tmpPath).catch(() => {});
-    throw err;
-  }
+  return writeFileAtomic(filePath, JSON.stringify(settings, null, 2));
 }
 
 function isOwnHookCommand(value: unknown): boolean {

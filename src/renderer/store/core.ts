@@ -21,9 +21,18 @@ export function setState(next: AppState): void {
   state = next;
 }
 
-export function getWorkspace(id: string | null): Workspace | undefined {
+// State-parameterized so subscribers can use it in selectors; the get*
+// variants below are conveniences over the current state.
+export function selectWorkspace(
+  s: AppState,
+  id: string | null,
+): Workspace | undefined {
   if (id === null) return undefined;
-  return getState().workspaces.find((w) => w.id === id);
+  return s.workspaces.find((w) => w.id === id);
+}
+
+export function getWorkspace(id: string | null): Workspace | undefined {
+  return selectWorkspace(getState(), id);
 }
 
 export function getActiveWorkspace(): Workspace | undefined {
@@ -31,7 +40,7 @@ export function getActiveWorkspace(): Workspace | undefined {
 }
 
 export function selectActiveWorkspace(s: AppState): Workspace | undefined {
-  return s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+  return selectWorkspace(s, s.activeWorkspaceId);
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;

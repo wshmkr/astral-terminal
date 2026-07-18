@@ -254,9 +254,14 @@ export class PtyManager {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
+    // Peek (don't evict yet) to skip reading the possibly-large scrollback
+    // file when a live entry will supersede it anyway.
+    const hasLive = [...this.entries.values()].some(
+      (e) => e.surfaceId === surfaceId,
+    );
     const [restoredAgentSession, loadedBuffer] = await Promise.all([
       this.loadAgentSession(surfaceId),
-      this.loadBuffer(surfaceId),
+      hasLive ? Promise.resolve(null) : this.loadBuffer(surfaceId),
     ]);
     // Evict after the awaits: from here to entries.set() nothing yields, so a
     // concurrent create for the same surface can't slip past the eviction and
@@ -433,9 +438,14 @@ export class PtyManager {
   ): Promise<{ cols: number; rows: number; content: string }> {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
-    await entry.restoreParsed;
-    if (!this.entries.has(id)) {
-      return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+    // The parsed headless state is only needed when snapshot() will run; the
+    // initialReplay fast path returns the raw restored string, so don't stall
+    // it behind the (potentially large) restore parse.
+    if (!entry.initialReplay) {
+      await entry.restoreParsed;
+      if (!this.entries.has(id)) {
+        return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+      }
     }
     // Take the buffered output first: snapshot() must not double-count it,
     // and it's appended to the replay so the renderer sees it exactly once.

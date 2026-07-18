@@ -170,8 +170,10 @@ function initWindowBoundServices(): void {
 const startup = app.whenReady().then(async () => {
   installAppMenu();
   installCsp();
-  // Ungraceful exits (crashes, dev restarts) orphan pty trees; sweep on launch
-  void reapOrphanedPtys();
+  // Ungraceful exits (crashes, dev restarts) orphan pty trees; sweep after
+  // launch settles — the PowerShell/WMI scan shouldn't compete with first
+  // paint and the first terminal spawn.
+  setTimeout(() => void reapOrphanedPtys(), 5_000);
   void clearPasteImages();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);
   registerPtyIpc({ getPtyManager, getConfig, getMainWindow });

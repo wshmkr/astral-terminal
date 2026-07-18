@@ -7,9 +7,31 @@ export interface LoadedState {
 }
 
 // Skip writes whose payload hasn't changed since the last successful send, so
-// e.g. a terminal title change doesn't also rewrite settings.json.
-let lastSettingsJson: string | null = null;
-let lastWorkspacesJson: string | null = null;
+// e.g. a terminal title change doesn't also rewrite settings.json. On write
+// failure the cache resets so the next save retries.
+function makeDedupedWriter<T>(
+  label: string,
+  write: (value: T) => Promise<void>,
+): (value: T) => void {
+  let lastJson: string | null = null;
+  return (value) => {
+    const json = JSON.stringify(value);
+    if (json === lastJson) return;
+    lastJson = json;
+    write(value).catch((err) => {
+      lastJson = null;
+      console.error(`Failed to save ${label}:`, err);
+    });
+  };
+}
+
+const writeSettings = makeDedupedWriter<PersistedSettings>("settings", (v) =>
+  window.app.writeSettings(v),
+);
+const writeWorkspaces = makeDedupedWriter<PersistedWorkspaces>(
+  "workspaces",
+  (v) => window.app.writeWorkspaces(v),
+);
 
 export function saveState(state: AppState): void {
   // keep first-run signal alive until the user clicks through the welcome
@@ -30,22 +52,8 @@ export function saveState(state: AppState): void {
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,
   };
-  const settingsJson = JSON.stringify(settings);
-  if (settingsJson !== lastSettingsJson) {
-    lastSettingsJson = settingsJson;
-    window.app.writeSettings(settings).catch((err) => {
-      lastSettingsJson = null;
-      console.error("Failed to save settings:", err);
-    });
-  }
-  const workspacesJson = JSON.stringify(workspaces);
-  if (workspacesJson !== lastWorkspacesJson) {
-    lastWorkspacesJson = workspacesJson;
-    window.app.writeWorkspaces(workspaces).catch((err) => {
-      lastWorkspacesJson = null;
-      console.error("Failed to save workspaces:", err);
-    });
-  }
+  writeSettings(settings);
+  writeWorkspaces(workspaces);
 }
 
 export async function loadState(): Promise<LoadedState> {

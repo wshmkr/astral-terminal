@@ -17,6 +17,7 @@ export {
   getState,
   getWorkspace,
   selectActiveWorkspace,
+  selectWorkspace,
   subscribeWorkspaceStore,
   useWorkspaceStore,
 } from "./core";

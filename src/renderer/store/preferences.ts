@@ -57,7 +57,11 @@ export function setSidebarWidth(width: number): void {
 
 // Shared shallow-diff-then-merge for the flat settings slices.
 function updateSettingsSlice<
-  K extends "notificationSettings" | "updateSettings" | "browserSettings",
+  K extends
+    | "notificationSettings"
+    | "updateSettings"
+    | "browserSettings"
+    | "terminalSettings",
 >(key: K, patch: Partial<AppState[K]>): void {
   const s = getState();
   const current = s[key];
@@ -76,13 +80,7 @@ export function updateNotificationSettings(
 }
 
 export function setWslDistro(distro: string | null): void {
-  const s = getState();
-  if (s.terminalSettings.wslDistro === distro) return;
-  setState({
-    ...s,
-    terminalSettings: { ...s.terminalSettings, wslDistro: distro },
-  });
-  commit();
+  updateSettingsSlice("terminalSettings", { wslDistro: distro });
 }
 
 export function updateUpdateSettings(settings: Partial<UpdateSettings>): void {

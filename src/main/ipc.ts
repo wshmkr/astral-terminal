@@ -135,11 +135,14 @@ export function registerPtyIpc({
     },
   );
 
+  // Fire-and-forget PTY calls: the manager import can reject, and an
+  // unhandled rejection here would silently kill the input path.
+  const withPty = (label: string, fn: (m: PtyManager) => void): void => {
+    getPtyManager().then(fn, (err) => console.error(`${label} failed:`, err));
+  };
+
   ipcMain.on(IPC.pty.write, (_event, msg: { ptyId: string; data: string }) => {
-    getPtyManager().then(
-      (m) => m.write(msg.ptyId, msg.data),
-      (err) => console.error("pty.write failed:", err),
-    );
+    withPty("pty.write", (m) => m.write(msg.ptyId, msg.data));
   });
 
   ipcMain.handle(
@@ -151,18 +154,12 @@ export function registerPtyIpc({
   ipcMain.on(
     IPC.pty.resize,
     (_event, msg: { ptyId: string; cols: number; rows: number }) => {
-      getPtyManager().then(
-        (m) => m.resize(msg.ptyId, msg.cols, msg.rows),
-        (err) => console.error("pty.resize failed:", err),
-      );
+      withPty("pty.resize", (m) => m.resize(msg.ptyId, msg.cols, msg.rows));
     },
   );
 
   ipcMain.on(IPC.pty.kill, (_event, msg: { ptyId: string }) => {
-    getPtyManager().then(
-      (m) => m.kill(msg.ptyId),
-      (err) => console.error("pty.kill failed:", err),
-    );
+    withPty("pty.kill", (m) => m.kill(msg.ptyId));
   });
 
   ipcMain.handle(IPC.wsl.listDistros, () => listWslDistros());

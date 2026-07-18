@@ -40,6 +40,7 @@ import {
   addSurface,
   closePane,
   closeSurface,
+  selectWorkspace,
   setActiveSurface,
   setFocusedPane,
   splitPane,
@@ -264,7 +265,7 @@ function TabbedPaneImpl({ workspaceId, pane }: Props) {
   // and compare unread ids against the wrong workspace.
   const selectNotifications = useCallback(
     (s: AppState): Notification[] | null =>
-      s.workspaces.find((w) => w.id === workspaceId)?.notifications ?? null,
+      selectWorkspace(s, workspaceId)?.notifications ?? null,
     [workspaceId],
   );
   const notifications = useWorkspaceStore(selectNotifications);
