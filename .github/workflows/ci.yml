@@ -27,6 +27,19 @@ jobs:
       - run: npx biome ci
       - run: npm run typecheck
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    continue-on-error: true # TODO: drop and add Test to required checks once coverage is stable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   build:
     name: Build (Windows)
     runs-on: windows-latest
