@@ -10,6 +10,7 @@ export function isAgentHookInstalled(status: AgentHookStatus | undefined) {
 export interface AgentHookProvider<N extends string = string> {
   name: N;
   settingsPath: string;
+  requiresHookTrust: boolean;
   sessionIdPattern: RegExp;
   resumeCommand(sessionId: string): string;
 }
@@ -17,6 +18,7 @@ export interface AgentHookProvider<N extends string = string> {
 const claudeProvider: AgentHookProvider<"Claude"> = {
   name: "Claude",
   settingsPath: ".claude/settings.json",
+  requiresHookTrust: false,
   sessionIdPattern: UUID_RE,
   resumeCommand(sessionId) {
     return `claude --resume ${sessionId}`;
@@ -27,6 +29,7 @@ const claudeProvider: AgentHookProvider<"Claude"> = {
 const codexProvider: AgentHookProvider<"Codex"> = {
   name: "Codex",
   settingsPath: ".codex/hooks.json",
+  requiresHookTrust: true,
   sessionIdPattern: UUID_RE,
   resumeCommand(sessionId) {
     return `codex resume ${sessionId}`;

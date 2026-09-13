@@ -11,6 +11,6 @@ export type AstralEnvName = (typeof ASTRAL_ENV)[keyof typeof ASTRAL_ENV];
 
 // WSLENV picks which env vars wsl.exe forwards; `/u` = pass verbatim, no path translation
 // TODO(native): non-Windows shells inherit these directly, so native injection skips WSLENV
-export function buildWslenvFragment(names: readonly AstralEnvName[]): string {
+export function buildWslenvFragment(names: readonly string[]): string {
   return names.map((name) => `${name}/u`).join(":");
 }
