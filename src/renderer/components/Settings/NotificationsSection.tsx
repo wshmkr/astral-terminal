@@ -8,7 +8,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import type { IconType } from "react-icons";
-import { SiClaude } from "react-icons/si";
+import { SiClaude, SiOpenai } from "react-icons/si";
 import { VscQuestion } from "react-icons/vsc";
 import {
   type AgentName,
@@ -55,7 +55,22 @@ export const PROVIDER_ICONS: Record<
   { icon: IconType; color: string }
 > = {
   Claude: { icon: SiClaude, color: "#D97757" },
+  Codex: { icon: SiOpenai, color: "#FFFFFF" },
 };
+
+// Shown under a provider once its hooks are installed but before they can fire
+export const PROVIDER_NOTES: Partial<Record<AgentName, string>> = {
+  Codex: "Codex asks you to trust new hooks the next time it starts.",
+};
+
+export function providerRowDescription(
+  name: AgentName,
+  error: string | undefined,
+  installed: boolean,
+): string | undefined {
+  if (error) return error;
+  return installed ? PROVIDER_NOTES[name] : undefined;
+}
 
 export function HooksHelpIcon({ sx }: { sx?: SxProps<Theme> }) {
   return (
@@ -137,18 +152,19 @@ export function NotificationsSection() {
       {agentProviders.map((p) => {
         const { icon: Icon, color } = PROVIDER_ICONS[p.name];
         const error = errors[p.name];
+        const installed = isAgentHookInstalled(hookStatuses[p.name]);
         return (
           <SettingRow
             key={p.name}
             title={p.name}
             icon={<Icon size={16} color={color} />}
-            description={error}
+            description={providerRowDescription(p.name, error, installed)}
             descriptionTone={error ? "error" : "default"}
             control={
               <Checkbox
                 size="small"
                 sx={CHECKBOX_SX}
-                checked={isAgentHookInstalled(hookStatuses[p.name])}
+                checked={installed}
                 disabled={!!pending[p.name]}
                 onChange={(_, checked) => toggle(p.name, checked)}
               />

@@ -46,6 +46,7 @@ import {
   HooksHelpIcon,
   NoHooksAlert,
   PROVIDER_ICONS,
+  providerRowDescription,
 } from "../Settings/NotificationsSection";
 import {
   FIELD_LABEL_SX,
@@ -321,18 +322,25 @@ export function WelcomeDialog() {
                   {agentProviders.map((p) => {
                     const { icon: Icon, color } = PROVIDER_ICONS[p.name];
                     const error = errors[p.name];
+                    const installed = isAgentHookInstalled(
+                      hookStatuses[p.name],
+                    );
                     return (
                       <SettingRow
                         key={p.name}
                         title={p.name}
                         icon={<Icon size={16} color={color} />}
-                        description={error}
+                        description={providerRowDescription(
+                          p.name,
+                          error,
+                          installed,
+                        )}
                         descriptionTone={error ? "error" : "default"}
                         control={
                           <Checkbox
                             size="small"
                             sx={{ p: 0.5 }}
-                            checked={isAgentHookInstalled(hookStatuses[p.name])}
+                            checked={installed}
                             disabled={!!pending[p.name]}
                             onChange={(_, checked) => toggle(p.name, checked)}
                           />

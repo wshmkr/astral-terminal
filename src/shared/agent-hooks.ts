@@ -23,7 +23,17 @@ const claudeProvider: AgentHookProvider<"Claude"> = {
   },
 };
 
-export const agentProviders = [claudeProvider] as const;
+// Codex session ids are UUIDv7, which still satisfies the textual UUID shape
+const codexProvider: AgentHookProvider<"Codex"> = {
+  name: "Codex",
+  settingsPath: ".codex/hooks.json",
+  sessionIdPattern: UUID_RE,
+  resumeCommand(sessionId) {
+    return `codex resume ${sessionId}`;
+  },
+};
+
+export const agentProviders = [claudeProvider, codexProvider] as const;
 
 export type AgentName = (typeof agentProviders)[number]["name"];
 

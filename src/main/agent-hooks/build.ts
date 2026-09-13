@@ -76,31 +76,57 @@ function sessionHook(agentName: string, event: AgentSessionEvent) {
   return { type: "command", command: sessionHookCommand(agentName, event) };
 }
 
-function agentHookStrings(agent: string) {
+// Shared so the same event reads identically in the panel whatever agent raised it
+const NOTIFY_TITLE = {
+  permission: "Permission Needed",
+  input: "Input Required",
+  ready: "Ready for Input",
+  question: "Question Pending",
+} as const;
+
+function claudeHookStrings(agent: string) {
   return {
     // `message` carries Claude's own text, e.g. "Permission required to
     // execute: Bash(npm test)"; the static body is the fallback.
     permissionPrompt: {
-      title: "Permission Needed",
+      title: NOTIFY_TITLE.permission,
       body: `${agent} needs tool approval`,
       field: "message",
     },
     elicitationDialog: {
-      title: "Input Required",
+      title: NOTIFY_TITLE.input,
       body: "An MCP server is requesting input",
       field: "message",
     },
     // Summary of the final assistant turn comes from the transcript.
     stop: {
-      title: "Ready for Input",
+      title: NOTIFY_TITLE.ready,
       body: `${agent} finished responding`,
       summary: true,
     },
     // `question` is the actual prompt text from AskUserQuestion's tool_input.
     askUserQuestion: {
-      title: "Question Pending",
+      title: NOTIFY_TITLE.question,
       body: `${agent} is asking a question`,
       field: "question",
+    },
+  };
+}
+
+function codexHookStrings(agent: string) {
+  return {
+    // Codex has no message text on PermissionRequest, so the body names the
+    // tool it wants to run, e.g. "shell".
+    permissionRequest: {
+      title: NOTIFY_TITLE.permission,
+      body: `${agent} needs tool approval`,
+      field: "tool_name",
+    },
+    // Codex puts the final turn on the Stop payload, so no transcript read.
+    stop: {
+      title: NOTIFY_TITLE.ready,
+      body: `${agent} finished responding`,
+      field: "last_assistant_message",
     },
   };
 }
@@ -109,7 +135,7 @@ type HooksConfig = { hooks: Record<string, unknown[]> };
 
 const builders: Record<AgentName, () => HooksConfig> = {
   Claude: () => {
-    const s = agentHookStrings("Claude");
+    const s = claudeHookStrings("Claude");
     const session = (event: AgentSessionEvent) => sessionHook("Claude", event);
     return {
       hooks: {
@@ -135,6 +161,18 @@ const builders: Record<AgentName, () => HooksConfig> = {
             hooks: [session("update")],
           },
         ],
+        Stop: [{ hooks: [notifyHook(s.stop)] }],
+        SessionStart: [{ hooks: [session("start")] }],
+        SessionEnd: [{ hooks: [session("end")] }],
+      },
+    };
+  },
+  Codex: () => {
+    const s = codexHookStrings("Codex");
+    const session = (event: AgentSessionEvent) => sessionHook("Codex", event);
+    return {
+      hooks: {
+        PermissionRequest: [{ hooks: [notifyHook(s.permissionRequest)] }],
         Stop: [{ hooks: [notifyHook(s.stop)] }],
         SessionStart: [{ hooks: [session("start")] }],
         SessionEnd: [{ hooks: [session("end")] }],

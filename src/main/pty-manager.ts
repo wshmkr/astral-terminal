@@ -293,8 +293,13 @@ export class PtyManager {
       forwardNames.push(ASTRAL_ENV.port, ASTRAL_ENV.token);
     }
     if (isWindows) {
+      // ConPTY discards rows scrolled out of a partial DEC scroll region rather
+      // than moving them to scrollback, so inline agent TUIs lose their history.
+      // WT_SESSION is the marker ConPTY-backed terminals set, and agents key
+      // their scrollback-safe rendering path off it (Codex does exactly this).
+      env.WT_SESSION = randomUUID();
       // TODO(native): non-Windows shells inherit these directly; only WSL needs WSLENV
-      const forwarded = `TERM_PROGRAM/u:${buildWslenvFragment(forwardNames)}`;
+      const forwarded = `TERM_PROGRAM/u:WT_SESSION/u:${buildWslenvFragment(forwardNames)}`;
       env.WSLENV = process.env.WSLENV
         ? `${process.env.WSLENV}:${forwarded}`
         : forwarded;
