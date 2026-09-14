@@ -293,8 +293,17 @@ export class PtyManager {
       forwardNames.push(ASTRAL_ENV.port, ASTRAL_ENV.token);
     }
     if (isWindows) {
+      // ConPTY drops rows scrolled out of a partial DEC scroll region, so inline
+      // TUIs lose their history; Codex only takes its scrollback-safe path when
+      // it sees WT_SESSION, which only Windows Terminal sets
+      // TODO(conpty): drop the spoof once node-pty's conpty.dll preserves them
+      env.WT_SESSION = surfaceId;
       // TODO(native): non-Windows shells inherit these directly; only WSL needs WSLENV
-      const forwarded = `TERM_PROGRAM/u:${buildWslenvFragment(forwardNames)}`;
+      const forwarded = buildWslenvFragment([
+        "TERM_PROGRAM",
+        "WT_SESSION",
+        ...forwardNames,
+      ]);
       env.WSLENV = process.env.WSLENV
         ? `${process.env.WSLENV}:${forwarded}`
         : forwarded;

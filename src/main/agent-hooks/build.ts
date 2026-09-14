@@ -76,57 +76,55 @@ function sessionHook(agentName: string, event: AgentSessionEvent) {
   return { type: "command", command: sessionHookCommand(agentName, event) };
 }
 
-function agentHookStrings(agent: string) {
-  return {
-    // `message` carries Claude's own text, e.g. "Permission required to
-    // execute: Bash(npm test)"; the static body is the fallback.
-    permissionPrompt: {
-      title: "Permission Needed",
-      body: `${agent} needs tool approval`,
-      field: "message",
-    },
-    elicitationDialog: {
-      title: "Input Required",
-      body: "An MCP server is requesting input",
-      field: "message",
-    },
-    // Summary of the final assistant turn comes from the transcript.
-    stop: {
-      title: "Ready for Input",
-      body: `${agent} finished responding`,
-      summary: true,
-    },
-    // `question` is the actual prompt text from AskUserQuestion's tool_input.
-    askUserQuestion: {
-      title: "Question Pending",
-      body: `${agent} is asking a question`,
-      field: "question",
-    },
-  };
-}
+// Shared so an event reads identically in the panel whatever agent raised it
+const permissionNotify = (agent: AgentName) => ({
+  title: "Permission Needed",
+  body: `${agent} needs tool approval`,
+});
+
+const readyNotify = (agent: AgentName) => ({
+  title: "Ready for Input",
+  body: `${agent} finished responding`,
+});
 
 type HooksConfig = { hooks: Record<string, unknown[]> };
 
-const builders: Record<AgentName, () => HooksConfig> = {
-  Claude: () => {
-    const s = agentHookStrings("Claude");
-    const session = (event: AgentSessionEvent) => sessionHook("Claude", event);
+const builders: Record<AgentName, (agent: AgentName) => HooksConfig> = {
+  Claude: (agent) => {
+    const session = (event: AgentSessionEvent) => sessionHook(agent, event);
     return {
       hooks: {
         Notification: [
           {
             matcher: "permission_prompt",
-            hooks: [notifyHook(s.permissionPrompt)],
+            // `message` carries Claude's own text, e.g. "Permission required to
+            // execute: Bash(npm test)"; the static body is the fallback
+            hooks: [
+              notifyHook({ ...permissionNotify(agent), field: "message" }),
+            ],
           },
           {
             matcher: "elicitation_dialog",
-            hooks: [notifyHook(s.elicitationDialog)],
+            hooks: [
+              notifyHook({
+                title: "Input Required",
+                body: "An MCP server is requesting input",
+                field: "message",
+              }),
+            ],
           },
         ],
         PreToolUse: [
           {
             matcher: "AskUserQuestion",
-            hooks: [notifyHook(s.askUserQuestion)],
+            // `question` is the actual prompt text from AskUserQuestion's tool_input
+            hooks: [
+              notifyHook({
+                title: "Question Pending",
+                body: `${agent} is asking a question`,
+                field: "question",
+              }),
+            ],
           },
         ],
         PostToolUse: [
@@ -135,7 +133,38 @@ const builders: Record<AgentName, () => HooksConfig> = {
             hooks: [session("update")],
           },
         ],
-        Stop: [{ hooks: [notifyHook(s.stop)] }],
+        // Summary of the final assistant turn comes from the transcript
+        Stop: [
+          { hooks: [notifyHook({ ...readyNotify(agent), summary: true })] },
+        ],
+        SessionStart: [{ hooks: [session("start")] }],
+        SessionEnd: [{ hooks: [session("end")] }],
+      },
+    };
+  },
+  Codex: (agent) => {
+    const session = (event: AgentSessionEvent) => sessionHook(agent, event);
+    return {
+      hooks: {
+        // Codex sends no message text here, so the body names the tool it wants
+        PermissionRequest: [
+          {
+            hooks: [
+              notifyHook({ ...permissionNotify(agent), field: "tool_name" }),
+            ],
+          },
+        ],
+        // Codex puts the final turn on the Stop payload, so no transcript read
+        Stop: [
+          {
+            hooks: [
+              notifyHook({
+                ...readyNotify(agent),
+                field: "last_assistant_message",
+              }),
+            ],
+          },
+        ],
         SessionStart: [{ hooks: [session("start")] }],
         SessionEnd: [{ hooks: [session("end")] }],
       },
@@ -144,7 +173,8 @@ const builders: Record<AgentName, () => HooksConfig> = {
 };
 
 export function buildAgentHooksConfig(name: string): HooksConfig {
-  const builder = builders[name as AgentName];
+  const agent = name as AgentName;
+  const builder = builders[agent];
   if (!builder) throw new Error(`Unknown agent provider: ${name}`);
-  return builder();
+  return builder(agent);
 }

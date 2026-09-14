@@ -17,7 +17,7 @@ Heavily inspired by [cmux](https://github.com/manaflow-ai/cmux), which didn't fi
 | ✅ | Organized workspaces with split panes and tabs |
 | ✅ | Configurable themes and notifications |
 | ✅ | Notification inbox with jump-to-unread |
-| ✅ | Built-in Claude Code hook notifications |
+| ✅ | Built-in Claude Code and Codex hook notifications |
 | 🔲 | Hook notifications for other agents |
 | ✅ | Scrollback survives restarts |
 | ✅ | Agent auto-resume on restarts |
