@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/wshmkr/astral-terminal/compare/v0.8.0...v0.9.0) (2026-09-14)
+
+
+### Features
+
+* add Codex agent hook support ([#114](https://github.com/wshmkr/astral-terminal/issues/114)) ([bfa05f2](https://github.com/wshmkr/astral-terminal/commit/bfa05f26681d70bc12103848c3cb2959a797c186))
+
 ## [0.8.0](https://github.com/wshmkr/astral-terminal/compare/v0.7.0...v0.8.0) (2026-07-18)
 
 
