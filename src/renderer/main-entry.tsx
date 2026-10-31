@@ -53,5 +53,6 @@ export function mount(rootEl: HTMLElement): void {
     .catch((err) => {
       console.error("Boot failed:", err);
       document.body.textContent = "Failed to start. See console for details.";
-    });
+    })
+    .finally(() => window.app.windowRendererReady());
 }

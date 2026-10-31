@@ -117,6 +117,7 @@ contextBridge.exposeInMainWorld("app", {
   windowMinimize: () => ipcRenderer.send(IPC.window.minimize),
   windowMaximize: () => ipcRenderer.send(IPC.window.maximize),
   windowClose: () => ipcRenderer.send(IPC.window.close),
+  windowRendererReady: () => ipcRenderer.send(IPC.window.rendererReady),
   onWindowMaximizedChange: (callback: (maximized: boolean) => void) =>
     subscribe<[boolean]>(IPC.window.maximizedChanged, callback),
   onWindowFocusChange: (callback: (focused: boolean) => void) =>

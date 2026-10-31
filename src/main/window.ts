@@ -91,7 +91,9 @@ export function createWindow(): void {
       forceForeground(mainWindow);
     }
   };
+  // ready-to-show can be skipped for hidden windows on Windows; the renderer signals explicitly
   mainWindow.once("ready-to-show", revealMainWindow);
+  mainWindow.webContents.ipc.once(IPC.window.rendererReady, revealMainWindow);
 
   trackWindowState(mainWindow);
 
