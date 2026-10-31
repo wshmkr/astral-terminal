@@ -1,9 +1,8 @@
 import { memo, useCallback, useMemo, useRef } from "react";
 import type { PaneNode } from "../../../shared/types";
 import { resizeSplit } from "../../store";
-import { MIN_PANE_SIZE_PX } from "./layout-constants";
-import { computeLayout, resizeSiblings } from "./layout-math";
-import { mapNode } from "./pane-tree";
+import { computeLayout, paneMinSize, resizeSiblings } from "./layout-math";
+import { findNode, mapNode } from "./pane-tree";
 import { ResizeHandle } from "./ResizeHandle";
 import { TabbedPane } from "./TabbedPane";
 
@@ -18,6 +17,8 @@ interface DragState {
   originalSizes: number[];
   currentSizes: number[];
   availableSpace: number;
+  minLeftFrac: number;
+  minRightFrac: number;
 }
 
 function WorkspaceLayoutImpl({ layout, containerSize }: Props) {
@@ -40,15 +41,31 @@ function WorkspaceLayoutImpl({ layout, containerSize }: Props) {
     (splitNodeId: string, childIndex: number) => {
       const info = splits.get(splitNodeId);
       if (!info) return;
+      const node = findNode(layout, splitNodeId);
+      let minLeftFrac = 0;
+      let minRightFrac = 0;
+      if (node?.kind === "split" && info.availableSpace > 0) {
+        const isVertical = node.direction === "vertical";
+        const axisMin = (child: PaneNode) => {
+          const m = paneMinSize(child);
+          return (isVertical ? m.width : m.height) / info.availableSpace;
+        };
+        const left = node.children[childIndex];
+        const right = node.children[childIndex + 1];
+        if (left) minLeftFrac = axisMin(left);
+        if (right) minRightFrac = axisMin(right);
+      }
       dragRef.current = {
         splitNodeId,
         childIndex,
         originalSizes: [...info.sizes],
         currentSizes: [...info.sizes],
         availableSpace: info.availableSpace,
+        minLeftFrac,
+        minRightFrac,
       };
     },
-    [splits],
+    [splits, layout],
   );
 
   const onDragMove = useCallback(
@@ -65,7 +82,8 @@ function WorkspaceLayoutImpl({ layout, containerSize }: Props) {
         drag.originalSizes,
         childIndex,
         totalDeltaPx / drag.availableSpace,
-        MIN_PANE_SIZE_PX / drag.availableSpace,
+        drag.minLeftFrac,
+        drag.minRightFrac,
       );
       drag.currentSizes = newSizes;
 

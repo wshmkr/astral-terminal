@@ -1,7 +1,6 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
 import Fade from "@mui/material/Fade";
 import Stack from "@mui/material/Stack";
@@ -19,7 +18,6 @@ import type {
 } from "../../../shared/settings-types";
 import type { WslDistro } from "../../../shared/types";
 import { loadAppConfig } from "../../app/config-loader";
-import { useAgentHookToggle } from "../../hooks/useAgentHookToggle";
 import {
   dismissWelcome,
   setAccentColor,
@@ -42,17 +40,9 @@ import {
   TERMINAL_THEME_OPTIONS,
   TERMINAL_THEMES,
 } from "../../theme/terminal-themes";
-import {
-  HooksHelpIcon,
-  NoHooksAlert,
-  PROVIDER_ICONS,
-} from "../Settings/NotificationsSection";
-import {
-  FIELD_LABEL_SX,
-  FIELD_SX,
-  LabeledSelect,
-  SettingRow,
-} from "../Settings/shared";
+import { AgentHookRows } from "../Settings/AgentHookRows";
+import { HooksHelpIcon, NoHooksAlert } from "../Settings/NotificationsSection";
+import { FIELD_LABEL_SX, FIELD_SX, LabeledSelect } from "../Settings/shared";
 import { AccentSwatchPicker } from "../ui/AccentSwatchPicker";
 import { TITLE_BAR_HEIGHT } from "../ui/TitleBarButton";
 import { ThemePreview } from "./ThemePreview";
@@ -130,7 +120,6 @@ export function WelcomeDialog() {
     (s) => s.terminalSettings.wslDistro,
   );
   const hookStatuses = useWorkspaceStore((s) => s.agentHookStatuses);
-  const { toggle, pending, errors } = useAgentHookToggle(setAgentHook);
 
   const [draftAppTheme, setDraftAppTheme] =
     useState<AppThemeId>(persistedAppTheme);
@@ -318,28 +307,10 @@ export function WelcomeDialog() {
                   <HooksHelpIcon sx={{ alignSelf: "center" }} />
                 </Stack>
                 <Stack spacing={1.5} sx={{ pl: 3.25 }}>
-                  {agentProviders.map((p) => {
-                    const { icon: Icon, color } = PROVIDER_ICONS[p.name];
-                    const error = errors[p.name];
-                    return (
-                      <SettingRow
-                        key={p.name}
-                        title={p.name}
-                        icon={<Icon size={16} color={color} />}
-                        description={error}
-                        descriptionTone={error ? "error" : "default"}
-                        control={
-                          <Checkbox
-                            size="small"
-                            sx={{ p: 0.5 }}
-                            checked={isAgentHookInstalled(hookStatuses[p.name])}
-                            disabled={!!pending[p.name]}
-                            onChange={(_, checked) => toggle(p.name, checked)}
-                          />
-                        }
-                      />
-                    );
-                  })}
+                  <AgentHookRows
+                    hookStatuses={hookStatuses}
+                    setAgentHook={setAgentHook}
+                  />
                 </Stack>
               </Stack>
             </Stack>

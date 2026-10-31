@@ -10,6 +10,7 @@ export function isAgentHookInstalled(status: AgentHookStatus | undefined) {
 export interface AgentHookProvider<N extends string = string> {
   name: N;
   settingsPath: string;
+  requiresHookTrust: boolean;
   sessionIdPattern: RegExp;
   resumeCommand(sessionId: string): string;
 }
@@ -17,13 +18,25 @@ export interface AgentHookProvider<N extends string = string> {
 const claudeProvider: AgentHookProvider<"Claude"> = {
   name: "Claude",
   settingsPath: ".claude/settings.json",
+  requiresHookTrust: false,
   sessionIdPattern: UUID_RE,
   resumeCommand(sessionId) {
     return `claude --resume ${sessionId}`;
   },
 };
 
-export const agentProviders = [claudeProvider] as const;
+// Codex session ids are UUIDv7, which still satisfies the textual UUID shape
+const codexProvider: AgentHookProvider<"Codex"> = {
+  name: "Codex",
+  settingsPath: ".codex/hooks.json",
+  requiresHookTrust: true,
+  sessionIdPattern: UUID_RE,
+  resumeCommand(sessionId) {
+    return `codex resume ${sessionId}`;
+  },
+};
+
+export const agentProviders = [claudeProvider, codexProvider] as const;
 
 export type AgentName = (typeof agentProviders)[number]["name"];
 
