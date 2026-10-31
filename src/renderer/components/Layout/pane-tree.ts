@@ -48,13 +48,20 @@ export function findNode(node: PaneNode, id: string): PaneNode | null {
   return null;
 }
 
-export function findLeafPane(node: PaneNode, paneId: string): LeafPane | null {
-  if (node.kind === "leaf") return node.id === paneId ? node : null;
+export function findLeafWhere(
+  node: PaneNode,
+  predicate: (leaf: LeafPane) => boolean,
+): LeafPane | null {
+  if (node.kind === "leaf") return predicate(node) ? node : null;
   for (const child of node.children) {
-    const found = findLeafPane(child, paneId);
+    const found = findLeafWhere(child, predicate);
     if (found) return found;
   }
   return null;
+}
+
+export function findLeafPane(node: PaneNode, paneId: string): LeafPane | null {
+  return findLeafWhere(node, (leaf) => leaf.id === paneId);
 }
 
 export function findFirstLeaf(node: PaneNode): string {

@@ -347,6 +347,32 @@ export interface ActiveRef {
   surfaceId: string | null;
 }
 
+export type CliSplitDirection = "right" | "down";
+
+export interface CliSplitRequest {
+  requestId: string;
+  direction: CliSplitDirection;
+  // epoch ms after which the renderer must not split
+  deadline: number;
+  // omit both to split the focused pane
+  surfaceId?: string;
+  paneId?: string;
+}
+
+export interface CliSplitResult {
+  ok: boolean;
+  reason?: string;
+  invalidParams?: boolean;
+  workspaceId?: string | null;
+  paneId?: string | null;
+  surfaceId?: string | null;
+}
+
+export interface CliSplitReply {
+  requestId: string;
+  result: CliSplitResult;
+}
+
 export const IPC = {
   pty: {
     create: "pty:create",
@@ -401,6 +427,8 @@ export const IPC = {
   },
   cli: {
     activeRefUpdate: "cli:active-ref-update",
+    split: "cli:split",
+    splitResult: "cli:split-result",
   },
   shell: {
     openExternal: "shell:open-external",
