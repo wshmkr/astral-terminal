@@ -40,8 +40,8 @@ host_cache() {
 }
 
 # Only trust the cache dir if we own it (an attacker could have created the
-# /tmp fallback path first); cache use is best-effort either way. Memoized so
-# the read and write paths run one identical check per invocation.
+# /tmp fallback path first); cache use is best-effort either way. Memoized;
+# call() primes it outside the candidate_hosts subshell.
 _cache_dir_state=""
 cache_dir_ok() {
   if [ -z "$_cache_dir_state" ]; then
@@ -125,6 +125,7 @@ call() {
   auth=$(printf '{"id":"auth","method":"auth.hello","params":{"token":"%s"}}' \
     "$ASTRAL_TOKEN")
   req=$(printf '{"id":"call","method":"%s","params":%s}' "$method" "$params")
+  cache_dir_ok || true
   for host in $(candidate_hosts); do
     reply=$(tcp_exchange "$host" "$ASTRAL_PORT" "$auth" "$req") &&
       [ -n "$reply" ] || continue

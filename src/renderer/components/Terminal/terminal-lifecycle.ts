@@ -299,10 +299,7 @@ export class TerminalController implements SurfaceController, FindController {
   private ptyId: string | null = null;
   private disposed = false;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
-  // Holds pty data that arrives before the replay reply. Main gates
-  // forwarding on beginReplay, but it attaches the forward listener before
-  // its reply is serialized, so a data event CAN land here first — this
-  // buffer is the ordering guarantee on the renderer side, not dead code.
+  // PTY data that arrives before the replay reply.
   private preReplayBuffer: string[] | null = [];
   private pendingOpen = false;
 

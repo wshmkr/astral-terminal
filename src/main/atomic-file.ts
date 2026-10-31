@@ -1,12 +1,8 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 
-// Write-then-rename with a unique tmp name, so a crash mid-write can't
-// truncate the target and concurrent writers can't clobber each other's tmp
-// files. The tmp lives next to the target to keep the rename same-device.
-// The target is realpath-resolved first: renaming over a symlink would
-// replace the link itself instead of writing through it (e.g. a user's
-// dotfiles-managed ~/.claude/settings.json).
+// Resolves symlinks first so the rename writes through them, and keeps the
+// target's existing permissions.
 export async function writeFileAtomic(
   filePath: string,
   data: string | Uint8Array,
@@ -15,6 +11,11 @@ export async function writeFileAtomic(
   const tmpPath = `${target}.${randomUUID().slice(0, 8)}.tmp`;
   try {
     await fs.promises.writeFile(tmpPath, data);
+    const mode = await fs.promises
+      .stat(target)
+      .then((st) => st.mode & 0o7777)
+      .catch(() => null);
+    if (mode !== null) await fs.promises.chmod(tmpPath, mode);
     await fs.promises.rename(tmpPath, target);
   } catch (err) {
     await fs.promises.unlink(tmpPath).catch(() => {});

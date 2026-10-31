@@ -71,11 +71,8 @@ function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
     authed = true;
     if (authTimer) clearTimeout(authTimer);
   };
-  // The strict cap applies only to the FIRST line (auth.hello, ~100 bytes).
-  // `authed` flips asynchronously in the dispatch chain, so a client that
-  // pipelines auth + request in one write must not have the pre-auth cap
-  // applied to its request line; the auth timeout and failed-attempt limit
-  // still bound what an unauthenticated peer can do after line one.
+  // Only the first non-blank line gets the pre-auth cap; `authed` flips
+  // asynchronously, so a request pipelined after auth.hello would otherwise hit it.
   const maxLineBytes = () =>
     authed || sawFirstLine ? MAX_LINE_BYTES : PRE_AUTH_MAX_LINE_BYTES;
 
@@ -116,8 +113,8 @@ function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
       }
       const line = buf.subarray(0, nl).toString("utf8");
       buf = buf.subarray(nl + 1);
-      sawFirstLine = true;
       if (line.trim().length === 0) continue;
+      sawFirstLine = true;
       dispatchChain = dispatchChain
         .then(async () => {
           const wasAuthed = authed;

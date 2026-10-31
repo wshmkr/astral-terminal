@@ -71,8 +71,6 @@ export function AccentSwatchPicker({ value, onChange }: Props) {
             slotProps={{ input: { "aria-label": opt.label } }}
             sx={{
               p: 0,
-              // class selector, not `${SwatchDot}`: component selectors need
-              // @emotion/babel-plugin, which this build doesn't run
               "&:hover .swatch-dot": { transform: "scale(1.08)" },
             }}
           />
