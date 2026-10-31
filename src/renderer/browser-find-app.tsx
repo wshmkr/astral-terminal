@@ -85,11 +85,18 @@ export function BrowserFindApp() {
   const [surfaceId, setSurfaceId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    void window.app.readSettings().then((s) => {
-      setAppearance({ ...DEFAULT_APPEARANCE, ...(s?.appearance ?? {}) });
-    });
-  }, []);
+  const refreshAppearance = () => {
+    window.app
+      .readSettings()
+      .then((s) => {
+        setAppearance({ ...DEFAULT_APPEARANCE, ...(s?.appearance ?? {}) });
+      })
+      .catch((err) => {
+        console.error("Failed to read settings:", err);
+      });
+  };
+
+  useEffect(refreshAppearance, []);
 
   useEffect(() => {
     document.documentElement.style.overflow = "hidden";
@@ -97,10 +104,12 @@ export function BrowserFindApp() {
     document.body.style.margin = "0";
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: subscribe once on mount
   useEffect(
     () =>
       window.app.onBrowserFindTargetChanged((payload) => {
         setSurfaceId(payload.surfaceId);
+        refreshAppearance();
         queueMicrotask(() => {
           inputRef.current?.focus();
           inputRef.current?.select();

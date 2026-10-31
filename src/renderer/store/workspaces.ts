@@ -147,6 +147,8 @@ export function updateTerminalSurface(
   const changed = updateLeaf(workspaceId, paneId, (leaf) => {
     const current = leaf.surfaces.find((s) => s.id === surfaceId);
     if (!current || !isTerminalSurface(current)) return leaf;
+    const keys = Object.keys(patch) as (keyof typeof patch)[];
+    if (keys.every((k) => patch[k] === current[k])) return leaf;
     return {
       ...leaf,
       surfaces: leaf.surfaces.map((s) =>
@@ -381,6 +383,21 @@ export function findPaneBySurfaceId(
   surfaceId: string,
 ): { workspaceId: string; paneId: string } | null {
   return findPaneWhere((l) => l.surfaces.some((s) => s.id === surfaceId));
+}
+
+// Returns false when the source surface no longer exists.
+export function openUrlNearSurface(
+  sourceSurfaceId: string,
+  url: string,
+  background: boolean,
+): boolean {
+  const location = findPaneBySurfaceId(sourceSurfaceId);
+  if (!location) return false;
+  if (getState().activeWorkspaceId !== location.workspaceId) {
+    setActiveWorkspace(location.workspaceId);
+  }
+  addSurface(location.paneId, "browser", { url, activate: !background });
+  return true;
 }
 
 export function closeSurface(paneId: string, surfaceId: string): void {

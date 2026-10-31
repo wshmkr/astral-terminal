@@ -1,5 +1,6 @@
 import type { AgentName } from "../../shared/agent-hooks";
 import { APP_PACKAGE_NAME } from "../../shared/meta";
+import { quoteForPosixShell as shellSingleQuote } from "../../shared/path-quoting";
 import notifyScript from "./notify.sh?raw";
 import { AGENT_SESSION_OSC_IDENT, type AgentSessionEvent } from "./osc";
 import sanitizeScript from "./sanitize.sh?raw";
@@ -7,14 +8,10 @@ import sessionScript from "./session.sh?raw";
 import stopScript from "./stop.sh?raw";
 
 // Update marker version after any hook changes
-export const HOOK_MARKER_VERSION = "5";
+export const HOOK_MARKER_VERSION = "6";
 
 export const HOOK_MARKER_PREFIX = `${APP_PACKAGE_NAME}:hook`;
 export const HOOK_MARKER = `${HOOK_MARKER_PREFIX}:v${HOOK_MARKER_VERSION}`;
-
-function shellSingleQuote(s: string): string {
-  return `'${s.replace(/'/g, "'\\''")}'`;
-}
 
 function sessionHookCommand(
   agentName: string,

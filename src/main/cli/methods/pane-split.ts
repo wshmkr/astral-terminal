@@ -12,9 +12,8 @@ import { CliMethodError, type CliServer } from "../server";
 
 const SPLIT_DIRECTIONS: readonly CliSplitDirection[] = ["right", "down"];
 
-// The renderer owns the layout, so the split round-trips through it. The renderer no-ops past
-// REPLY_TIMEOUT_MS; the grace period lets a split that started just before the deadline reply.
 const REPLY_TIMEOUT_MS = 5000;
+// extra wait for a split the renderer started before its deadline
 const REPLY_GRACE_MS = 1000;
 
 interface ParsedParams {
@@ -126,7 +125,6 @@ export function registerPaneSplit(
       }
       sender.once("destroyed", onDestroyed);
       pending.set(requestId, { settle, sender });
-      // the window can be torn down between the isDestroyed() check and this send
       try {
         sender.send(IPC.cli.split, request);
       } catch (err) {

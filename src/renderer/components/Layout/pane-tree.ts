@@ -17,12 +17,22 @@ export function mapNode(
 export function pruneNode(node: PaneNode, targetId: string): PaneNode | null {
   if (node.id === targetId) return null;
   if (node.kind === "split") {
-    const kept = node.children
-      .map((c) => pruneNode(c, targetId))
-      .filter((c): c is PaneNode => c !== null);
+    const kept: PaneNode[] = [];
+    const keptSizes: number[] = [];
+    node.children.forEach((child, i) => {
+      const pruned = pruneNode(child, targetId);
+      if (pruned === null) return;
+      kept.push(pruned);
+      const size = node.sizes?.[i];
+      if (size !== undefined) keptSizes.push(size);
+    });
     if (kept.length === 0) return null;
     if (kept.length === 1) return kept[0] ?? null;
-    return { ...node, children: kept };
+    return {
+      ...node,
+      children: kept,
+      sizes: keptSizes.length === kept.length ? keptSizes : undefined,
+    };
   }
   return node;
 }
@@ -62,10 +72,7 @@ export function findFirstLeaf(node: PaneNode): string {
 }
 
 function mapLeaves(node: PaneNode, fn: (leaf: LeafPane) => LeafPane): PaneNode {
-  if (node.kind === "leaf") {
-    const updated = fn(node);
-    return updated === node ? node : updated;
-  }
+  if (node.kind === "leaf") return fn(node);
   const children = node.children.map((c) => mapLeaves(c, fn));
   if (children.every((c, i) => c === node.children[i])) return node;
   return { ...node, children };

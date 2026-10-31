@@ -24,16 +24,38 @@ identify() {
     "$ASTRAL_SURFACE_ID" "$pid" "${ASTRAL_VERSION:-}"
 }
 
+host_cache_dir() {
+  if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
+    printf '%s/astral' "$XDG_RUNTIME_DIR"
+  else
+    printf '%s/astral-%s' "${TMPDIR:-/tmp}" "$(id -u)"
+  fi
+}
+
 host_cache() {
-  printf '%s/astral-host-%s' \
-    "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}" "${ASTRAL_PORT:-0}"
+  printf '%s/host-%s' "$(host_cache_dir)" "${ASTRAL_PORT:-0}"
+}
+
+_cache_dir_state=""
+cache_dir_ok() {
+  if [ -z "$_cache_dir_state" ]; then
+    _d=$(host_cache_dir)
+    if mkdir -p "$_d" 2>/dev/null &&
+      { chmod 700 "$_d" 2>/dev/null || true; } &&
+      [ "$(stat -c %u "$_d" 2>/dev/null)" = "$(id -u)" ]; then
+      _cache_dir_state=ok
+    else
+      _cache_dir_state=bad
+    fi
+  fi
+  [ "$_cache_dir_state" = ok ]
 }
 
 # Hosts that might reach the Windows app from inside WSL, best first: a previously working host,
 # loopback (mirrored networking), then the NAT default gateway / resolv.conf nameserver.
 candidate_hosts() {
   {
-    [ -f "$(host_cache)" ] && cat "$(host_cache)"
+    cache_dir_ok && [ -f "$(host_cache)" ] && cat "$(host_cache)"
     echo 127.0.0.1
     ip route 2>/dev/null | awk '/^default/ {print $3; exit}'
     awk '/^nameserver/ {print $2; exit}' /etc/resolv.conf 2>/dev/null
@@ -41,14 +63,12 @@ candidate_hosts() {
 }
 
 # Open one connection, send the auth line then the request line, print the request's reply (the
-# second response line). Exit 3: sent but no reply, so it may have run and must not be retried on
-# another host. Other non-zero: unreachable. The reply wait exceeds the app's 6s pane.split bound.
+# second response line). Exit 3: request sent but no reply. Other non-zero: host unreachable.
 tcp_exchange() {
   if command -v bash >/dev/null 2>&1; then
-    # a refused or timed-out candidate is expected, not an error
     {
       ASTRAL_H=$1 ASTRAL_P=$2 ASTRAL_AUTH=$3 ASTRAL_REQ=$4 bash -c '
-      # bound the connect only; watchdog stays off stdout so it cannot hold the reply pipe open
+      # connect timeout
       ( sleep 3; kill -TERM $$ ) >/dev/null &
       _wd=$!
       exec 3<>"/dev/tcp/$ASTRAL_H/$ASTRAL_P" || exit 1
@@ -71,9 +91,9 @@ tcp_exchange() {
       *Ncat*) ;;
       *"Shutdown the network socket after EOF"*) _nc_close="-N" ;;
       *"quit after EOF"*) _nc_close="-q 0" ;;
+      *) [ -n "$_to" ] || _nc_close="-w 10" ;;
     esac
     _out=$(printf '%s\n%s\n' "$3" "$4" | $_to nc $_nc_close "$1" "$2" 2>/dev/null)
-    # an auth reply proves the request was sent
     [ -n "$_out" ] || return 1
     _reply=$(printf '%s\n' "$_out" | sed -n '2p')
     [ -n "$_reply" ] || return 3
@@ -105,6 +125,7 @@ call() {
   auth=$(printf '{"id":"auth","method":"auth.hello","params":{"token":"%s"}}' \
     "$ASTRAL_TOKEN")
   req=$(printf '{"id":"call","method":"%s","params":%s}' "$method" "$params")
+  cache_dir_ok || true
   for host in $(candidate_hosts); do
     reply=$(tcp_exchange "$host" "$ASTRAL_PORT" "$auth" "$req")
     rc=$?
@@ -113,10 +134,12 @@ call() {
       return 1
     fi
     [ "$rc" -eq 0 ] && [ -n "$reply" ] || continue
-    cache=$(host_cache)
-    # the port changes each launch, so clear prior runs' caches before recording this one
-    rm -f "${cache%/*}"/astral-host-* 2>/dev/null || true
-    printf '%s\n' "$host" >"$cache" 2>/dev/null || true
+    if cache_dir_ok; then
+      cache=$(host_cache)
+      # the port changes each launch, so clear prior runs' caches before recording this one
+      rm -f "${cache%/*}"/host-* 2>/dev/null || true
+      printf '%s\n' "$host" >"$cache" 2>/dev/null || true
+    fi
     printf '%s\n' "$reply"
     # exit non-zero on a non-ok reply (e.g. unauthorized) so it isn't mistaken for success
     case "$reply" in
@@ -143,7 +166,6 @@ split() {
       ;;
   esac
   if [ -n "${ASTRAL_SURFACE_ID:-}" ]; then
-    # interpolated unescaped into the JSON params
     case "$ASTRAL_SURFACE_ID" in
       *[!A-Za-z0-9._:-]*)
         echo "astral: invalid ASTRAL_SURFACE_ID: $ASTRAL_SURFACE_ID" >&2

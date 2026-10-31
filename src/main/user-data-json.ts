@@ -1,10 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { app } from "electron";
+import { writeFileAtomic } from "./atomic-file";
+import { withKeyedLock } from "./keyed-lock";
 
 function userDataPath(fileName: string): string {
   return path.join(app.getPath("userData"), fileName);
 }
+
+const writeLocks = new Map<string, Promise<unknown>>();
 
 export function readUserDataJson<T>(
   fileName: string,
@@ -38,12 +42,11 @@ export function writeUserDataJsonSync(fileName: string, value: unknown): void {
   }
 }
 
-export async function writeUserDataJsonAtomic(
+export function writeUserDataJsonAtomic(
   fileName: string,
   value: unknown,
 ): Promise<void> {
-  const finalPath = userDataPath(fileName);
-  const tmpPath = `${finalPath}.tmp`;
-  await fs.promises.writeFile(tmpPath, JSON.stringify(value, null, 2));
-  await fs.promises.rename(tmpPath, finalPath);
+  return withKeyedLock(writeLocks, fileName, () =>
+    writeFileAtomic(userDataPath(fileName), JSON.stringify(value, null, 2)),
+  );
 }

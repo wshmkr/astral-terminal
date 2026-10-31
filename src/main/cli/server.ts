@@ -19,6 +19,9 @@ import {
 
 const MAX_LINE_BYTES = 1024 * 1024;
 const AUTH_HELLO_METHOD = "auth.hello";
+const PRE_AUTH_MAX_LINE_BYTES = 4 * 1024;
+const PRE_AUTH_TIMEOUT_MS = 10_000;
+const MAX_FAILED_AUTH_ATTEMPTS = 3;
 
 export type CliMethodHandler = (params: unknown) => Promise<unknown> | unknown;
 
@@ -50,49 +53,99 @@ interface ConnectionContext {
 
 function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
   let authed = ctx.requiredToken === null;
-  let buf = Buffer.alloc(0);
+  let failedAuthAttempts = 0;
+  let chunks: Buffer[] = [];
+  let buffered = 0;
   let overflowed = false;
+  let awaitingAuth = false;
   let dispatchChain = Promise.resolve();
+
+  const authTimer = authed
+    ? null
+    : setTimeout(() => socket.destroy(), PRE_AUTH_TIMEOUT_MS);
+  const markAuthed = () => {
+    authed = true;
+    if (authTimer) clearTimeout(authTimer);
+  };
+  const maxLineBytes = () =>
+    authed ? MAX_LINE_BYTES : PRE_AUTH_MAX_LINE_BYTES;
+
   const rejectOversize = () => {
     overflowed = true;
-    buf = Buffer.alloc(0);
+    chunks = [];
+    buffered = 0;
     socket.write(
       formatReply(
-        makeErr(null, CLI_ERROR_CODES.badEnvelope, "line exceeds 1 MiB"),
+        makeErr(null, CLI_ERROR_CODES.badEnvelope, "line exceeds limit"),
       ),
       () => socket.destroy(),
     );
   };
-  socket.on("data", (chunk) => {
-    if (overflowed) return;
-    buf = Buffer.concat([buf, chunk]);
-    while (true) {
+
+  const dispatchLine = (line: string) => {
+    const wasAuthed = authed;
+    if (!wasAuthed) {
+      awaitingAuth = true;
+      socket.pause();
+    }
+    dispatchChain = dispatchChain
+      .then(async () => {
+        const reply = await dispatch(line, ctx, {
+          isAuthed: () => authed,
+          markAuthed,
+        });
+        if (!socket.destroyed) socket.write(formatReply(reply));
+        if (!wasAuthed && !authed) {
+          failedAuthAttempts += 1;
+          if (failedAuthAttempts >= MAX_FAILED_AUTH_ATTEMPTS) {
+            socket.destroy();
+          }
+        }
+      })
+      .catch(() => {
+        // a failed dispatch/write must not stall later replies
+      })
+      .then(() => {
+        if (wasAuthed || socket.destroyed) return;
+        awaitingAuth = false;
+        socket.resume();
+        processBuffered();
+      });
+  };
+
+  const processBuffered = () => {
+    if (overflowed || awaitingAuth || chunks.length === 0) return;
+    let buf =
+      chunks.length === 1 ? (chunks[0] as Buffer) : Buffer.concat(chunks);
+    chunks = [];
+    buffered = 0;
+    while (!awaitingAuth) {
       const nl = buf.indexOf(0x0a);
-      if (nl === -1) {
-        if (buf.length > MAX_LINE_BYTES) rejectOversize();
-        break;
-      }
-      if (nl > MAX_LINE_BYTES) {
+      if (nl === -1) break;
+      if (nl > maxLineBytes()) {
         rejectOversize();
-        break;
+        return;
       }
       const line = buf.subarray(0, nl).toString("utf8");
       buf = buf.subarray(nl + 1);
-      if (line.trim().length === 0) continue;
-      dispatchChain = dispatchChain
-        .then(async () => {
-          const reply = await dispatch(line, ctx, {
-            isAuthed: () => authed,
-            markAuthed: () => {
-              authed = true;
-            },
-          });
-          if (!socket.destroyed) socket.write(formatReply(reply));
-        })
-        .catch(() => {
-          // a failed dispatch/write must not stall later replies
-        });
+      if (line.trim().length > 0) dispatchLine(line);
     }
+    if (buf.length > 0) {
+      chunks = [buf];
+      buffered = buf.length;
+    }
+    if (!awaitingAuth && buffered > maxLineBytes()) rejectOversize();
+  };
+
+  socket.on("data", (chunk) => {
+    if (overflowed) return;
+    chunks.push(chunk);
+    buffered += chunk.length;
+    if (chunk.indexOf(0x0a) !== -1) processBuffered();
+    else if (!awaitingAuth && buffered > maxLineBytes()) rejectOversize();
+  });
+  socket.on("close", () => {
+    if (authTimer) clearTimeout(authTimer);
   });
   socket.on("error", () => {
     // ignore client-side errors

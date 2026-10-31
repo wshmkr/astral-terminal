@@ -140,7 +140,8 @@ export function TerminalPane({
     if (!el) return;
     el.style.zoom = String(1 / uiScale);
     if (!isVisible) return;
-    requestAnimationFrame(() => controllerRef.current?.fit());
+    const handle = requestAnimationFrame(() => controllerRef.current?.fit());
+    return () => cancelAnimationFrame(handle);
   }, [uiScale, isVisible, controllerRef]);
 
   const closeFind = () => setFindOpen(false);

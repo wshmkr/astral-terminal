@@ -347,15 +347,14 @@ export interface ActiveRef {
   surfaceId: string | null;
 }
 
-// Splits append the new pane as the second child, so only right/down are possible.
 export type CliSplitDirection = "right" | "down";
 
 export interface CliSplitRequest {
   requestId: string;
   direction: CliSplitDirection;
-  // Epoch ms after which the renderer must not split; the main process has stopped waiting.
+  // epoch ms after which the renderer must not split
   deadline: number;
-  // Resolved across all workspaces; an unknown target is an error. Omit both for the focused pane.
+  // omit both to split the focused pane
   surfaceId?: string;
   paneId?: string;
 }
@@ -363,7 +362,6 @@ export interface CliSplitRequest {
 export interface CliSplitResult {
   ok: boolean;
   reason?: string;
-  // the request was at fault (e.g. unknown target), not the app
   invalidParams?: boolean;
   workspaceId?: string | null;
   paneId?: string | null;

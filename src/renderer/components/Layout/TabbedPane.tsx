@@ -40,7 +40,7 @@ import {
   addSurface,
   closePane,
   closeSurface,
-  selectActiveWorkspace,
+  selectWorkspace,
   setActiveSurface,
   setFocusedPane,
   splitPane,
@@ -65,6 +65,7 @@ import {
 import { TabContent, tabItemSx } from "./TabVisual";
 
 interface Props {
+  workspaceId: string;
   pane: LeafPane;
 }
 
@@ -98,6 +99,10 @@ function TabItem({
     id: surface.id,
     data: { type: "tab", paneId },
   });
+  const sx = useMemo(
+    () => tabItemSx({ isActive, showDivider, activeBg, activeFg }),
+    [isActive, showDivider, activeBg, activeFg],
+  );
   return (
     <Box
       ref={setNodeRef}
@@ -110,7 +115,7 @@ function TabItem({
       }}
       {...attributes}
       {...listeners}
-      sx={tabItemSx({ isActive, showDivider, activeBg, activeFg })}
+      sx={sx}
     >
       <TabContent
         surface={surface}
@@ -249,22 +254,16 @@ function NewTabButton({ paneId }: { paneId: string }) {
   );
 }
 
-function onTabScrollerWheel(e: React.WheelEvent<HTMLDivElement>) {
-  if (e.deltaY !== 0) {
-    e.currentTarget.scrollLeft += e.deltaY;
-    e.preventDefault();
-  }
-}
-
-function selectActiveNotifications(s: AppState): Notification[] | null {
-  return selectActiveWorkspace(s)?.notifications ?? null;
-}
-
-function TabbedPaneImpl({ pane }: Props) {
+function TabbedPaneImpl({ workspaceId, pane }: Props) {
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
-  const notifications = useWorkspaceStore(selectActiveNotifications);
+  const selectNotifications = useCallback(
+    (s: AppState): Notification[] | null =>
+      selectWorkspace(s, workspaceId)?.notifications ?? null,
+    [workspaceId],
+  );
+  const notifications = useWorkspaceStore(selectNotifications);
   const unreadIds = useMemo(
     () => unreadSurfaceIds(notifications),
     [notifications],
@@ -313,6 +312,20 @@ function TabbedPaneImpl({ pane }: Props) {
     return () => el.removeEventListener("mousedown", onDown, { capture: true });
   }, [pane.id]);
 
+  const tabScrollerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = tabScrollerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
   return (
     <Box
       ref={wrapperRef}
@@ -323,7 +336,7 @@ function TabbedPaneImpl({ pane }: Props) {
       ]}
     >
       <Box sx={TAB_BAR_SX}>
-        <Box onWheel={onTabScrollerWheel} sx={TAB_SCROLLER_SX}>
+        <Box ref={tabScrollerRef} sx={TAB_SCROLLER_SX}>
           <SortableContext
             items={sortableItems}
             strategy={horizontalListSortingStrategy}
@@ -364,5 +377,6 @@ function TabbedPaneImpl({ pane }: Props) {
 
 export const TabbedPane = memo(
   TabbedPaneImpl,
-  (prev, next) => prev.pane === next.pane,
+  (prev, next) =>
+    prev.pane === next.pane && prev.workspaceId === next.workspaceId,
 );

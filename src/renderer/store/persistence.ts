@@ -6,7 +6,31 @@ export interface LoadedState {
   workspaces: PersistedWorkspaces | null;
 }
 
-export function saveState(state: AppState): void {
+function makeDedupedWriter<T>(
+  label: string,
+  write: (value: T) => Promise<void>,
+): (value: T, force?: boolean) => void {
+  let lastJson: string | null = null;
+  return (value, force = false) => {
+    const json = JSON.stringify(value);
+    if (!force && json === lastJson) return;
+    lastJson = json;
+    write(value).catch((err) => {
+      lastJson = null;
+      console.error(`Failed to save ${label}:`, err);
+    });
+  };
+}
+
+const writeSettings = makeDedupedWriter<PersistedSettings>("settings", (v) =>
+  window.app.writeSettings(v),
+);
+const writeWorkspaces = makeDedupedWriter<PersistedWorkspaces>(
+  "workspaces",
+  (v) => window.app.writeWorkspaces(v),
+);
+
+export function saveState(state: AppState, opts?: { force?: boolean }): void {
   // keep first-run signal alive until the user clicks through the welcome
   if (state.welcomeOpen) return;
   const settings: PersistedSettings = {
@@ -25,12 +49,8 @@ export function saveState(state: AppState): void {
     activeWorkspaceId: state.activeWorkspaceId,
     sidebarWidth: state.sidebarWidth,
   };
-  window.app.writeSettings(settings).catch((err) => {
-    console.error("Failed to save settings:", err);
-  });
-  window.app.writeWorkspaces(workspaces).catch((err) => {
-    console.error("Failed to save workspaces:", err);
-  });
+  writeSettings(settings, opts?.force);
+  writeWorkspaces(workspaces, opts?.force);
 }
 
 export async function loadState(): Promise<LoadedState> {

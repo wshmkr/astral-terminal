@@ -25,7 +25,6 @@ interface SplitTarget {
 
 type Resolution = { target: SplitTarget } | { error: string };
 
-// An explicit paneId/surfaceId must exist in some workspace; with neither, use the focused pane.
 function resolveTarget(request: CliSplitRequest): Resolution {
   const { paneId, surfaceId } = request;
   if (paneId === undefined && surfaceId === undefined) {
@@ -68,7 +67,6 @@ function handleSplit(request: CliSplitRequest): CliSplitResult {
   }
 
   const { workspaceId, paneId } = resolved.target;
-  // only take focus when splitting the pane the user is in, so scripted splits don't steal keystrokes
   const focusNew = paneId === getWorkspaceFocusedPaneId(workspaceId);
   const created = splitPane(paneId, DIRECTION_MAP[request.direction], {
     workspaceId,
@@ -91,7 +89,6 @@ export function startCliSplitBridge(): void {
   if (typeof window === "undefined" || !window.app?.onCliSplit) return;
   started = true;
   window.app.onCliSplit((request) => {
-    // past the deadline the main process has stopped waiting, so a split would go unreported
     if (Date.now() >= request.deadline) {
       window.app.sendCliSplitResult({
         requestId: request.requestId,
