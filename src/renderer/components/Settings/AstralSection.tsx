@@ -25,15 +25,17 @@ import {
   SUBHEAD_SX,
   SWITCH_SX,
 } from "./shared";
+import {
+  DEFAULT_DISTRO_VALUE,
+  findEffectiveDistro,
+  systemDistroWarning,
+  wslDistroOptions,
+} from "./wsl-distro-select";
 
 const HELP_SX = {
   color: "text.secondary",
   fontSize: 12,
 } as const;
-
-const SYSTEM_DISTRO_SX = { color: "text.disabled" } as const;
-
-const DEFAULT_VALUE = "__default__";
 
 const UPDATES_DESCRIPTION =
   "Download new versions in the background and install automatically " +
@@ -208,33 +210,14 @@ export function AstralSection() {
     return <Box sx={ROOT_SX} />;
   }
 
-  const defaultDistro = distros.find((d) => d.isDefault);
-  const defaultLabel = defaultDistro
-    ? `Default (${defaultDistro.name})`
-    : "Default";
-
-  const options = [
-    { value: DEFAULT_VALUE, label: defaultLabel },
-    ...distros.map((d) => ({
-      value: d.name,
-      label: d.isSystem ? (
-        <Box component="span" sx={SYSTEM_DISTRO_SX}>
-          {d.name}
-        </Box>
-      ) : (
-        d.name
-      ),
-    })),
-  ];
+  const options = wslDistroOptions(distros);
 
   const selected =
     wslDistro && distros.some((d) => d.name === wslDistro)
       ? wslDistro
-      : DEFAULT_VALUE;
+      : DEFAULT_DISTRO_VALUE;
 
-  const effectiveDistro = distros.find((d) =>
-    wslDistro ? d.name === wslDistro : d.isDefault,
-  );
+  const effectiveDistro = findEffectiveDistro(distros, wslDistro);
   const showSystemWarning = effectiveDistro?.isSystem ?? false;
 
   return (
@@ -248,7 +231,7 @@ export function AstralSection() {
         value={selected}
         options={options}
         onChange={(value) =>
-          setWslDistro(value === DEFAULT_VALUE ? null : value)
+          setWslDistro(value === DEFAULT_DISTRO_VALUE ? null : value)
         }
         maxWidth={320}
         error={showSystemWarning}
@@ -294,8 +277,7 @@ export function AstralSection() {
           variant="outlined"
           sx={{ textWrap: "balance", alignItems: "center", mt: "auto" }}
         >
-          {effectiveDistro?.name} is a system distro for containers and is not
-          meant as an interactive shell.
+          {systemDistroWarning(effectiveDistro?.name)}
         </Alert>
       )}
     </Box>

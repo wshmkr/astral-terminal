@@ -15,6 +15,7 @@ import {
   buildWslenvFragment,
 } from "../shared/cli-env";
 import { APP_PACKAGE_NAME } from "../shared/meta";
+import { quoteForPosixShell } from "../shared/path-quoting";
 import { windowsPtyOptions } from "../shared/pty-options";
 import { PTY_SHELL_EXPANSION } from "../shared/pty-shell";
 import { type AppConfig, DEFAULT_CWD } from "../shared/types";
@@ -98,7 +99,7 @@ function buildShellArgs(opts: {
   const { isWindows, wslCwd, wslDistro, startupCommand } = opts;
   const sh = `"${PTY_SHELL_EXPANSION}"`;
   const inner = startupCommand
-    ? `exec ${sh} -lic '${startupCommand.replace(/'/g, "'\\''")}; exec ${sh}'`
+    ? `exec ${sh} -lic ${quoteForPosixShell(`${startupCommand}; exec ${sh}`)}`
     : `exec ${sh} -l`;
   if (isWindows) {
     const distroArgs = wslDistro ? ["-d", wslDistro] : [];
@@ -131,6 +132,55 @@ interface PtyEntry {
   pendingForward: ((data: string) => void) | undefined;
   agentSession: AgentSession | undefined;
   initialReplay: { cols: number; rows: number; content: string } | null;
+  // PTY output not yet written to the headless terminal; null once replay has begun.
+  preReplay: string[] | null;
+  preReplayBytes: number;
+  replayRequested: boolean;
+  // Restored buffer plus output written after it, used by snapshot() until the
+  // headless parser has consumed both.
+  restoreRaw: StoredBuffer | null;
+  restoreTail: string[];
+  // The headless terminal stays at the restored size until the restore is parsed.
+  restoring: boolean;
+  parseSettled: Promise<void>;
+  torndown: Promise<void>;
+  markTorndown: () => void;
+}
+
+// Past this, output buffered before replay is flushed into the headless terminal.
+const MAX_PRE_REPLAY_BYTES = 4 * 1024 * 1024;
+
+function writeTracked(entry: PtyEntry, chunks: string[]): void {
+  const last = chunks[chunks.length - 1];
+  if (last === undefined) return;
+  entry.parseSettled = new Promise((resolve) => {
+    for (let i = 0; i < chunks.length - 1; i++) {
+      entry.headless.write(chunks[i] as string);
+    }
+    entry.headless.write(last, resolve);
+  });
+}
+
+function clearRestoreWhenSettled(entry: PtyEntry): void {
+  const settled = entry.parseSettled;
+  void settled.then(() => {
+    if (entry.parseSettled !== settled) return;
+    entry.restoreRaw = null;
+    entry.restoreTail = [];
+  });
+}
+
+function feedHeadless(entry: PtyEntry, chunks: string[], track = false): void {
+  if (chunks.length === 0) return;
+  if (entry.restoreRaw) {
+    entry.restoreTail.push(...chunks);
+    writeTracked(entry, chunks);
+    clearRestoreWhenSettled(entry);
+  } else if (track) {
+    writeTracked(entry, chunks);
+  } else {
+    for (const chunk of chunks) entry.headless.write(chunk);
+  }
 }
 
 export class PtyManager {
@@ -186,29 +236,35 @@ export class PtyManager {
     } catch {}
   }
 
-  private async loadAndConsumeAgentSession(
+  private async loadAgentSession(
     surfaceId: string,
   ): Promise<AgentSession | undefined> {
+    let raw: string;
     try {
-      const raw = await fs.promises.readFile(this.metaFile(surfaceId), "utf-8");
+      raw = await fs.promises.readFile(this.metaFile(surfaceId), "utf-8");
+    } catch {
+      return undefined;
+    }
+    try {
       const parsed = JSON.parse(raw) as {
         agentName?: unknown;
         sessionId?: unknown;
         cwd?: unknown;
       };
-      if (typeof parsed?.agentName !== "string") return undefined;
-      if (typeof parsed.sessionId !== "string") return undefined;
-      const cwd = typeof parsed.cwd === "string" ? parsed.cwd : undefined;
-      return {
-        agentName: parsed.agentName,
-        sessionId: parsed.sessionId,
-        cwd,
-      };
-    } catch {
-      return undefined;
-    } finally {
-      this.deleteMeta(surfaceId);
-    }
+      if (
+        typeof parsed?.agentName === "string" &&
+        typeof parsed.sessionId === "string"
+      ) {
+        const cwd = typeof parsed.cwd === "string" ? parsed.cwd : undefined;
+        return {
+          agentName: parsed.agentName,
+          sessionId: parsed.sessionId,
+          cwd,
+        };
+      }
+    } catch {}
+    this.deleteMeta(surfaceId);
+    return undefined;
   }
 
   private writeMeta(surfaceId: string, session: AgentSession): void {
@@ -226,10 +282,19 @@ export class PtyManager {
   }
 
   private snapshot(entry: PtyEntry): StoredBuffer {
+    const pending = entry.preReplay?.join("") ?? "";
+    if (entry.restoreRaw) {
+      return {
+        cols: entry.restoreRaw.cols,
+        rows: entry.restoreRaw.rows,
+        content:
+          entry.restoreRaw.content + entry.restoreTail.join("") + pending,
+      };
+    }
     return {
       cols: entry.headless.cols,
       rows: entry.headless.rows,
-      content: entry.serializeAddon.serialize(SERIALIZE_OPTS),
+      content: entry.serializeAddon.serialize(SERIALIZE_OPTS) + pending,
     };
   }
 
@@ -237,20 +302,25 @@ export class PtyManager {
     const { surfaceId, cwd, config } = opts;
     const id = randomUUID();
     const callbacks = opts.callbacks?.(id);
-    const carried = this.evictBySurfaceId(surfaceId);
+    const hasLive = [...this.entries.values()].some(
+      (e) => e.surfaceId === surfaceId,
+    );
     const [restoredAgentSession, loadedBuffer] = await Promise.all([
-      this.loadAndConsumeAgentSession(surfaceId),
-      carried ? Promise.resolve(null) : this.loadBuffer(surfaceId),
+      this.loadAgentSession(surfaceId),
+      hasLive ? Promise.resolve(null) : this.loadBuffer(surfaceId),
     ]);
+    const carried = this.evictBySurfaceId(surfaceId);
 
     // Skip scrollback restore when auto-resuming
     const restored = restoredAgentSession ? null : (carried ?? loadedBuffer);
 
+    const reqCols = Math.floor(opts.cols ?? 0);
+    const reqRows = Math.floor(opts.rows ?? 0);
     let targetCols: number;
     let targetRows: number;
-    if (opts.cols && opts.cols > 0 && opts.rows && opts.rows > 0) {
-      targetCols = Math.floor(opts.cols);
-      targetRows = Math.floor(opts.rows);
+    if (reqCols >= 1 && reqRows >= 1) {
+      targetCols = reqCols;
+      targetRows = reqRows;
     } else if (restored) {
       targetCols = restored.cols;
       targetRows = restored.rows;
@@ -310,7 +380,7 @@ export class PtyManager {
       ensureAstralCliOnce(opts.wslDistro ?? null);
     }
 
-    const proc = pty.spawn(shell, args, {
+    const proc: IPty = pty.spawn(shell, args, {
       name: "xterm-256color",
       cols: targetCols,
       rows: targetRows,
@@ -319,6 +389,7 @@ export class PtyManager {
       // ConPTY emits ESC[2J on startup otherwise, wiping replayed scrollback
       conptyInheritCursor: true,
     });
+    if (restoredAgentSession) this.deleteMeta(surfaceId);
 
     const initialCols = restored?.cols ?? targetCols;
     const initialRows = restored?.rows ?? targetRows;
@@ -338,11 +409,10 @@ export class PtyManager {
     );
     headless.unicode.activeVersion = "11";
 
-    if (restored) headless.write(restored.content);
-    if (initialCols !== targetCols || initialRows !== targetRows) {
-      headless.resize(targetCols, targetRows);
-    }
-
+    let markTorndown = () => {};
+    const torndown = new Promise<void>((resolve) => {
+      markTorndown = resolve;
+    });
     const entry: PtyEntry = {
       pty: proc,
       surfaceId,
@@ -354,7 +424,28 @@ export class PtyManager {
         restored && restored.cols === targetCols && restored.rows === targetRows
           ? { cols: targetCols, rows: targetRows, content: restored.content }
           : null,
+      preReplay: [],
+      preReplayBytes: 0,
+      replayRequested: false,
+      restoreRaw: restored,
+      restoreTail: [],
+      restoring: restored !== null,
+      parseSettled: Promise.resolve(),
+      torndown,
+      markTorndown,
     };
+    if (restored) {
+      entry.parseSettled = new Promise((resolve) => {
+        headless.write(restored.content, () => {
+          entry.restoring = false;
+          if (headless.cols !== proc.cols || headless.rows !== proc.rows) {
+            headless.resize(proc.cols, proc.rows);
+          }
+          resolve();
+        });
+      });
+      clearRestoreWhenSettled(entry);
+    }
     this.entries.set(id, entry);
 
     headless.parser.registerOscHandler(AGENT_SESSION_OSC_IDENT, (data) => {
@@ -386,8 +477,22 @@ export class PtyManager {
     });
 
     proc.onData((data) => {
-      entry.initialReplay = null;
-      headless.write(data);
+      if (entry.preReplay) {
+        entry.preReplay.push(data);
+        entry.preReplayBytes += data.length;
+        if (
+          entry.preReplayBytes > MAX_PRE_REPLAY_BYTES &&
+          !entry.replayRequested
+        ) {
+          const chunks = entry.preReplay;
+          entry.preReplay = [];
+          entry.preReplayBytes = 0;
+          entry.initialReplay = null;
+          feedHeadless(entry, chunks, true);
+        }
+        return;
+      }
+      feedHeadless(entry, [data]);
     });
     proc.onExit(({ exitCode, signal }) => {
       this.teardown(id, { deleteBuffer: true });
@@ -397,16 +502,34 @@ export class PtyManager {
     return id;
   }
 
-  beginReplay(id: string): { cols: number; rows: number; content: string } {
+  async beginReplay(
+    id: string,
+  ): Promise<{ cols: number; rows: number; content: string }> {
     const entry = this.entries.get(id);
     if (!entry) return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+    entry.replayRequested = true;
+    if (!entry.initialReplay) {
+      await Promise.race([entry.parseSettled, entry.torndown]);
+      if (!this.entries.has(id)) {
+        return { cols: DEFAULT_COLS, rows: DEFAULT_ROWS, content: "" };
+      }
+    }
+    const pending = entry.preReplay ?? [];
+    entry.preReplay = null;
     const snap = entry.initialReplay ?? this.snapshot(entry);
     entry.initialReplay = null;
+    const replay = { ...snap, content: snap.content + pending.join("") };
+    if (pending.length > 0) {
+      entry.restoreRaw = replay;
+      entry.restoreTail = [];
+      writeTracked(entry, pending);
+      clearRestoreWhenSettled(entry);
+    }
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
     }
-    return snap;
+    return replay;
   }
 
   write(id: string, data: string): void {
@@ -417,7 +540,7 @@ export class PtyManager {
     const entry = this.entries.get(id);
     if (!entry) return;
     entry.pty.resize(cols, rows);
-    entry.headless.resize(cols, rows);
+    if (!entry.restoring) entry.headless.resize(cols, rows);
   }
 
   kill(id: string): void {
@@ -441,6 +564,7 @@ export class PtyManager {
     const entry = this.entries.get(id);
     if (!entry) return;
     this.entries.delete(id);
+    entry.markTorndown();
     if (deleteBuffer) {
       this.deleteBuffer(entry.surfaceId);
       this.deleteMeta(entry.surfaceId);

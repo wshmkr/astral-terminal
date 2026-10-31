@@ -135,10 +135,12 @@ export function registerPtyIpc({
     },
   );
 
+  const withPty = (label: string, fn: (m: PtyManager) => void): void => {
+    getPtyManager().then(fn, (err) => console.error(`${label} failed:`, err));
+  };
+
   ipcMain.on(IPC.pty.write, (_event, msg: { ptyId: string; data: string }) => {
-    getPtyManager().then((m) => {
-      m.write(msg.ptyId, msg.data);
-    });
+    withPty("pty.write", (m) => m.write(msg.ptyId, msg.data));
   });
 
   ipcMain.handle(
@@ -150,16 +152,12 @@ export function registerPtyIpc({
   ipcMain.on(
     IPC.pty.resize,
     (_event, msg: { ptyId: string; cols: number; rows: number }) => {
-      getPtyManager().then((m) => {
-        m.resize(msg.ptyId, msg.cols, msg.rows);
-      });
+      withPty("pty.resize", (m) => m.resize(msg.ptyId, msg.cols, msg.rows));
     },
   );
 
   ipcMain.on(IPC.pty.kill, (_event, msg: { ptyId: string }) => {
-    getPtyManager().then((m) => {
-      m.kill(msg.ptyId);
-    });
+    withPty("pty.kill", (m) => m.kill(msg.ptyId));
   });
 
   ipcMain.handle(IPC.wsl.listDistros, () => listWslDistros());
@@ -410,7 +408,7 @@ export function registerAgentHookIpc(): void {
 }
 
 interface BrowserDeps {
-  browserManager: BrowserManager;
+  getBrowserManager: () => BrowserManager | null;
 }
 
 function ensureSurfaceId(value: unknown): string {
@@ -420,24 +418,27 @@ function ensureSurfaceId(value: unknown): string {
   return value;
 }
 
-export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
+export function registerBrowserIpc({ getBrowserManager }: BrowserDeps): void {
+  const withManager = (fn: (manager: BrowserManager) => void): void => {
+    const manager = getBrowserManager();
+    if (manager) fn(manager);
+  };
   ipcMain.on(
     IPC.browser.create,
     (_event, msg: { surfaceId: string; url: string }) => {
-      browserManager.create(ensureSurfaceId(msg.surfaceId), msg.url);
+      withManager((m) => m.create(ensureSurfaceId(msg.surfaceId), msg.url));
     },
   );
 
   ipcMain.on(IPC.browser.destroy, (_event, msg: { surfaceId: string }) => {
-    browserManager.destroy(ensureSurfaceId(msg.surfaceId));
+    withManager((m) => m.destroy(ensureSurfaceId(msg.surfaceId)));
   });
 
   ipcMain.on(
     IPC.browser.setAnchorOffsets,
     (_event, msg: { surfaceId: string; offsets: BrowserAnchorOffsets }) => {
-      browserManager.setAnchorOffsets(
-        ensureSurfaceId(msg.surfaceId),
-        msg.offsets,
+      withManager((m) =>
+        m.setAnchorOffsets(ensureSurfaceId(msg.surfaceId), msg.offsets),
       );
     },
   );
@@ -445,7 +446,9 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
   ipcMain.on(
     IPC.browser.setVisible,
     (_event, msg: { surfaceId: string; visible: boolean }) => {
-      browserManager.setVisible(ensureSurfaceId(msg.surfaceId), msg.visible);
+      withManager((m) =>
+        m.setVisible(ensureSurfaceId(msg.surfaceId), msg.visible),
+      );
     },
   );
 
@@ -460,14 +463,16 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
         color: string;
       },
     ) => {
-      browserManager.setSplitPreview(msg.rect, msg.edge, msg.merge, msg.color);
+      withManager((m) =>
+        m.setSplitPreview(msg.rect, msg.edge, msg.merge, msg.color),
+      );
     },
   );
 
   ipcMain.on(
     IPC.browser.loadURL,
     (_event, msg: { surfaceId: string; url: string }) => {
-      browserManager.loadURL(ensureSurfaceId(msg.surfaceId), msg.url);
+      withManager((m) => m.loadURL(ensureSurfaceId(msg.surfaceId), msg.url));
     },
   );
 
@@ -475,27 +480,29 @@ export function registerBrowserIpc({ browserManager }: BrowserDeps): void {
     IPC.browser.command,
     (_event, msg: { surfaceId: string; cmd: BrowserCommand }) => {
       if (!isBrowserCommand(msg.cmd)) return;
-      browserManager[msg.cmd](ensureSurfaceId(msg.surfaceId));
+      withManager((m) => m[msg.cmd](ensureSurfaceId(msg.surfaceId)));
     },
   );
 
   ipcMain.on(
     IPC.browser.findRequest,
     (_event, msg: { surfaceId: string; opts: BrowserFindOptions }) => {
-      browserManager.findInPage(ensureSurfaceId(msg.surfaceId), msg.opts);
+      withManager((m) =>
+        m.findInPage(ensureSurfaceId(msg.surfaceId), msg.opts),
+      );
     },
   );
 
   ipcMain.on(IPC.browser.findStop, (_event, msg: { surfaceId: string }) => {
-    browserManager.stopFindInPage(ensureSurfaceId(msg.surfaceId));
+    withManager((m) => m.stopFindInPage(ensureSurfaceId(msg.surfaceId)));
   });
 
   ipcMain.on(IPC.browser.closeFindWindow, () => {
     const previousSurfaceId = hideBrowserFindWindow();
-    if (previousSurfaceId) browserManager.focus(previousSurfaceId);
+    if (previousSurfaceId) withManager((m) => m.focus(previousSurfaceId));
   });
 
   ipcMain.handle(IPC.browser.clearData, async () => {
-    await browserManager.clearBrowsingData();
+    await getBrowserManager()?.clearBrowsingData();
   });
 }

@@ -53,10 +53,10 @@ async function initState(): Promise<AppState> {
       layout: pw.layout,
       notifications: [],
     }));
-    const activeWs = loadedWorkspaces.activeWorkspaceId
-      ? (workspaces.find((w) => w.id === loadedWorkspaces.activeWorkspaceId) ??
-        workspaces[0])
-      : null;
+    const activeWs =
+      (loadedWorkspaces.activeWorkspaceId
+        ? workspaces.find((w) => w.id === loadedWorkspaces.activeWorkspaceId)
+        : undefined) ?? workspaces[0];
     return {
       workspaces,
       activeWorkspaceId: activeWs?.id ?? null,

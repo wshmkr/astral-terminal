@@ -17,6 +17,7 @@ export {
   getState,
   getWorkspace,
   selectActiveWorkspace,
+  selectWorkspace,
   subscribeWorkspaceStore,
   useWorkspaceStore,
 } from "./core";
@@ -64,6 +65,7 @@ export {
   findPaneBySurfaceId,
   moveSurfaceToPane,
   navigateToSurface,
+  openUrlNearSurface,
   renameSurface,
   renameWorkspace,
   reorderSurfaces,

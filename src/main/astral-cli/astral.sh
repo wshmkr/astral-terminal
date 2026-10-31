@@ -24,16 +24,38 @@ identify() {
     "$ASTRAL_SURFACE_ID" "$pid" "${ASTRAL_VERSION:-}"
 }
 
+host_cache_dir() {
+  if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
+    printf '%s/astral' "$XDG_RUNTIME_DIR"
+  else
+    printf '%s/astral-%s' "${TMPDIR:-/tmp}" "$(id -u)"
+  fi
+}
+
 host_cache() {
-  printf '%s/astral-host-%s' \
-    "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}" "${ASTRAL_PORT:-0}"
+  printf '%s/host-%s' "$(host_cache_dir)" "${ASTRAL_PORT:-0}"
+}
+
+_cache_dir_state=""
+cache_dir_ok() {
+  if [ -z "$_cache_dir_state" ]; then
+    _d=$(host_cache_dir)
+    if mkdir -p "$_d" 2>/dev/null &&
+      { chmod 700 "$_d" 2>/dev/null || true; } &&
+      [ "$(stat -c %u "$_d" 2>/dev/null)" = "$(id -u)" ]; then
+      _cache_dir_state=ok
+    else
+      _cache_dir_state=bad
+    fi
+  fi
+  [ "$_cache_dir_state" = ok ]
 }
 
 # Hosts that might reach the Windows app from inside WSL, best first: a previously working host,
 # loopback (mirrored networking), then the NAT default gateway / resolv.conf nameserver.
 candidate_hosts() {
   {
-    [ -f "$(host_cache)" ] && cat "$(host_cache)"
+    cache_dir_ok && [ -f "$(host_cache)" ] && cat "$(host_cache)"
     echo 127.0.0.1
     ip route 2>/dev/null | awk '/^default/ {print $3; exit}'
     awk '/^nameserver/ {print $2; exit}' /etc/resolv.conf 2>/dev/null
@@ -65,6 +87,7 @@ tcp_exchange() {
       *Ncat*) ;;
       *"Shutdown the network socket after EOF"*) _nc_close="-N" ;;
       *"quit after EOF"*) _nc_close="-q 0" ;;
+      *) [ -n "$_to" ] || _nc_close="-w 3" ;;
     esac
     printf '%s\n%s\n' "$3" "$4" | $_to nc $_nc_close "$1" "$2" 2>/dev/null | sed -n '2p'
     return 0
@@ -94,13 +117,16 @@ call() {
   auth=$(printf '{"id":"auth","method":"auth.hello","params":{"token":"%s"}}' \
     "$ASTRAL_TOKEN")
   req=$(printf '{"id":"call","method":"%s","params":%s}' "$method" "$params")
+  cache_dir_ok || true
   for host in $(candidate_hosts); do
     reply=$(tcp_exchange "$host" "$ASTRAL_PORT" "$auth" "$req") &&
       [ -n "$reply" ] || continue
-    cache=$(host_cache)
-    # the port changes each launch, so clear prior runs' caches before recording this one
-    rm -f "${cache%/*}"/astral-host-* 2>/dev/null || true
-    printf '%s\n' "$host" >"$cache" 2>/dev/null || true
+    if cache_dir_ok; then
+      cache=$(host_cache)
+      # the port changes each launch, so clear prior runs' caches before recording this one
+      rm -f "${cache%/*}"/host-* 2>/dev/null || true
+      printf '%s\n' "$host" >"$cache" 2>/dev/null || true
+    fi
     printf '%s\n' "$reply"
     # exit non-zero on a non-ok reply (e.g. unauthorized) so it isn't mistaken for success
     case "$reply" in

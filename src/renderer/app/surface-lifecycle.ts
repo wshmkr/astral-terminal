@@ -40,7 +40,11 @@ export function useSurfaceLifecycle<C extends SurfaceController>(
         // setVisible effect ran during commit with a null ref; replay current value
         controller.setVisible(isVisibleRef.current);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (!abort.signal.aborted) {
+          console.error("Surface create failed:", err);
+        }
+      });
     return () => {
       abort.abort();
       if (controllerRef.current) {

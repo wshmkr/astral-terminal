@@ -21,9 +21,16 @@ export function setState(next: AppState): void {
   state = next;
 }
 
-export function getWorkspace(id: string | null): Workspace | undefined {
+export function selectWorkspace(
+  s: AppState,
+  id: string | null,
+): Workspace | undefined {
   if (id === null) return undefined;
-  return getState().workspaces.find((w) => w.id === id);
+  return s.workspaces.find((w) => w.id === id);
+}
+
+export function getWorkspace(id: string | null): Workspace | undefined {
+  return selectWorkspace(getState(), id);
 }
 
 export function getActiveWorkspace(): Workspace | undefined {
@@ -31,7 +38,7 @@ export function getActiveWorkspace(): Workspace | undefined {
 }
 
 export function selectActiveWorkspace(s: AppState): Workspace | undefined {
-  return s.workspaces.find((w) => w.id === s.activeWorkspaceId);
+  return selectWorkspace(s, s.activeWorkspaceId);
 }
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -45,27 +52,34 @@ export function scheduleSave(): void {
 }
 
 function flushPendingSave(): void {
-  if (saveTimer === null) return;
-  clearTimeout(saveTimer);
-  saveTimer = null;
-  saveState(getState());
+  if (saveTimer !== null) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  saveState(getState(), { force: true });
 }
 
 if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", flushPendingSave);
 }
 
+function notifyListeners(): void {
+  for (const fn of listeners) {
+    try {
+      fn();
+    } catch (err) {
+      console.error("Store listener failed:", err);
+    }
+  }
+}
+
 export function commit(): void {
-  listeners.forEach((fn) => {
-    fn();
-  });
   scheduleSave();
+  notifyListeners();
 }
 
 export function notify(): void {
-  listeners.forEach((fn) => {
-    fn();
-  });
+  notifyListeners();
 }
 
 export function subscribeWorkspaceStore(listener: () => void): () => void {

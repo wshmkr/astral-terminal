@@ -12,14 +12,10 @@ import {
   resolveBindings,
 } from "../../../shared/keybindings/match";
 import { windowsPtyOptions } from "../../../shared/pty-options";
+import { keyedSingleFlight } from "../../../shared/single-flight";
 import type { AppConfig, TerminalTheme } from "../../../shared/types";
 import type { SurfaceController } from "../../app/surface-lifecycle";
-import {
-  addSurface,
-  findPaneBySurfaceId,
-  getState,
-  setActiveWorkspace,
-} from "../../store";
+import { getState, openUrlNearSurface } from "../../store";
 import type { FindController, FindMatches } from "../Find/FindBar";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
@@ -38,22 +34,16 @@ function findDecorationsFromTheme(
   };
 }
 
-const fontPreloadCache = new Map<string, Promise<unknown>>();
-
-export function preloadFont(fontStack: string, size: number): Promise<unknown> {
-  const key = `${size}|${fontStack}`;
-  let cached = fontPreloadCache.get(key);
-  if (!cached) {
-    cached = Promise.all([
+export const preloadFont = keyedSingleFlight(
+  (fontStack: string, size: number) => `${size}|${fontStack}`,
+  (fontStack: string, size: number) =>
+    Promise.all([
       document.fonts.load(`${size}px ${fontStack}`),
       document.fonts.load(`bold ${size}px ${fontStack}`),
       document.fonts.load(`italic ${size}px ${fontStack}`),
       document.fonts.load(`bold italic ${size}px ${fontStack}`),
-    ]);
-    fontPreloadCache.set(key, cached);
-  }
-  return cached;
-}
+    ]),
+);
 
 interface TerminalAddons {
   term: Terminal;
@@ -67,20 +57,10 @@ function openTerminalLink(
   uri: string,
 ) {
   if (event.button === 2) return;
-  if (event.shiftKey) {
-    window.app.openExternal(uri);
-    return;
-  }
-  const location = findPaneBySurfaceId(sourceSurfaceId);
-  if (!location) {
-    window.app.openExternal(uri);
-    return;
-  }
-  if (getState().activeWorkspaceId !== location.workspaceId) {
-    setActiveWorkspace(location.workspaceId);
-  }
   const background = event.ctrlKey || event.metaKey || event.button === 1;
-  addSurface(location.paneId, "browser", { url: uri, activate: !background });
+  if (event.shiftKey || !openUrlNearSurface(sourceSurfaceId, uri, background)) {
+    window.app.openExternal(uri);
+  }
 }
 
 interface LinkHoverState {
@@ -146,7 +126,6 @@ function attachClipboardHandlers(
     surfaceId: string;
     linkHover: LinkHoverState;
     isLive: () => boolean;
-    getCwd: () => string;
   },
 ): () => void {
   // Shared by both paste triggers so their precedence can't drift.
@@ -163,7 +142,7 @@ function attachClipboardHandlers(
     }
     const blob = await source.readImage();
     if (blob) {
-      await pasteClipboardImage(term, blob, opts.getCwd(), opts.isLive);
+      await pasteClipboardImage(term, blob, opts.isLive);
       return true;
     }
     return false;
@@ -320,12 +299,8 @@ export class TerminalController implements SurfaceController, FindController {
   private ptyId: string | null = null;
   private disposed = false;
   private resizeTimer: ReturnType<typeof setTimeout> | null = null;
+  // PTY data that arrives before the replay reply.
   private preReplayBuffer: string[] | null = [];
-  private pendingReplay: {
-    cols: number;
-    rows: number;
-    content: string;
-  } | null = null;
   private pendingOpen = false;
 
   constructor(private readonly opts: TerminalControllerOptions) {
@@ -356,12 +331,10 @@ export class TerminalController implements SurfaceController, FindController {
         surfaceId: opts.surfaceId,
         linkHover,
         isLive: () => !this.disposed,
-        getCwd: () => opts.getLiveSurface().cwd,
       }),
       attachDropHandlers(
         opts.container,
         term,
-        () => opts.getLiveSurface().cwd,
         opts.onSelect,
         () => !this.disposed,
       ),
@@ -376,7 +349,12 @@ export class TerminalController implements SurfaceController, FindController {
     });
     this.resizeObserver.observe(opts.container);
 
-    this.startPty();
+    this.startPty().catch((err) => {
+      console.error("Terminal PTY start failed:", err);
+      if (!this.disposed) {
+        this.term.write("\r\n\x1b[31m[Failed to start terminal]\x1b[0m\r\n");
+      }
+    });
   }
 
   fit(): void {
@@ -460,24 +438,22 @@ export class TerminalController implements SurfaceController, FindController {
     this.term.dispose();
   }
 
-  private safeFit(): void {
+  // Returns whether the container was measurable and produced fit dimensions.
+  private safeFit(): boolean {
     const { container } = this.opts;
-    if (container.offsetWidth === 0 || container.offsetHeight === 0) return;
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+      return false;
+    }
     if (this.pendingOpen) {
       this.pendingOpen = false;
       this.term.open(container);
     }
-    if (this.pendingReplay) {
-      const { cols, rows, content } = this.pendingReplay;
-      this.pendingReplay = null;
-      this.term.resize(cols, rows);
-      this.term.write(content);
-    }
     const proposed = this.fitAddon.proposeDimensions();
-    if (!proposed) return;
+    if (!proposed) return false;
     if (proposed.cols === this.term.cols && proposed.rows === this.term.rows)
-      return;
+      return true;
     this.fitAddon.fit();
+    return true;
   }
 
   private async startPty(): Promise<void> {
@@ -512,11 +488,18 @@ export class TerminalController implements SurfaceController, FindController {
       }),
     );
 
-    const replay = await replayPromise;
+    let replay: Awaited<typeof replayPromise>;
+    try {
+      replay = await replayPromise;
+    } catch (err) {
+      this.ptyId = null;
+      window.app.killPty(id);
+      throw err;
+    }
     if (this.disposed) return;
     if (replay.content) {
-      this.pendingReplay = replay;
-      this.safeFit();
+      this.term.resize(replay.cols, replay.rows);
+      this.term.write(replay.content);
     }
 
     const buffered = this.preReplayBuffer ?? [];
@@ -528,9 +511,7 @@ export class TerminalController implements SurfaceController, FindController {
       window.app.resizePty(id, cols, rows),
     );
 
-    this.safeFit();
-    // pre-fit term dims would push 80×24 or stale saved dims to main
-    if (!this.pendingReplay && !this.pendingOpen) {
+    if (this.safeFit()) {
       window.app.resizePty(id, this.term.cols, this.term.rows);
     }
     if (!this.pendingOpen) this.term.focus();
