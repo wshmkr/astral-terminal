@@ -84,8 +84,7 @@ export function registerPaneSplit(
   const pending = new Map<
     string,
     {
-      resolve: (result: CliSplitResult) => void;
-      timer: NodeJS.Timeout;
+      settle: (result: CliSplitResult) => void;
       sender: WebContents;
     }
   >();
@@ -94,9 +93,7 @@ export function registerPaneSplit(
     if (!isReply(payload)) return;
     const entry = pending.get(payload.requestId);
     if (!entry || event.sender !== entry.sender) return;
-    clearTimeout(entry.timer);
-    pending.delete(payload.requestId);
-    entry.resolve(payload.result);
+    entry.settle(payload.result);
   });
 
   server.register("pane.split", async (params) => {
@@ -112,19 +109,28 @@ export function registerPaneSplit(
     const requestId = `split-${nextRequestId++}`;
     const deadline = Date.now() + REPLY_TIMEOUT_MS;
     const request: CliSplitRequest = { requestId, deadline, ...parsed };
+    const sender = win.webContents;
     const result = await new Promise<CliSplitResult>((resolve) => {
-      const timer = setTimeout(() => {
+      const onDestroyed = () =>
+        settle({ ok: false, reason: "the application window was closed" });
+      const timer = setTimeout(
+        () =>
+          settle({ ok: false, reason: "timed out waiting for the renderer" }),
+        REPLY_TIMEOUT_MS + REPLY_GRACE_MS,
+      );
+      function settle(r: CliSplitResult) {
+        clearTimeout(timer);
+        sender.removeListener("destroyed", onDestroyed);
         pending.delete(requestId);
-        resolve({ ok: false, reason: "timed out waiting for the renderer" });
-      }, REPLY_TIMEOUT_MS + REPLY_GRACE_MS);
-      pending.set(requestId, { resolve, timer, sender: win.webContents });
+        resolve(r);
+      }
+      sender.once("destroyed", onDestroyed);
+      pending.set(requestId, { settle, sender });
       // the window can be torn down between the isDestroyed() check and this send
       try {
-        win.webContents.send(IPC.cli.split, request);
+        sender.send(IPC.cli.split, request);
       } catch (err) {
-        clearTimeout(timer);
-        pending.delete(requestId);
-        resolve({
+        settle({
           ok: false,
           reason: `failed to dispatch split to renderer: ${String(err)}`,
         });

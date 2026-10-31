@@ -72,7 +72,12 @@ tcp_exchange() {
       *"Shutdown the network socket after EOF"*) _nc_close="-N" ;;
       *"quit after EOF"*) _nc_close="-q 0" ;;
     esac
-    printf '%s\n%s\n' "$3" "$4" | $_to nc $_nc_close "$1" "$2" 2>/dev/null | sed -n '2p'
+    _out=$(printf '%s\n%s\n' "$3" "$4" | $_to nc $_nc_close "$1" "$2" 2>/dev/null)
+    # an auth reply proves the request was sent
+    [ -n "$_out" ] || return 1
+    _reply=$(printf '%s\n' "$_out" | sed -n '2p')
+    [ -n "$_reply" ] || return 3
+    printf '%s\n' "$_reply"
     return 0
   fi
   echo "astral: need bash or nc to reach Astral Terminal" >&2
@@ -125,13 +130,13 @@ call() {
 
 # Split the pane holding this shell, or the focused pane when ASTRAL_SURFACE_ID is unset.
 split() {
+  if [ "$#" -ne 1 ] || [ -z "$1" ]; then
+    echo "astral: usage: astral split <right|down>" >&2
+    return 2
+  fi
   direction=$1
   case "$direction" in
     right | down) ;;
-    '')
-      echo "astral: usage: astral split <right|down>" >&2
-      return 2
-      ;;
     *)
       echo "astral: invalid direction: $direction (expected right or down)" >&2
       return 2
