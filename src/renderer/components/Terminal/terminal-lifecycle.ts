@@ -438,7 +438,7 @@ export class TerminalController implements SurfaceController, FindController {
     this.term.dispose();
   }
 
-  // Returns whether the container was measurable (and therefore opened/fit).
+  // Returns whether the container was measurable and produced fit dimensions.
   private safeFit(): boolean {
     const { container } = this.opts;
     if (container.offsetWidth === 0 || container.offsetHeight === 0) {
@@ -449,7 +449,7 @@ export class TerminalController implements SurfaceController, FindController {
       this.term.open(container);
     }
     const proposed = this.fitAddon.proposeDimensions();
-    if (!proposed) return true;
+    if (!proposed) return false;
     if (proposed.cols === this.term.cols && proposed.rows === this.term.rows)
       return true;
     this.fitAddon.fit();
@@ -488,7 +488,14 @@ export class TerminalController implements SurfaceController, FindController {
       }),
     );
 
-    const replay = await replayPromise;
+    let replay: Awaited<typeof replayPromise>;
+    try {
+      replay = await replayPromise;
+    } catch (err) {
+      this.ptyId = null;
+      window.app.killPty(id);
+      throw err;
+    }
     if (this.disposed) return;
     if (replay.content) {
       // Apply immediately — resize and write are valid before open(). If this

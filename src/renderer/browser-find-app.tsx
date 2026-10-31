@@ -86,9 +86,14 @@ export function BrowserFindApp() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const refreshAppearance = () => {
-    void window.app.readSettings().then((s) => {
-      setAppearance({ ...DEFAULT_APPEARANCE, ...(s?.appearance ?? {}) });
-    });
+    window.app
+      .readSettings()
+      .then((s) => {
+        setAppearance({ ...DEFAULT_APPEARANCE, ...(s?.appearance ?? {}) });
+      })
+      .catch((err) => {
+        console.error("Failed to read settings:", err);
+      });
   };
 
   useEffect(refreshAppearance, []);

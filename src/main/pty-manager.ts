@@ -523,16 +523,19 @@ export class PtyManager {
     entry.preReplay = null;
     const snap = entry.initialReplay ?? this.snapshot(entry);
     entry.initialReplay = null;
-    feedHeadless(entry, pending);
+    const replay = { ...snap, content: snap.content + pending.join("") };
+    if (pending.length > 0) {
+      // Snapshots fall back to the replay until the flushed output is parsed.
+      entry.restoreRaw = replay;
+      entry.restoreTail = [];
+      writeTracked(entry, pending);
+      clearRestoreWhenSettled(entry);
+    }
     if (entry.pendingForward) {
       entry.pty.onData(entry.pendingForward);
       entry.pendingForward = undefined;
     }
-    return {
-      cols: snap.cols,
-      rows: snap.rows,
-      content: snap.content + pending.join(""),
-    };
+    return replay;
   }
 
   write(id: string, data: string): void {

@@ -61,7 +61,9 @@ function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
   let chunks: Buffer[] = [];
   let buffered = 0;
   let overflowed = false;
-  let sawFirstLine = false;
+  // Before auth, lines are dispatched one at a time with the socket paused, so
+  // the next line is parsed under the right cap and failed attempts count first.
+  let awaitingAuth = false;
   let dispatchChain = Promise.resolve();
 
   const authTimer = authed
@@ -71,10 +73,8 @@ function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
     authed = true;
     if (authTimer) clearTimeout(authTimer);
   };
-  // Only the first non-blank line gets the pre-auth cap; `authed` flips
-  // asynchronously, so a request pipelined after auth.hello would otherwise hit it.
   const maxLineBytes = () =>
-    authed || sawFirstLine ? MAX_LINE_BYTES : PRE_AUTH_MAX_LINE_BYTES;
+    authed ? MAX_LINE_BYTES : PRE_AUTH_MAX_LINE_BYTES;
 
   const rejectOversize = () => {
     overflowed = true;
@@ -87,57 +87,68 @@ function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
       () => socket.destroy(),
     );
   };
-  socket.on("data", (chunk) => {
-    if (overflowed) return;
-    if (chunk.indexOf(0x0a) === -1) {
-      chunks.push(chunk);
-      buffered += chunk.length;
-      if (buffered > maxLineBytes()) rejectOversize();
-      return;
+
+  const dispatchLine = (line: string) => {
+    const wasAuthed = authed;
+    if (!wasAuthed) {
+      awaitingAuth = true;
+      socket.pause();
     }
-    let buf = chunks.length > 0 ? Buffer.concat([...chunks, chunk]) : chunk;
+    dispatchChain = dispatchChain
+      .then(async () => {
+        const reply = await dispatch(line, ctx, {
+          isAuthed: () => authed,
+          markAuthed,
+        });
+        if (!socket.destroyed) socket.write(formatReply(reply));
+        if (!wasAuthed && !authed) {
+          failedAuthAttempts += 1;
+          if (failedAuthAttempts >= MAX_FAILED_AUTH_ATTEMPTS) {
+            socket.destroy();
+          }
+        }
+      })
+      .catch(() => {
+        // a failed dispatch/write must not stall later replies
+      })
+      .then(() => {
+        if (wasAuthed || socket.destroyed) return;
+        awaitingAuth = false;
+        socket.resume();
+        processBuffered();
+      });
+  };
+
+  const processBuffered = () => {
+    if (overflowed || awaitingAuth || chunks.length === 0) return;
+    let buf =
+      chunks.length === 1 ? (chunks[0] as Buffer) : Buffer.concat(chunks);
     chunks = [];
     buffered = 0;
-    while (true) {
+    while (!awaitingAuth) {
       const nl = buf.indexOf(0x0a);
-      if (nl === -1) {
-        if (buf.length > maxLineBytes()) {
-          rejectOversize();
-          return;
-        }
-        break;
-      }
+      if (nl === -1) break;
       if (nl > maxLineBytes()) {
         rejectOversize();
         return;
       }
       const line = buf.subarray(0, nl).toString("utf8");
       buf = buf.subarray(nl + 1);
-      if (line.trim().length === 0) continue;
-      sawFirstLine = true;
-      dispatchChain = dispatchChain
-        .then(async () => {
-          const wasAuthed = authed;
-          const reply = await dispatch(line, ctx, {
-            isAuthed: () => authed,
-            markAuthed,
-          });
-          if (!socket.destroyed) socket.write(formatReply(reply));
-          if (!wasAuthed && !authed) {
-            failedAuthAttempts += 1;
-            if (failedAuthAttempts >= MAX_FAILED_AUTH_ATTEMPTS) {
-              socket.destroy();
-            }
-          }
-        })
-        .catch(() => {
-          // a failed dispatch/write must not stall later replies
-        });
+      if (line.trim().length > 0) dispatchLine(line);
     }
     if (buf.length > 0) {
       chunks = [buf];
       buffered = buf.length;
     }
+    if (!awaitingAuth && buffered > maxLineBytes()) rejectOversize();
+  };
+
+  socket.on("data", (chunk) => {
+    if (overflowed) return;
+    chunks.push(chunk);
+    buffered += chunk.length;
+    if (chunk.indexOf(0x0a) !== -1) processBuffered();
+    else if (!awaitingAuth && buffered > maxLineBytes()) rejectOversize();
   });
   socket.on("close", () => {
     if (authTimer) clearTimeout(authTimer);
