@@ -1,6 +1,3 @@
-// Single-flight async caches that never memoize a rejection: a transient
-// failure must not permanently poison the cache for every later caller.
-
 export function singleFlight<T>(load: () => Promise<T>): () => Promise<T> {
   let inflight: Promise<T> | null = null;
   return () => {

@@ -498,9 +498,6 @@ export class TerminalController implements SurfaceController, FindController {
     }
     if (this.disposed) return;
     if (replay.content) {
-      // Apply immediately — resize and write are valid before open(). If this
-      // waited for the pane to become visible, buffered live output below
-      // would land first and the older scrollback would print after it.
       this.term.resize(replay.cols, replay.rows);
       this.term.write(replay.content);
     }
@@ -514,8 +511,6 @@ export class TerminalController implements SurfaceController, FindController {
       window.app.resizePty(id, cols, rows),
     );
 
-    // Only push dims that came from a real fit of a visible container;
-    // otherwise this would send 80×24 or stale saved dims to main.
     if (this.safeFit()) {
       window.app.resizePty(id, this.term.cols, this.term.rows);
     }

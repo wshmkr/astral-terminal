@@ -19,8 +19,6 @@ import {
 
 const MAX_LINE_BYTES = 1024 * 1024;
 const AUTH_HELLO_METHOD = "auth.hello";
-// Unauthenticated TCP peers only ever need to send a tiny auth.hello line;
-// bound what they can make us buffer and how long they can sit unauthenticated.
 const PRE_AUTH_MAX_LINE_BYTES = 4 * 1024;
 const PRE_AUTH_TIMEOUT_MS = 10_000;
 const MAX_FAILED_AUTH_ATTEMPTS = 3;
@@ -56,13 +54,9 @@ interface ConnectionContext {
 function attachConnection(socket: net.Socket, ctx: ConnectionContext): void {
   let authed = ctx.requiredToken === null;
   let failedAuthAttempts = 0;
-  // Accumulate chunks and only concat when a newline arrives, so a line
-  // delivered in k chunks costs one copy instead of k quadratic re-copies.
   let chunks: Buffer[] = [];
   let buffered = 0;
   let overflowed = false;
-  // Before auth, lines are dispatched one at a time with the socket paused, so
-  // the next line is parsed under the right cap and failed attempts count first.
   let awaitingAuth = false;
   let dispatchChain = Promise.resolve();
 

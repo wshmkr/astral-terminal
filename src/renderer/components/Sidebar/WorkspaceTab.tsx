@@ -127,8 +127,6 @@ export const WorkspaceTab = memo(function WorkspaceTab({
     data: { type: "workspace" },
     disabled: editing,
   });
-  // During a sortable drag every sibling row re-renders per pointer frame;
-  // memoize so emotion doesn't re-serialize a fresh sx object each time.
   const sx = useMemo(
     () => rootSx(isActive, showDivider),
     [isActive, showDivider],

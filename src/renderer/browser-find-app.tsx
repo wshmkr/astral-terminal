@@ -109,8 +109,6 @@ export function BrowserFindApp() {
     () =>
       window.app.onBrowserFindTargetChanged((payload) => {
         setSurfaceId(payload.surfaceId);
-        // This window lives for the whole app session; refresh appearance on
-        // each open so theme/accent changes made since launch are picked up.
         refreshAppearance();
         queueMicrotask(() => {
           inputRef.current?.focus();

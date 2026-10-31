@@ -28,9 +28,6 @@ export function pruneNode(node: PaneNode, targetId: string): PaneNode | null {
     });
     if (kept.length === 0) return null;
     if (kept.length === 1) return kept[0] ?? null;
-    // Filter sizes alongside children so survivors keep their proportions
-    // (they're renormalized by sum at render time); a stale mismatched array
-    // would silently reset the user's pane sizing to equal splits.
     return {
       ...node,
       children: kept,

@@ -41,8 +41,6 @@ export function useSurfaceLifecycle<C extends SurfaceController>(
         controller.setVisible(isVisibleRef.current);
       })
       .catch((err) => {
-        // An aborted create is expected teardown; anything else is a dead
-        // pane and must not fail silently.
         if (!abort.signal.aborted) {
           console.error("Surface create failed:", err);
         }

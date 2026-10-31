@@ -621,8 +621,6 @@ export class BrowserManager {
       this.splitPreviewView?.setVisible(false);
       return;
     }
-    // This runs at pointer-move frequency during pane drags; only setBounds is
-    // per-move work. Skip the JS eval + view re-stacking when nothing changed.
     const stateChanged =
       !this.splitPreviewVisible ||
       color !== this.splitPreviewColor ||
@@ -642,8 +640,6 @@ export class BrowserManager {
     if (stateChanged) {
       this.showSplitPreviewWhenReady();
     } else {
-      // Cheap native restack every move so a view added mid-drag can't bury
-      // the preview; only the executeJavaScript round-trip is skipped.
       this.bringSplitPreviewToTop();
     }
   }

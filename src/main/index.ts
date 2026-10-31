@@ -111,8 +111,6 @@ function installCsp() {
   });
 }
 
-// Everything bound to a specific main window; re-run after the window is
-// recreated (macOS activate) so these aren't left pointing at a destroyed one.
 function initWindowBoundServices(): void {
   const win = getMainWindow();
   if (!win) return;
@@ -162,9 +160,6 @@ function initWindowBoundServices(): void {
 const startup = app.whenReady().then(async () => {
   installAppMenu();
   installCsp();
-  // Ungraceful exits (crashes, dev restarts) orphan pty trees; sweep after
-  // launch settles — the PowerShell/WMI scan shouldn't compete with first
-  // paint and the first terminal spawn.
   setTimeout(() => void reapOrphanedPtys(), 5_000);
   void clearPasteImages();
   applyTerminalThemeNative(loadSettings()?.appearance?.terminalThemeId);

@@ -2,9 +2,6 @@ import Box from "@mui/material/Box";
 import type { WslDistro } from "../../../shared/types";
 import type { LabeledSelectOption } from "./shared";
 
-// Shared between the Settings Astral section and the Welcome dialog so the
-// option shape, default sentinel, and system-distro copy can't drift.
-
 export const DEFAULT_DISTRO_VALUE = "__default__";
 
 const SYSTEM_DISTRO_SX = { color: "text.disabled" } as const;
@@ -31,8 +28,7 @@ export function wslDistroOptions(
   ];
 }
 
-// The distro a new terminal would actually use for the given selection
-// (null selection = the WSL default).
+// null selection = the WSL default
 export function findEffectiveDistro(
   distros: WslDistro[],
   selected: string | null,

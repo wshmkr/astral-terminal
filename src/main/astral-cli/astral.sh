@@ -24,9 +24,6 @@ identify() {
     "$ASTRAL_SURFACE_ID" "$pid" "${ASTRAL_VERSION:-}"
 }
 
-# Per-user cache dir: XDG_RUNTIME_DIR is already private (0700); the /tmp
-# fallback is namespaced by uid so another local user can't pre-plant a cache
-# file that redirects our auth token to a host they control.
 host_cache_dir() {
   if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
     printf '%s/astral' "$XDG_RUNTIME_DIR"
@@ -39,9 +36,6 @@ host_cache() {
   printf '%s/host-%s' "$(host_cache_dir)" "${ASTRAL_PORT:-0}"
 }
 
-# Only trust the cache dir if we own it (an attacker could have created the
-# /tmp fallback path first); cache use is best-effort either way. Memoized;
-# call() primes it outside the candidate_hosts subshell.
 _cache_dir_state=""
 cache_dir_ok() {
   if [ -z "$_cache_dir_state" ]; then
@@ -93,8 +87,6 @@ tcp_exchange() {
       *Ncat*) ;;
       *"Shutdown the network socket after EOF"*) _nc_close="-N" ;;
       *"quit after EOF"*) _nc_close="-q 0" ;;
-      # unknown variant: without a close flag nc never exits on EOF, so bound
-      # the exchange with a timeout unless the timeout binary already does
       *) [ -n "$_to" ] || _nc_close="-w 3" ;;
     esac
     printf '%s\n%s\n' "$3" "$4" | $_to nc $_nc_close "$1" "$2" 2>/dev/null | sed -n '2p'

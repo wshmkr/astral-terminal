@@ -6,11 +6,6 @@ export interface LoadedState {
   workspaces: PersistedWorkspaces | null;
 }
 
-// Skip writes whose payload hasn't changed since the last successful send, so
-// e.g. a terminal title change doesn't also rewrite settings.json. On write
-// failure the cache resets so the next save retries. `force` bypasses the
-// dedupe — used on quit so a file deleted or clobbered externally mid-session
-// still gets rewritten at least once before the state is lost.
 function makeDedupedWriter<T>(
   label: string,
   write: (value: T) => Promise<void>,

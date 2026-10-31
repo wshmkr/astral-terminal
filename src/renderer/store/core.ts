@@ -21,8 +21,6 @@ export function setState(next: AppState): void {
   state = next;
 }
 
-// State-parameterized so subscribers can use it in selectors; the get*
-// variants below are conveniences over the current state.
 export function selectWorkspace(
   s: AppState,
   id: string | null,
@@ -58,8 +56,6 @@ function flushPendingSave(): void {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  // Forced: on quit, rewrite both files even if the payload is unchanged so
-  // an externally deleted/clobbered file is healed before the state is lost.
   saveState(getState(), { force: true });
 }
 
@@ -67,8 +63,6 @@ if (typeof window !== "undefined") {
   window.addEventListener("beforeunload", flushPendingSave);
 }
 
-// Isolate listener failures so one throwing subscriber can't starve the rest
-// (or, in commit's case, prevent the state change from being persisted).
 function notifyListeners(): void {
   for (const fn of listeners) {
     try {

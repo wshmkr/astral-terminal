@@ -99,8 +99,6 @@ function TabItem({
     id: surface.id,
     data: { type: "tab", paneId },
   });
-  // Memoized: during a sortable drag every sibling tab re-renders per pointer
-  // frame, and a fresh sx object would make emotion re-serialize each time.
   const sx = useMemo(
     () => tabItemSx({ isActive, showDivider, activeBg, activeFg }),
     [isActive, showDivider, activeBg, activeFg],
@@ -260,9 +258,6 @@ function TabbedPaneImpl({ workspaceId, pane }: Props) {
   const terminalTheme = useWorkspaceStore(
     (s) => TERMINAL_THEMES[s.appearance.terminalThemeId],
   );
-  // Scope to the pane's own workspace: selecting the active workspace's
-  // notifications would re-render every mounted pane on each notification
-  // and compare unread ids against the wrong workspace.
   const selectNotifications = useCallback(
     (s: AppState): Notification[] | null =>
       selectWorkspace(s, workspaceId)?.notifications ?? null,
@@ -317,8 +312,6 @@ function TabbedPaneImpl({ workspaceId, pane }: Props) {
     return () => el.removeEventListener("mousedown", onDown, { capture: true });
   }, [pane.id]);
 
-  // Native non-passive listener: React registers root wheel handlers as
-  // passive, so preventDefault from a React onWheel would be a no-op.
   const tabScrollerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = tabScrollerRef.current;

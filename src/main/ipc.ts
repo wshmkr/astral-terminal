@@ -135,8 +135,6 @@ export function registerPtyIpc({
     },
   );
 
-  // Fire-and-forget PTY calls: the manager import can reject, and an
-  // unhandled rejection here would silently kill the input path.
   const withPty = (label: string, fn: (m: PtyManager) => void): void => {
     getPtyManager().then(fn, (err) => console.error(`${label} failed:`, err));
   };
@@ -420,8 +418,6 @@ function ensureSurfaceId(value: unknown): string {
   return value;
 }
 
-// Takes a getter so the handlers survive main-window recreation (macOS
-// activate), which rebuilds the BrowserManager.
 export function registerBrowserIpc({ getBrowserManager }: BrowserDeps): void {
   const withManager = (fn: (manager: BrowserManager) => void): void => {
     const manager = getBrowserManager();

@@ -142,9 +142,7 @@ interface PtyEntry {
   restoreTail: string[];
   // The headless terminal stays at the restored size until the restore is parsed.
   restoring: boolean;
-  // Completion of the most recent tracked headless write.
   parseSettled: Promise<void>;
-  // Disposing the headless terminal drops queued write callbacks.
   torndown: Promise<void>;
   markTorndown: () => void;
 }
@@ -238,7 +236,6 @@ export class PtyManager {
     } catch {}
   }
 
-  // Deletes the meta only when it's unusable; create() deletes it once the PTY spawns.
   private async loadAgentSession(
     surfaceId: string,
   ): Promise<AgentSession | undefined> {
@@ -312,7 +309,6 @@ export class PtyManager {
       this.loadAgentSession(surfaceId),
       hasLive ? Promise.resolve(null) : this.loadBuffer(surfaceId),
     ]);
-    // Nothing yields between eviction and entries.set().
     const carried = this.evictBySurfaceId(surfaceId);
 
     // Skip scrollback restore when auto-resuming
@@ -484,7 +480,6 @@ export class PtyManager {
       if (entry.preReplay) {
         entry.preReplay.push(data);
         entry.preReplayBytes += data.length;
-        // Not while beginReplay is waiting: its snapshot must cover every flush.
         if (
           entry.preReplayBytes > MAX_PRE_REPLAY_BYTES &&
           !entry.replayRequested
@@ -525,7 +520,6 @@ export class PtyManager {
     entry.initialReplay = null;
     const replay = { ...snap, content: snap.content + pending.join("") };
     if (pending.length > 0) {
-      // Snapshots fall back to the replay until the flushed output is parsed.
       entry.restoreRaw = replay;
       entry.restoreTail = [];
       writeTracked(entry, pending);

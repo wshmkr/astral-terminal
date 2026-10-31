@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 
-// Resolves symlinks first so the rename writes through them, and keeps the
-// target's existing permissions.
 export async function writeFileAtomic(
   filePath: string,
   data: string | Uint8Array,

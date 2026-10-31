@@ -156,9 +156,6 @@ export function updateTerminalSurface(
       ),
     };
   });
-  // Persist without notifying (no notify()): nothing renders cwd reactively,
-  // and OSC 7 fires on every shell prompt — notifying would re-render the
-  // whole tree per prompt. Revisit if a component ever subscribes to cwd.
   if (changed) scheduleSave();
 }
 
@@ -286,8 +283,6 @@ export function setBrowserSurfaceUrl(
       ),
     };
   });
-  // Persist without notifying, like updateTerminalSurface: BrowserPane keeps
-  // its own live copy of the URL, and navigations can be frequent.
   if (changed) scheduleSave();
 }
 
@@ -368,8 +363,6 @@ export function findPaneBySurfaceId(
   return null;
 }
 
-// Opens a browser surface in the pane that contains sourceSurfaceId,
-// activating its workspace first (addSurface acts on the active workspace).
 // Returns false when the source surface no longer exists.
 export function openUrlNearSurface(
   sourceSurfaceId: string,

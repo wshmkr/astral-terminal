@@ -55,7 +55,6 @@ export function setSidebarWidth(width: number): void {
   commit();
 }
 
-// Shared shallow-diff-then-merge for the flat settings slices.
 function updateSettingsSlice<
   K extends
     | "notificationSettings"

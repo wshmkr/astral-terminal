@@ -4,9 +4,6 @@ ptty=$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')
 [ -n "$ptty" ] && [ "$ptty" != "?" ] || exit 0
 
 in=$(cat)
-# grep -o + head -1 takes the FIRST occurrence: the top-level fields precede
-# tool_input/tool_response, whose nested "cwd"/"session_id" keys must not win
-# (a greedy sed .* would match the last occurrence on the line).
 first_json_field() {
   printf '%s' "$in" \
     | grep -oE '"'"$1"'"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 \

@@ -42,7 +42,6 @@ export function writeUserDataJsonSync(fileName: string, value: unknown): void {
   }
 }
 
-// Serialized per file so overlapping saves can't interleave.
 export function writeUserDataJsonAtomic(
   fileName: string,
   value: unknown,

@@ -25,8 +25,6 @@ import {
 
 const settingsFileLocks = new Map<string, Promise<unknown>>();
 
-// This rewrites the user's own agent settings file (often over a \\wsl$ UNC
-// share); write-then-rename so a crash mid-write can't truncate it.
 function writeSettingsAtomic(
   filePath: string,
   settings: Record<string, unknown>,

@@ -53,8 +53,6 @@ async function initState(): Promise<AppState> {
       layout: pw.layout,
       notifications: [],
     }));
-    // Always activate some workspace: a null/missing activeWorkspaceId would
-    // otherwise boot into a blank main area with dead keybindings.
     const activeWs =
       (loadedWorkspaces.activeWorkspaceId
         ? workspaces.find((w) => w.id === loadedWorkspaces.activeWorkspaceId)
