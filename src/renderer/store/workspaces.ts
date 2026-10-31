@@ -170,19 +170,25 @@ export function createWorkspace(name?: string): Workspace {
   return ws;
 }
 
+// For a background workspace, the pane that regains focus when switching to it.
+export function getWorkspaceFocusedPaneId(id: string): string | null {
+  const s = getState();
+  if (s.activeWorkspaceId === id) return s.focusedPaneId;
+  const ws = getWorkspace(id);
+  if (!ws) return null;
+  const remembered = lastFocusedPaneByWorkspace.get(id);
+  return remembered && findLeafPane(ws.layout, remembered)
+    ? remembered
+    : findFirstLeaf(ws.layout);
+}
+
 export function setActiveWorkspace(id: string): void {
   const s = getState();
   if (s.activeWorkspaceId === id) return;
   if (s.activeWorkspaceId && s.focusedPaneId) {
     lastFocusedPaneByWorkspace.set(s.activeWorkspaceId, s.focusedPaneId);
   }
-  const target = getWorkspace(id);
-  const remembered = lastFocusedPaneByWorkspace.get(id);
-  const focusedPaneId = target
-    ? remembered && findLeafPane(target.layout, remembered)
-      ? remembered
-      : findFirstLeaf(target.layout)
-    : null;
+  const focusedPaneId = getWorkspaceFocusedPaneId(id);
   setState({ ...s, activeWorkspaceId: id, focusedPaneId });
   commit();
 }
@@ -226,11 +232,12 @@ export function splitPane(
   );
   if (newLayout === ws.layout) return null;
   setWorkspaceLayout(ws.id, newLayout);
-  // Only move focus to the new pane when asked to (UI/keybind splits) AND the split happened in
-  // the active workspace. A CLI split of a non-focused or background pane leaves the user's focus
-  // — and their keystrokes — exactly where they are.
-  if (focusNew && ws.id === getState().activeWorkspaceId) {
-    setState({ ...getState(), focusedPaneId: newLeaf.id });
+  if (focusNew) {
+    if (ws.id === getState().activeWorkspaceId) {
+      setState({ ...getState(), focusedPaneId: newLeaf.id });
+    } else {
+      lastFocusedPaneByWorkspace.set(ws.id, newLeaf.id);
+    }
   }
   commit();
   return { paneId: newLeaf.id, surfaceId: newLeaf.activeSurfaceId };
@@ -354,16 +361,26 @@ export function addSurface(
   return newSurfaceId;
 }
 
-export function findPaneBySurfaceId(
-  surfaceId: string,
+function findPaneWhere(
+  predicate: (leaf: LeafPane) => boolean,
 ): { workspaceId: string; paneId: string } | null {
   for (const ws of getState().workspaces) {
-    const leaf = findLeafWhere(ws.layout, (l) =>
-      l.surfaces.some((s) => s.id === surfaceId),
-    );
+    const leaf = findLeafWhere(ws.layout, predicate);
     if (leaf) return { workspaceId: ws.id, paneId: leaf.id };
   }
   return null;
+}
+
+export function findPaneById(
+  paneId: string,
+): { workspaceId: string; paneId: string } | null {
+  return findPaneWhere((l) => l.id === paneId);
+}
+
+export function findPaneBySurfaceId(
+  surfaceId: string,
+): { workspaceId: string; paneId: string } | null {
+  return findPaneWhere((l) => l.surfaces.some((s) => s.id === surfaceId));
 }
 
 export function closeSurface(paneId: string, surfaceId: string): void {

@@ -41,22 +41,28 @@ candidate_hosts() {
 }
 
 # Open one connection, send the auth line then the request line, print the request's reply (the
-# second response line). Non-zero exit means the host was unreachable.
+# second response line). Exit 3: sent but no reply, so it may have run and must not be retried on
+# another host. Other non-zero: unreachable. The reply wait exceeds the app's 6s pane.split bound.
 tcp_exchange() {
-  _to=""
-  command -v timeout >/dev/null 2>&1 && _to="timeout 3"
   if command -v bash >/dev/null 2>&1; then
-    ASTRAL_H=$1 ASTRAL_P=$2 ASTRAL_AUTH=$3 ASTRAL_REQ=$4 $_to bash -c '
-      # silence bash redirection errors here: a refused candidate is expected, not an error
-      exec 2>/dev/null
+    # a refused or timed-out candidate is expected, not an error
+    {
+      ASTRAL_H=$1 ASTRAL_P=$2 ASTRAL_AUTH=$3 ASTRAL_REQ=$4 bash -c '
+      # bound the connect only; watchdog stays off stdout so it cannot hold the reply pipe open
+      ( sleep 3; kill -TERM $$ ) >/dev/null &
+      _wd=$!
       exec 3<>"/dev/tcp/$ASTRAL_H/$ASTRAL_P" || exit 1
+      kill "$_wd"
       printf "%s\n%s\n" "$ASTRAL_AUTH" "$ASTRAL_REQ" >&3
-      IFS= read -r _discard <&3 || exit 1
-      IFS= read -r _reply <&3 || exit 1
+      IFS= read -r -t 10 _discard <&3 || exit 3
+      IFS= read -r -t 10 _reply <&3 || exit 3
       printf "%s\n" "$_reply"
     '
+    } 2>/dev/null
     return $?
   fi
+  _to=""
+  command -v timeout >/dev/null 2>&1 && _to="timeout 10"
   if command -v nc >/dev/null 2>&1; then
     # nc won't close on stdin EOF without a half-close flag, and it differs by variant
     # (Ncat and busybox need none); derive it from the help text
@@ -95,8 +101,13 @@ call() {
     "$ASTRAL_TOKEN")
   req=$(printf '{"id":"call","method":"%s","params":%s}' "$method" "$params")
   for host in $(candidate_hosts); do
-    reply=$(tcp_exchange "$host" "$ASTRAL_PORT" "$auth" "$req") &&
-      [ -n "$reply" ] || continue
+    reply=$(tcp_exchange "$host" "$ASTRAL_PORT" "$auth" "$req")
+    rc=$?
+    if [ "$rc" -eq 3 ]; then
+      echo "astral: no reply from Astral Terminal on $host:$ASTRAL_PORT (the request may have run)" >&2
+      return 1
+    fi
+    [ "$rc" -eq 0 ] && [ -n "$reply" ] || continue
     cache=$(host_cache)
     # the port changes each launch, so clear prior runs' caches before recording this one
     rm -f "${cache%/*}"/astral-host-* 2>/dev/null || true
@@ -112,11 +123,7 @@ call() {
   return 1
 }
 
-# Split the current pane. When ASTRAL_SURFACE_ID is set we target the pane holding this shell so a
-# split from a background workspace doesn't disturb the focused one; if that surface no longer
-# exists the app reports an error rather than splitting an unrelated pane. Only when the env var is
-# unset do we omit the target and let the app split the focused pane. Thin wrapper over
-# `call pane.split`.
+# Split the pane holding this shell, or the focused pane when ASTRAL_SURFACE_ID is unset.
 split() {
   direction=$1
   case "$direction" in
@@ -131,6 +138,13 @@ split() {
       ;;
   esac
   if [ -n "${ASTRAL_SURFACE_ID:-}" ]; then
+    # interpolated unescaped into the JSON params
+    case "$ASTRAL_SURFACE_ID" in
+      *[!A-Za-z0-9._:-]*)
+        echo "astral: invalid ASTRAL_SURFACE_ID: $ASTRAL_SURFACE_ID" >&2
+        return 2
+        ;;
+    esac
     params=$(printf '{"direction":"%s","surfaceId":"%s"}' \
       "$direction" "$ASTRAL_SURFACE_ID")
   else

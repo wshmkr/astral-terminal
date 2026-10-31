@@ -347,19 +347,15 @@ export interface ActiveRef {
   surfaceId: string | null;
 }
 
-// Directions accepted by the `pane.split` CLI method. astral splits append a second child, so
-// only the "grow right/down" directions are supported for now (left/up would need insertion order).
+// Splits append the new pane as the second child, so only right/down are possible.
 export type CliSplitDirection = "right" | "down";
 
 export interface CliSplitRequest {
   requestId: string;
   direction: CliSplitDirection;
-  // Epoch ms after which the renderer must not perform the split: the main process will have
-  // stopped waiting, so acting late would create a pane the CLI never learns about (and a retry
-  // would double-split). Same-process wall clock, so main and renderer compare it directly.
+  // Epoch ms after which the renderer must not split; the main process has stopped waiting.
   deadline: number;
-  // Optional target, resolved across all workspaces. When omitted (or not found) the active
-  // workspace's focused pane is used.
+  // Resolved across all workspaces; an unknown target is an error. Omit both for the focused pane.
   surfaceId?: string;
   paneId?: string;
 }
@@ -367,6 +363,8 @@ export interface CliSplitRequest {
 export interface CliSplitResult {
   ok: boolean;
   reason?: string;
+  // the request was at fault (e.g. unknown target), not the app
+  invalidParams?: boolean;
   workspaceId?: string | null;
   paneId?: string | null;
   surfaceId?: string | null;

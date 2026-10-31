@@ -4,9 +4,13 @@ import type {
   CliSplitResult,
   SplitDirection,
 } from "../../shared/types";
-import { findLeafPane } from "../components/Layout/pane-tree";
 import { getState } from "./core";
-import { findPaneBySurfaceId, splitPane } from "./workspaces";
+import {
+  findPaneById,
+  findPaneBySurfaceId,
+  getWorkspaceFocusedPaneId,
+  splitPane,
+} from "./workspaces";
 
 // "right" grows side by side (vertical divider); "down" stacks (horizontal divider).
 const DIRECTION_MAP: Record<CliSplitDirection, SplitDirection> = {
@@ -21,72 +25,51 @@ interface SplitTarget {
 
 type Resolution = { target: SplitTarget } | { error: string };
 
-// Locate the workspace + pane to split. An explicit paneId/surfaceId is resolved across all
-// workspaces; only when neither is supplied do we fall back to the active workspace's focused
-// pane. Crucially, an explicit-but-unresolvable target is an error — never a silent fallback to
-// whatever pane the user happens to be looking at.
+// An explicit paneId/surfaceId must exist in some workspace; with neither, use the focused pane.
 function resolveTarget(request: CliSplitRequest): Resolution {
-  if (request.paneId !== undefined || request.surfaceId !== undefined) {
-    let paneTarget: SplitTarget | null = null;
-    if (request.paneId !== undefined) {
-      for (const ws of getState().workspaces) {
-        if (findLeafPane(ws.layout, request.paneId)) {
-          paneTarget = { workspaceId: ws.id, paneId: request.paneId };
-          break;
-        }
-      }
-      if (!paneTarget) {
-        return { error: `split target not found: pane ${request.paneId}` };
-      }
-    }
-
-    let surfaceTarget: SplitTarget | null = null;
-    if (request.surfaceId !== undefined) {
-      surfaceTarget = findPaneBySurfaceId(request.surfaceId);
-      if (!surfaceTarget) {
-        return {
-          error: `split target not found: surface ${request.surfaceId}`,
-        };
-      }
-    }
-
-    // If both identifiers were supplied they must resolve to the same pane; otherwise one is
-    // stale and we'd silently split one of two different panes.
-    if (
-      paneTarget &&
-      surfaceTarget &&
-      (paneTarget.workspaceId !== surfaceTarget.workspaceId ||
-        paneTarget.paneId !== surfaceTarget.paneId)
-    ) {
+  const { paneId, surfaceId } = request;
+  if (paneId === undefined && surfaceId === undefined) {
+    const s = getState();
+    if (s.activeWorkspaceId && s.focusedPaneId) {
       return {
-        error:
-          "split target mismatch: paneId and surfaceId resolve to different panes",
+        target: { workspaceId: s.activeWorkspaceId, paneId: s.focusedPaneId },
       };
     }
-
-    const target = paneTarget ?? surfaceTarget;
-    if (target) return { target };
+    return { error: "no pane to split" };
   }
 
-  const s = getState();
-  if (s.activeWorkspaceId && s.focusedPaneId) {
+  const byPane = paneId !== undefined ? findPaneById(paneId) : null;
+  if (paneId !== undefined && !byPane) {
+    return { error: `split target not found: pane ${paneId}` };
+  }
+  const bySurface =
+    surfaceId !== undefined ? findPaneBySurfaceId(surfaceId) : null;
+  if (surfaceId !== undefined && !bySurface) {
+    return { error: `split target not found: surface ${surfaceId}` };
+  }
+  if (
+    byPane &&
+    bySurface &&
+    (byPane.workspaceId !== bySurface.workspaceId ||
+      byPane.paneId !== bySurface.paneId)
+  ) {
     return {
-      target: { workspaceId: s.activeWorkspaceId, paneId: s.focusedPaneId },
+      error:
+        "split target mismatch: paneId and surfaceId resolve to different panes",
     };
   }
-  return { error: "no pane to split" };
+  return { target: (byPane ?? bySurface) as SplitTarget };
 }
 
 function handleSplit(request: CliSplitRequest): CliSplitResult {
   const resolved = resolveTarget(request);
-  if ("error" in resolved) return { ok: false, reason: resolved.error };
+  if ("error" in resolved) {
+    return { ok: false, reason: resolved.error, invalidParams: true };
+  }
 
   const { workspaceId, paneId } = resolved.target;
-  // Move focus only when splitting the pane the user is actually in; otherwise leave their
-  // focus (and keystrokes) untouched.
-  const focusNew =
-    workspaceId === getState().activeWorkspaceId &&
-    paneId === getState().focusedPaneId;
+  // only take focus when splitting the pane the user is in, so scripted splits don't steal keystrokes
+  const focusNew = paneId === getWorkspaceFocusedPaneId(workspaceId);
   const created = splitPane(paneId, DIRECTION_MAP[request.direction], {
     workspaceId,
     focusNew,
@@ -108,8 +91,7 @@ export function startCliSplitBridge(): void {
   if (typeof window === "undefined" || !window.app?.onCliSplit) return;
   started = true;
   window.app.onCliSplit((request) => {
-    // The main process stops waiting at request.deadline. If we only unblocked after it, applying
-    // the split would strand a pane the CLI never sees — and a retry would double-split — so no-op.
+    // past the deadline the main process has stopped waiting, so a split would go unreported
     if (Date.now() >= request.deadline) {
       window.app.sendCliSplitResult({
         requestId: request.requestId,

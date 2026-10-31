@@ -1,4 +1,4 @@
-import type { BrowserWindow } from "electron";
+import type { BrowserWindow, WebContents } from "electron";
 import { ipcMain } from "electron";
 import {
   type CliSplitDirection,
@@ -12,11 +12,8 @@ import { CliMethodError, type CliServer } from "../server";
 
 const SPLIT_DIRECTIONS: readonly CliSplitDirection[] = ["right", "down"];
 
-// The renderer owns the layout, so the split is dispatched there and we await a correlated reply.
-// Bounded so a wedged/closed renderer surfaces an error instead of hanging the CLI connection.
-// The renderer treats REPLY_TIMEOUT_MS as a hard deadline and no-ops past it; we wait an extra
-// grace period so a split that started just before the deadline always wins the race to reply
-// (rather than us timing out while it commits, which would strand a pane the CLI never sees).
+// The renderer owns the layout, so the split round-trips through it. The renderer no-ops past
+// REPLY_TIMEOUT_MS; the grace period lets a split that started just before the deadline reply.
 const REPLY_TIMEOUT_MS = 5000;
 const REPLY_GRACE_MS = 1000;
 
@@ -86,13 +83,17 @@ export function registerPaneSplit(
   let nextRequestId = 0;
   const pending = new Map<
     string,
-    { resolve: (result: CliSplitResult) => void; timer: NodeJS.Timeout }
+    {
+      resolve: (result: CliSplitResult) => void;
+      timer: NodeJS.Timeout;
+      sender: WebContents;
+    }
   >();
 
-  ipcMain.on(IPC.cli.splitResult, (_event, payload: unknown) => {
+  ipcMain.on(IPC.cli.splitResult, (event, payload: unknown) => {
     if (!isReply(payload)) return;
     const entry = pending.get(payload.requestId);
-    if (!entry) return;
+    if (!entry || event.sender !== entry.sender) return;
     clearTimeout(entry.timer);
     pending.delete(payload.requestId);
     entry.resolve(payload.result);
@@ -116,9 +117,8 @@ export function registerPaneSplit(
         pending.delete(requestId);
         resolve({ ok: false, reason: "timed out waiting for the renderer" });
       }, REPLY_TIMEOUT_MS + REPLY_GRACE_MS);
-      pending.set(requestId, { resolve, timer });
-      // The window passed isDestroyed() above, but it can tear down before this send; a sync
-      // throw here would otherwise leak the timer/pending entry and surface a raw error.
+      pending.set(requestId, { resolve, timer, sender: win.webContents });
+      // the window can be torn down between the isDestroyed() check and this send
       try {
         win.webContents.send(IPC.cli.split, request);
       } catch (err) {
@@ -133,7 +133,9 @@ export function registerPaneSplit(
 
     if (!result.ok) {
       throw new CliMethodError(
-        CLI_ERROR_CODES.internalError,
+        result.invalidParams
+          ? CLI_ERROR_CODES.invalidParams
+          : CLI_ERROR_CODES.internalError,
         result.reason ?? "split failed",
       );
     }
