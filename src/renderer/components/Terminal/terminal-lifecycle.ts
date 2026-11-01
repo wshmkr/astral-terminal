@@ -81,6 +81,18 @@ function createTerminal(
 ): TerminalAddons {
   container.style.backgroundColor = opts.theme.background;
 
+  const linkHandler = {
+    activate: (event: MouseEvent, uri: string) => {
+      openTerminalLink(opts.surfaceId, event, uri);
+    },
+    hover: (_event: MouseEvent, uri: string) => {
+      opts.linkHover.uri = uri;
+    },
+    leave: () => {
+      opts.linkHover.uri = null;
+    },
+  };
+
   const term = new Terminal({
     fontFamily: opts.fontFamily,
     fontSize: opts.fontSize,
@@ -91,6 +103,7 @@ function createTerminal(
     theme: opts.theme,
     windowsPty: windowsPtyOptions(opts.config),
     allowProposedApi: true,
+    linkHandler,
   });
 
   const fitAddon = new FitAddon();
@@ -99,21 +112,7 @@ function createTerminal(
   term.loadAddon(searchAddon);
   term.loadAddon(new Unicode11Addon());
   term.unicode.activeVersion = "11";
-  term.loadAddon(
-    new WebLinksAddon(
-      (event, uri) => {
-        openTerminalLink(opts.surfaceId, event, uri);
-      },
-      {
-        hover: (_event, uri) => {
-          opts.linkHover.uri = uri;
-        },
-        leave: () => {
-          opts.linkHover.uri = null;
-        },
-      },
-    ),
-  );
+  term.loadAddon(new WebLinksAddon(linkHandler.activate, linkHandler));
 
   return { term, fitAddon, searchAddon };
 }
