@@ -420,12 +420,6 @@ function findPaneWhere(
   return null;
 }
 
-export function findPaneById(
-  paneId: string,
-): { workspaceId: string; paneId: string } | null {
-  return findPaneWhere((l) => l.id === paneId);
-}
-
 export function findPaneBySurfaceId(
   surfaceId: string,
 ): { workspaceId: string; paneId: string } | null {

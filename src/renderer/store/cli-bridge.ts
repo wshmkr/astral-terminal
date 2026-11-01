@@ -1,4 +1,10 @@
-import type { ActiveRef } from "../../shared/types";
+import type { z } from "zod";
+import type {
+  ActiveRef,
+  CliRendererErrorCode,
+  CliRendererReply,
+  CliRendererRequest,
+} from "../../shared/types";
 import { findLeafPane } from "../components/Layout/pane-tree";
 import { getActiveWorkspace, getState, subscribeWorkspaceStore } from "./core";
 
@@ -22,12 +28,72 @@ function sameRef(a: ActiveRef, b: ActiveRef): boolean {
   );
 }
 
-let started = false;
+export type CliHandler = (params: unknown) => unknown;
 
-export function startCliActiveRefBridge(): void {
-  if (started) return;
-  if (typeof window === "undefined" || !window.app?.sendCliActiveRef) return;
-  started = true;
+export class CliHandlerError extends Error {
+  constructor(
+    readonly code: CliRendererErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = "CliHandlerError";
+  }
+}
+
+const handlers = new Map<string, CliHandler>();
+
+export function registerCliHandler(method: string, handler: CliHandler): void {
+  handlers.set(method, handler);
+}
+
+export function parseCliParams<T>(schema: z.ZodType<T>, params: unknown): T {
+  const result = schema.safeParse(params ?? {});
+  if (result.success) return result.data;
+  const issue = result.error.issues[0];
+  const path = issue?.path.join(".");
+  const message = issue?.message ?? "invalid params";
+  throw new CliHandlerError(
+    "invalid_params",
+    path ? `${path}: ${message}` : message,
+  );
+}
+
+async function runHandler(request: CliRendererRequest): Promise<unknown> {
+  const { method } = request;
+  if (Date.now() >= request.deadline) {
+    throw new CliHandlerError(
+      "internal_error",
+      `${method} request expired before the renderer handled it`,
+    );
+  }
+  const handler = handlers.get(method);
+  if (!handler) {
+    throw new CliHandlerError("unknown_method", `unknown method: ${method}`);
+  }
+  return handler(request.params);
+}
+
+async function handleRequest(
+  request: CliRendererRequest,
+): Promise<CliRendererReply> {
+  const { requestId } = request;
+  try {
+    const result = await runHandler(request);
+    return { requestId, ok: true, result: result ?? null };
+  } catch (err) {
+    if (err instanceof CliHandlerError) {
+      return { requestId, ok: false, code: err.code, message: err.message };
+    }
+    return {
+      requestId,
+      ok: false,
+      code: "internal_error",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+function startActiveRefSync(): void {
   let last = readActiveRef();
   window.app.sendCliActiveRef(last);
   subscribeWorkspaceStore(() => {
@@ -36,4 +102,17 @@ export function startCliActiveRefBridge(): void {
     last = next;
     window.app.sendCliActiveRef(next);
   });
+}
+
+let started = false;
+
+export function startCliBridge(): void {
+  if (started) return;
+  if (typeof window === "undefined" || !window.app?.onCliRequest) return;
+  started = true;
+  startActiveRefSync();
+  window.app.onCliRequest((request) => {
+    void handleRequest(request).then((reply) => window.app.sendCliReply(reply));
+  });
+  window.app.sendCliHandlers([...handlers.keys()]);
 }

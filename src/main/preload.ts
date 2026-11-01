@@ -9,8 +9,8 @@ import type {
   BrowserFindResult,
   BrowserOpenNewTabPayload,
   BrowserState,
-  CliSplitReply,
-  CliSplitRequest,
+  CliRendererReply,
+  CliRendererRequest,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
   NotificationPanelAction,
@@ -230,10 +230,12 @@ contextBridge.exposeInMainWorld("app", {
 
   sendCliActiveRef: (ref: ActiveRef) =>
     ipcRenderer.send(IPC.cli.activeRefUpdate, ref),
-  onCliSplit: (callback: (request: CliSplitRequest) => void) =>
-    subscribe<[CliSplitRequest]>(IPC.cli.split, callback),
-  sendCliSplitResult: (reply: CliSplitReply) =>
-    ipcRenderer.send(IPC.cli.splitResult, reply),
+  onCliRequest: (callback: (request: CliRendererRequest) => void) =>
+    subscribe<[CliRendererRequest]>(IPC.cli.request, callback),
+  sendCliReply: (reply: CliRendererReply) =>
+    ipcRenderer.send(IPC.cli.reply, reply),
+  sendCliHandlers: (methods: string[]) =>
+    ipcRenderer.send(IPC.cli.handlers, methods),
 
   browserFindRequest: (surfaceId: string, opts: BrowserFindOptions) =>
     ipcRenderer.send(IPC.browser.findRequest, { surfaceId, opts }),

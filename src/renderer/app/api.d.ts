@@ -11,8 +11,8 @@ import type {
   BrowserFindResult,
   BrowserOpenNewTabPayload,
   BrowserState,
-  CliSplitReply,
-  CliSplitRequest,
+  CliRendererReply,
+  CliRendererRequest,
   ConfigureAgentHooksResult,
   NotificationFirePayload,
   NotificationPanelAction,
@@ -165,8 +165,9 @@ export interface AppAPI {
   onUsage: (callback: (usage: UsageData) => void) => () => void;
 
   sendCliActiveRef: (ref: ActiveRef) => void;
-  onCliSplit: (callback: (request: CliSplitRequest) => void) => () => void;
-  sendCliSplitResult: (reply: CliSplitReply) => void;
+  onCliRequest: (callback: (request: CliRendererRequest) => void) => () => void;
+  sendCliReply: (reply: CliRendererReply) => void;
+  sendCliHandlers: (methods: string[]) => void;
 }
 
 declare global {

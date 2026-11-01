@@ -347,31 +347,30 @@ export interface ActiveRef {
   surfaceId: string | null;
 }
 
-export type CliSplitDirection = "right" | "down";
+export type CliRendererErrorCode =
+  | "unknown_method"
+  | "invalid_params"
+  | "not_found"
+  | "ambiguous"
+  | "unsupported_surface"
+  | "internal_error";
 
-export interface CliSplitRequest {
+export interface CliRendererRequest {
   requestId: string;
-  direction: CliSplitDirection;
-  // epoch ms after which the renderer must not split
+  method: string;
+  params: unknown;
+  // epoch ms after which the renderer must not run the handler
   deadline: number;
-  // omit both to split the focused pane
-  surfaceId?: string;
-  paneId?: string;
 }
 
-export interface CliSplitResult {
-  ok: boolean;
-  reason?: string;
-  invalidParams?: boolean;
-  workspaceId?: string | null;
-  paneId?: string | null;
-  surfaceId?: string | null;
-}
-
-export interface CliSplitReply {
-  requestId: string;
-  result: CliSplitResult;
-}
+export type CliRendererReply =
+  | { requestId: string; ok: true; result: unknown }
+  | {
+      requestId: string;
+      ok: false;
+      code: CliRendererErrorCode;
+      message: string;
+    };
 
 export const IPC = {
   pty: {
@@ -428,8 +427,9 @@ export const IPC = {
   },
   cli: {
     activeRefUpdate: "cli:active-ref-update",
-    split: "cli:split",
-    splitResult: "cli:split-result",
+    request: "cli:request",
+    reply: "cli:reply",
+    handlers: "cli:handlers",
   },
   shell: {
     openExternal: "shell:open-external",
