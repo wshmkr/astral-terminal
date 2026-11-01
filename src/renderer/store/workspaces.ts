@@ -27,9 +27,9 @@ import {
   setState,
 } from "./core";
 import {
-  createBrowserSurface,
   createDefaultWorkspace,
   createLeafPane,
+  createSurface,
   createTerminalSurface,
   generateId,
   nextWorkspaceName,
@@ -46,6 +46,31 @@ export function consumeBrowserUrlFocus(surfaceId: string): boolean {
 
 // Remembers each workspace's last-focused pane so switching back restores it
 const lastFocusedPaneByWorkspace = new Map<string, string>();
+
+function resolveWorkspace(workspaceId?: string): Workspace | undefined {
+  return workspaceId ? getWorkspace(workspaceId) : getActiveWorkspace();
+}
+
+function getFocusedPaneIn(workspaceId: string): string | null {
+  const s = getState();
+  if (s.activeWorkspaceId === workspaceId) return s.focusedPaneId;
+  return lastFocusedPaneByWorkspace.get(workspaceId) ?? null;
+}
+
+function focusPaneIn(workspaceId: string, paneId: string): boolean {
+  if (getFocusedPaneIn(workspaceId) === paneId) return false;
+  const s = getState();
+  if (s.activeWorkspaceId === workspaceId) {
+    setState({ ...s, focusedPaneId: paneId });
+  } else {
+    lastFocusedPaneByWorkspace.set(workspaceId, paneId);
+  }
+  return true;
+}
+
+function resolveBrowserUrl(url?: string): string | undefined {
+  return url ?? (getState().browserSettings.homepage.trim() || undefined);
+}
 
 function mapWorkspaceById(
   id: string,
@@ -125,16 +150,18 @@ function removeWorkspace(wsId: string) {
   });
 }
 
-function closeLeafInActiveWorkspace(ws: Workspace, paneId: string) {
-  const newLayout = pruneNode(ws.layout, paneId);
+function applyLayoutAfterRemoval(
+  ws: Workspace,
+  paneId: string,
+  newLayout: PaneNode | null,
+) {
   if (!newLayout) {
     removeWorkspace(ws.id);
     return;
   }
   setWorkspaceLayout(ws.id, newLayout);
-  const s = getState();
-  if (s.focusedPaneId === paneId) {
-    setState({ ...s, focusedPaneId: findFirstLeaf(newLayout) });
+  if (getFocusedPaneIn(ws.id) === paneId) {
+    focusPaneIn(ws.id, findFirstLeaf(newLayout));
   }
 }
 
@@ -159,15 +186,26 @@ export function updateTerminalSurface(
   if (changed) scheduleSave();
 }
 
-export function createWorkspace(name?: string): Workspace {
+export function createWorkspace(
+  name?: string,
+  opts: { cwd?: string; activate?: boolean } = {},
+): Workspace {
+  const { cwd, activate = true } = opts;
   const s = getState();
-  const ws = createDefaultWorkspace(name ?? nextWorkspaceName(s.workspaces));
-  setState({
-    ...s,
-    workspaces: [...s.workspaces, ws],
-    activeWorkspaceId: ws.id,
-    focusedPaneId: ws.layout.id,
-  });
+  const ws = createDefaultWorkspace(
+    name ?? nextWorkspaceName(s.workspaces),
+    cwd,
+  );
+  setState(
+    activate
+      ? {
+          ...s,
+          workspaces: [...s.workspaces, ws],
+          activeWorkspaceId: ws.id,
+          focusedPaneId: ws.layout.id,
+        }
+      : { ...s, workspaces: [...s.workspaces, ws] },
+  );
   commit();
   return ws;
 }
@@ -200,55 +238,70 @@ function wrapLeafInSplit(
   targetPaneId: string,
   direction: SplitDirection,
   newLeaf: LeafPane,
+  before = false,
 ): PaneNode {
   return mapNode(layout, targetPaneId, (node) => ({
     kind: "split" as const,
     id: generateId(),
     direction,
-    children: [node, newLeaf],
+    children: before ? [newLeaf, node] : [node, newLeaf],
   }));
 }
 
 export function splitPane(
   targetPaneId: string,
   direction: SplitDirection,
-  opts: { workspaceId?: string; focusNew?: boolean } = {},
+  opts: {
+    workspaceId?: string;
+    focusNew?: boolean;
+    before?: boolean;
+    kind?: SurfaceKind;
+    url?: string;
+    cwd?: string;
+  } = {},
 ): { paneId: string; surfaceId: string } | null {
-  const { workspaceId, focusNew = true } = opts;
-  const ws = workspaceId ? getWorkspace(workspaceId) : getActiveWorkspace();
+  const { focusNew = true, before = false, kind = "terminal", url } = opts;
+  const ws = resolveWorkspace(opts.workspaceId);
   if (!ws) return null;
 
   const targetLeaf = findLeafPane(ws.layout, targetPaneId);
   if (!targetLeaf) return null;
   const activeSurface = getActiveSurface(targetLeaf);
   const cwd =
-    activeSurface && isTerminalSurface(activeSurface)
+    opts.cwd ??
+    (activeSurface && isTerminalSurface(activeSurface)
       ? activeSurface.cwd
-      : undefined;
-  const newLeaf = createLeafPane(cwd);
+      : undefined);
+  const newLeaf = createLeafPane(
+    createSurface(kind, {
+      url: kind === "browser" ? resolveBrowserUrl(url) : undefined,
+      cwd,
+    }),
+  );
   const newLayout = wrapLeafInSplit(
     ws.layout,
     targetPaneId,
     direction,
     newLeaf,
+    before,
   );
   if (newLayout === ws.layout) return null;
   setWorkspaceLayout(ws.id, newLayout);
-  if (focusNew) {
-    if (ws.id === getState().activeWorkspaceId) {
-      setState({ ...getState(), focusedPaneId: newLeaf.id });
-    } else {
-      lastFocusedPaneByWorkspace.set(ws.id, newLeaf.id);
-    }
-  }
+  if (focusNew) focusPaneIn(ws.id, newLeaf.id);
   commit();
+  if (kind === "browser" && focusNew && !url) {
+    browserUrlFocusPending.add(newLeaf.activeSurfaceId);
+  }
   return { paneId: newLeaf.id, surfaceId: newLeaf.activeSurfaceId };
 }
 
-export function closePane(paneId: string): void {
-  const ws = getActiveWorkspace();
+export function closePane(
+  paneId: string,
+  opts: { workspaceId?: string } = {},
+): void {
+  const ws = resolveWorkspace(opts.workspaceId);
   if (!ws) return;
-  closeLeafInActiveWorkspace(ws, paneId);
+  applyLayoutAfterRemoval(ws, paneId, pruneNode(ws.layout, paneId));
   commit();
 }
 
@@ -320,21 +373,26 @@ export function renameWorkspace(id: string, name: string): void {
 export function addSurface(
   paneId: string,
   kind: SurfaceKind = "terminal",
-  options?: { url?: string; activate?: boolean },
+  options: {
+    url?: string;
+    activate?: boolean;
+    cwd?: string;
+    workspaceId?: string;
+    focusPane?: boolean;
+  } = {},
 ): string | null {
-  const ws = getActiveWorkspace();
+  const ws = resolveWorkspace(options.workspaceId);
   if (!ws) return null;
-  const activate = options?.activate ?? true;
+  const { activate = true, focusPane = false } = options;
   const browserUrl =
-    kind === "browser"
-      ? (options?.url ??
-        (getState().browserSettings.homepage.trim() || undefined))
-      : undefined;
+    kind === "browser" ? resolveBrowserUrl(options.url) : undefined;
   let newSurfaceId: string | null = null;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const active = getActiveSurface(leaf);
     // fall back to nearest left terminal's cwd if active tab is non-terminal
-    let cwd = active && isTerminalSurface(active) ? active.cwd : undefined;
+    let cwd =
+      options.cwd ??
+      (active && isTerminalSurface(active) ? active.cwd : undefined);
     if (cwd === undefined && active) {
       const activeIndex = leaf.surfaces.findIndex((s) => s.id === active.id);
       for (let i = activeIndex - 1; i >= 0; i--) {
@@ -345,10 +403,7 @@ export function addSurface(
         }
       }
     }
-    const surface =
-      kind === "browser"
-        ? createBrowserSurface(browserUrl)
-        : createTerminalSurface(cwd);
+    const surface = createSurface(kind, { url: browserUrl, cwd });
     newSurfaceId = surface.id;
     return {
       ...leaf,
@@ -356,8 +411,11 @@ export function addSurface(
       activeSurfaceId: activate ? surface.id : leaf.activeSurfaceId,
     };
   });
-  if (changed) commit();
-  if (newSurfaceId && kind === "browser" && activate && !options?.url) {
+  if (changed) {
+    if (focusPane) focusPaneIn(ws.id, paneId);
+    commit();
+  }
+  if (newSurfaceId && kind === "browser" && activate && !options.url) {
     browserUrlFocusPending.add(newSurfaceId);
   }
   return newSurfaceId;
@@ -400,34 +458,32 @@ export function openUrlNearSurface(
   return true;
 }
 
-export function closeSurface(paneId: string, surfaceId: string): void {
-  const ws = getActiveWorkspace();
+export function closeSurface(
+  paneId: string,
+  surfaceId: string,
+  opts: { workspaceId?: string } = {},
+): void {
+  const ws = resolveWorkspace(opts.workspaceId);
   if (!ws) return;
   const newLayout = removeSurfaceFromLayout(ws.layout, paneId, surfaceId);
   if (newLayout === ws.layout) return;
-  if (newLayout === null) {
-    removeWorkspace(ws.id);
-    commit();
-    return;
-  }
-  setWorkspaceLayout(ws.id, newLayout);
-  const s = getState();
-  if (s.focusedPaneId === paneId) {
-    setState({ ...s, focusedPaneId: findFirstLeaf(newLayout) });
-  }
+  applyLayoutAfterRemoval(ws, paneId, newLayout);
   commit();
 }
 
-export function setActiveSurface(paneId: string, surfaceId: string): void {
-  const ws = getActiveWorkspace();
+export function setActiveSurface(
+  paneId: string,
+  surfaceId: string,
+  opts: { workspaceId?: string; focusPane?: boolean } = {},
+): void {
+  const { focusPane = true } = opts;
+  const ws = resolveWorkspace(opts.workspaceId);
   if (!ws) return;
   const leafChanged = updateLeaf(ws.id, paneId, (l) =>
     l.activeSurfaceId === surfaceId ? l : { ...l, activeSurfaceId: surfaceId },
   );
   const notifsChanged = markSurfaceNotificationsRead(ws.id, surfaceId);
-  const s = getState();
-  const paneChanged = s.focusedPaneId !== paneId;
-  if (paneChanged) setState({ ...s, focusedPaneId: paneId });
+  const paneChanged = focusPane && focusPaneIn(ws.id, paneId);
   if (leafChanged || paneChanged) commit();
   else if (notifsChanged) notify();
 }
@@ -443,8 +499,12 @@ export function navigateToSurface(
   setActiveSurface(located?.paneId ?? paneId, surfaceId);
 }
 
-export function resizeSplit(splitNodeId: string, sizes: number[]): void {
-  const ws = getActiveWorkspace();
+export function resizeSplit(
+  splitNodeId: string,
+  sizes: number[],
+  opts: { workspaceId?: string } = {},
+): void {
+  const ws = resolveWorkspace(opts.workspaceId);
   if (!ws) return;
   const newLayout = mapNode(ws.layout, splitNodeId, (node) => {
     if (node.kind !== "split") return node;
@@ -468,8 +528,9 @@ export function reorderSurfaces(
   paneId: string,
   activeId: string,
   overId: string,
+  opts: { workspaceId?: string } = {},
 ): void {
-  const ws = getActiveWorkspace();
+  const ws = resolveWorkspace(opts.workspaceId);
   if (!ws) return;
   const changed = updateLeaf(ws.id, paneId, (leaf) => {
     const from = leaf.surfaces.findIndex((s) => s.id === activeId);
@@ -484,29 +545,64 @@ export function moveSurfaceToPane(
   sourcePaneId: string,
   surfaceId: string,
   targetPaneId: string,
+  opts: { workspaceId?: string; index?: number; focus?: boolean } = {},
 ): void {
   if (sourcePaneId === targetPaneId) return;
-  const ws = getActiveWorkspace();
+  const { index, focus = true } = opts;
+  const ws = resolveWorkspace(opts.workspaceId);
   if (!ws) return;
   const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
   const surface = sourceLeaf?.surfaces.find((s) => s.id === surfaceId);
   if (!surface) return;
 
-  const afterAdd = updateLeafInLayout(ws.layout, targetPaneId, (leaf) => ({
-    ...leaf,
-    surfaces: [...leaf.surfaces, surface],
-    activeSurfaceId: surface.id,
-  }));
+  const afterAdd = updateLeafInLayout(ws.layout, targetPaneId, (leaf) => {
+    const surfaces = [...leaf.surfaces];
+    surfaces.splice(index ?? surfaces.length, 0, surface);
+    return { ...leaf, surfaces, activeSurfaceId: surface.id };
+  });
   if (afterAdd === ws.layout) return;
 
   const nextLayout = removeSurfaceFromLayout(afterAdd, sourcePaneId, surfaceId);
   if (!nextLayout) return;
 
   setWorkspaceLayout(ws.id, nextLayout);
-  const s = getState();
-  if (s.focusedPaneId !== targetPaneId)
-    setState({ ...s, focusedPaneId: targetPaneId });
+  const sourcePruned =
+    getFocusedPaneIn(ws.id) === sourcePaneId &&
+    !findLeafPane(nextLayout, sourcePaneId);
+  if (focus || sourcePruned) focusPaneIn(ws.id, targetPaneId);
   commit();
+}
+
+export interface ParentSplit {
+  splitId: string;
+  index: number;
+  sizes: number[];
+}
+
+export function findParentSplit(
+  workspaceId: string,
+  paneId: string,
+): ParentSplit | null {
+  const ws = getWorkspace(workspaceId);
+  if (!ws) return null;
+  const visit = (node: PaneNode): ParentSplit | null => {
+    if (node.kind === "leaf") return null;
+    const index = node.children.findIndex((c) => c.id === paneId);
+    if (index >= 0) {
+      const count = node.children.length;
+      const sizes =
+        node.sizes?.length === count
+          ? node.sizes
+          : Array.from({ length: count }, () => 1 / count);
+      return { splitId: node.id, index, sizes };
+    }
+    for (const child of node.children) {
+      const found = visit(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  return visit(ws.layout);
 }
 
 export function splitPaneWithSurface(
