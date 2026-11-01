@@ -58,29 +58,27 @@ export function parseCliParams<T>(schema: z.ZodType<T>, params: unknown): T {
   );
 }
 
-async function handleRequest(
-  request: CliRendererRequest,
-): Promise<CliRendererReply> {
-  const { requestId, method } = request;
+async function runHandler(request: CliRendererRequest): Promise<unknown> {
+  const { method } = request;
   if (Date.now() >= request.deadline) {
-    return {
-      requestId,
-      ok: false,
-      code: "internal_error",
-      message: `${method} request expired before the renderer handled it`,
-    };
+    throw new CliHandlerError(
+      "internal_error",
+      `${method} request expired before the renderer handled it`,
+    );
   }
   const handler = handlers.get(method);
   if (!handler) {
-    return {
-      requestId,
-      ok: false,
-      code: "unknown_method",
-      message: `unknown method: ${method}`,
-    };
+    throw new CliHandlerError("unknown_method", `unknown method: ${method}`);
   }
+  return handler(request.params);
+}
+
+async function handleRequest(
+  request: CliRendererRequest,
+): Promise<CliRendererReply> {
+  const { requestId } = request;
   try {
-    const result = await handler(request.params);
+    const result = await runHandler(request);
     return { requestId, ok: true, result: result ?? null };
   } catch (err) {
     if (err instanceof CliHandlerError) {

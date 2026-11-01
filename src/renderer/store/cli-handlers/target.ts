@@ -3,7 +3,6 @@ import type { ResolvedTarget, TargetParams } from "../../../shared/cli/target";
 import type { LeafPane, Surface, Workspace } from "../../../shared/types";
 import {
   findLeafPane,
-  findLeafWhere,
   forEachLeaf,
   getActiveSurface,
 } from "../../components/Layout/pane-tree";
@@ -36,10 +35,10 @@ function matchId<T>(
 ): T {
   const exact = items.find((item) => idOf(item) === query);
   if (exact) return exact;
-  if (query.length < MIN_PREFIX_LENGTH) {
-    throw new CliHandlerError("not_found", `${kind} not found: ${query}`);
-  }
-  const matches = items.filter((item) => idOf(item).startsWith(query));
+  const matches =
+    query.length >= MIN_PREFIX_LENGTH
+      ? items.filter((item) => idOf(item).startsWith(query))
+      : [];
   if (matches.length > 1) {
     throw new CliHandlerError(
       "ambiguous",
@@ -124,14 +123,11 @@ function locateCaller(
   workspaces: readonly Workspace[],
   callerSurfaceId: string,
 ): Location | null {
-  for (const workspace of workspaces) {
-    const leaf = findLeafWhere(workspace.layout, (l) =>
-      l.surfaces.some((s) => s.id === callerSurfaceId),
-    );
-    const surface = leaf?.surfaces.find((s) => s.id === callerSurfaceId);
-    if (leaf && surface) return { workspace, leaf, surface };
-  }
-  return null;
+  return (
+    collectSurfaces(workspaces).find(
+      ({ surface }) => surface.id === callerSurfaceId,
+    ) ?? null
+  );
 }
 
 function locateExplicit(
