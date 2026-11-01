@@ -82,6 +82,7 @@ export interface AppAPI {
   windowMinimize: () => void;
   windowMaximize: () => void;
   windowClose: () => void;
+  windowRendererReady: () => void;
   onWindowMaximizedChange: (
     callback: (maximized: boolean) => void,
   ) => () => void;
