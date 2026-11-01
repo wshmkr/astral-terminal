@@ -13,9 +13,9 @@ type splitResult struct {
 	SurfaceID   *string `json:"surfaceId"`
 }
 
-func splitArgs(_ *cobra.Command, args []string) error {
+func splitArgs(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return usageErrorf("usage: astral pane split <right|down>")
+		return usageErrorf("usage: %s <right|down>", cmd.CommandPath())
 	}
 	switch args[0] {
 	case "right", "down":

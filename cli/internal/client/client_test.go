@@ -190,6 +190,10 @@ func TestCallUnauthorized(t *testing.T) {
 	if err := c.Call(context.Background(), "system.ping", nil, nil); !errors.As(err, &appErr) || appErr.Code != "unauthorized" {
 		t.Errorf("err = %v", err)
 	}
+	line, err := c.CallRaw(context.Background(), "system.ping", nil)
+	if !errors.As(err, &appErr) || !strings.Contains(string(line), "invalid token") {
+		t.Errorf("CallRaw = %s, %v", line, err)
+	}
 }
 
 func TestCallRawReturnsReplyLine(t *testing.T) {

@@ -102,7 +102,8 @@ func (c *Client) Call(ctx context.Context, method string, params any, out any) e
 	return nil
 }
 
-// CallRaw returns the reply line as received, along with an *AppError when the reply is not ok.
+// CallRaw returns the reply line as received (the auth reply when authentication fails), along
+// with an *AppError when that reply is not ok.
 func (c *Client) CallRaw(ctx context.Context, method string, params any) ([]byte, error) {
 	line, _, err := c.exchange(ctx, method, params)
 	return line, err
@@ -127,7 +128,7 @@ func (c *Client) exchange(ctx context.Context, method string, params any) ([]byt
 			continue
 		}
 		if err != nil {
-			return nil, nil, err
+			return line, nil, err
 		}
 		if c.Cache != nil {
 			c.Cache.Store(host)
@@ -161,12 +162,12 @@ func (c *Client) exchangeWith(ctx context.Context, host string, auth, req []byte
 		return nil, nil, noReply
 	}
 	r := bufio.NewReader(conn)
-	_, authResp, err := readResponse(r, addr, noReply)
+	authLine, authResp, err := readResponse(r, addr, noReply)
 	if err != nil {
 		return nil, nil, err
 	}
 	if !authResp.OK {
-		return nil, nil, appError(authResp)
+		return authLine, nil, appError(authResp)
 	}
 	return readResponse(r, addr, noReply)
 }

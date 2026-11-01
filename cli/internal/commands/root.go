@@ -151,15 +151,18 @@ func TargetParams(cmd *cobra.Command) map[string]any {
 }
 
 func call(cmd *cobra.Command, method string, params any, out any) error {
-	return withVersionHint(cmd.Context(), method, client.Call(cmd.Context(), method, params, out))
+	return withVersionHint(cmd.Context(), method, client.Call(cmd.Context(), method, params, out), true)
 }
 
-func withVersionHint(ctx context.Context, method string, err error) error {
+// withVersionHint adds a version-skew hint to an unknown_method error. A method the CLI itself
+// relies on (builtin) is skew when the app does not advertise it; any other method is only
+// attributed to skew when the app cannot list its capabilities.
+func withVersionHint(ctx context.Context, method string, err error, builtin bool) error {
 	var appErr *client.AppError
 	if !errors.As(err, &appErr) || appErr.Code != protocol.CodeUnknownMethod {
 		return err
 	}
-	if methodAdvertised(ctx, method) {
+	if advertised, listed := methodAdvertised(ctx, method); advertised || (listed && !builtin) {
 		return err
 	}
 	return &hintError{
@@ -169,12 +172,12 @@ func withVersionHint(ctx context.Context, method string, err error) error {
 	}
 }
 
-func methodAdvertised(ctx context.Context, method string) bool {
+func methodAdvertised(ctx context.Context, method string) (advertised, listed bool) {
 	ctx, cancel := context.WithTimeout(ctx, capabilitiesProbeTimeout)
 	defer cancel()
 	var caps protocol.Capabilities
 	if err := client.Call(ctx, "system.capabilities", nil, &caps); err != nil {
-		return false
+		return false, false
 	}
-	return slices.Contains(caps.Methods, method)
+	return slices.Contains(caps.Methods, method), true
 }

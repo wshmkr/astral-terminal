@@ -28,11 +28,16 @@ var identifyCmd = &cobra.Command{
 		if err != nil {
 			pid = 0
 		}
-		return output.WriteJSON(cmd.OutOrStdout(), struct {
+		line, err := json.Marshal(struct {
 			SurfaceID string `json:"surfaceId"`
 			PID       uint64 `json:"pid"`
 			Version   string `json:"version"`
 		}{surface, pid, os.Getenv("ASTRAL_VERSION")})
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "%s\n", line)
+		return nil
 	},
 }
 
@@ -117,7 +122,7 @@ var callCmd = &cobra.Command{
 		if line != nil {
 			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", line)
 		}
-		return withVersionHint(cmd.Context(), args[0], err)
+		return withVersionHint(cmd.Context(), args[0], err, false)
 	},
 }
 

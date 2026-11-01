@@ -188,6 +188,33 @@ func TestUnknownMethodHint(t *testing.T) {
 	}
 }
 
+func TestCallUnknownMethodHint(t *testing.T) {
+	unknown := `{"id":"call","ok":false,"error":{"code":"unknown_method","message":"unknown method"}}`
+	fakeApp(t, map[string]string{
+		"nope.method":         unknown,
+		"system.capabilities": `{"id":"call","ok":true,"result":{"protocolVersion":1,"methods":["pane.split"]}}`,
+	})
+	r := run("call", "nope.method")
+	if r.code != ExitAppError || r.stdout != unknown+"\n" || strings.Contains(r.stderr, "hint") {
+		t.Errorf("app lists capabilities: %+v", r)
+	}
+
+	fakeApp(t, map[string]string{"nope.method": unknown, "system.capabilities": unknown})
+	r = run("call", "nope.method")
+	if r.code != ExitAppError || !strings.Contains(r.stderr, "versions differ") {
+		t.Errorf("app without capabilities: %+v", r)
+	}
+}
+
+func TestSplitUsageNamesCommand(t *testing.T) {
+	if r := run("split"); !strings.HasPrefix(r.stderr, "astral: usage: astral split <right|down>\n") {
+		t.Errorf("split: %q", r.stderr)
+	}
+	if r := run("pane", "split"); !strings.HasPrefix(r.stderr, "astral: usage: astral pane split <right|down>\n") {
+		t.Errorf("pane split: %q", r.stderr)
+	}
+}
+
 func TestCallPrintsRawReply(t *testing.T) {
 	reply := `{"id":"call","ok":true,"result":{"version":"1.0.0"}}`
 	requests := fakeApp(t, map[string]string{"app.identify": reply})
@@ -222,7 +249,7 @@ func TestIdentify(t *testing.T) {
 	t.Setenv("ASTRAL_PID", "0042")
 	t.Setenv("ASTRAL_VERSION", "0.9.0")
 	r := run("identify")
-	want := "{\n  \"surfaceId\": \"surf-1\",\n  \"pid\": 42,\n  \"version\": \"0.9.0\"\n}\n"
+	want := `{"surfaceId":"surf-1","pid":42,"version":"0.9.0"}` + "\n"
 	if r.code != ExitOK || r.stdout != want {
 		t.Errorf("%+v", r)
 	}
