@@ -199,7 +199,7 @@ function handleHitRect(rect: Rect, direction: SplitDirection): Rect {
       };
 }
 
-function normalizeFractions(
+export function normalizeFractions(
   sizes: number[] | undefined,
   count: number,
 ): number[] {

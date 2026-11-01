@@ -3,6 +3,7 @@ import {
   DEFAULT_CWD,
   type LeafPane,
   type Surface,
+  type SurfaceKind,
   type Workspace,
 } from "../../shared/types";
 
@@ -20,7 +21,7 @@ export function createTerminalSurface(cwd?: string): Surface {
   };
 }
 
-export function createBrowserSurface(url?: string): Surface {
+function createBrowserSurface(url?: string): Surface {
   return {
     type: "browser",
     id: generateId(),
@@ -29,8 +30,18 @@ export function createBrowserSurface(url?: string): Surface {
   };
 }
 
-export function createLeafPane(cwd?: string): LeafPane {
-  const surface = createTerminalSurface(cwd);
+export function createSurface(
+  kind: SurfaceKind,
+  opts: { url?: string; cwd?: string } = {},
+): Surface {
+  return kind === "browser"
+    ? createBrowserSurface(opts.url)
+    : createTerminalSurface(opts.cwd);
+}
+
+export function createLeafPane(
+  surface: Surface = createTerminalSurface(),
+): LeafPane {
   return {
     kind: "leaf",
     id: generateId(),
@@ -46,11 +57,11 @@ export function nextWorkspaceName(workspaces: Workspace[]): string {
   return `Workspace ${i}`;
 }
 
-export function createDefaultWorkspace(name: string): Workspace {
+export function createDefaultWorkspace(name: string, cwd?: string): Workspace {
   return {
     id: generateId(),
     name,
-    layout: createLeafPane(),
+    layout: createLeafPane(createTerminalSurface(cwd)),
     notifications: [],
   };
 }
