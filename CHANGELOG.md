@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/wshmkr/astral-terminal/compare/v0.9.0...v0.10.0) (2026-11-01)
+
+
+### Features
+
+* add astral split CLI command with cross-workspace targeting ([#110](https://github.com/wshmkr/astral-terminal/issues/110)) ([2933df3](https://github.com/wshmkr/astral-terminal/commit/2933df3910c8d4f56c6301555b3610501976add6))
+
+
+### Bug Fixes
+
+* open OSC 8 hyperlinks in terminal ([#121](https://github.com/wshmkr/astral-terminal/issues/121)) ([7f705ed](https://github.com/wshmkr/astral-terminal/commit/7f705ed295b32061dd49f6a214f5fbf367496b52))
+* resolve bugs, races, and hot-path waste from full-codebase review ([#113](https://github.com/wshmkr/astral-terminal/issues/113)) ([bab85dc](https://github.com/wshmkr/astral-terminal/commit/bab85dc295cf8f62797ab6e2017920622c20f01e))
+* reveal main window on renderer ready signal ([#117](https://github.com/wshmkr/astral-terminal/issues/117)) ([36d0151](https://github.com/wshmkr/astral-terminal/commit/36d015197fdf33bc834e3f6a6733dd437b775211))
+
 ## [0.9.0](https://github.com/wshmkr/astral-terminal/compare/v0.8.0...v0.9.0) (2026-09-14)
 
 
