@@ -21,7 +21,7 @@ export function createTerminalSurface(cwd?: string): Surface {
   };
 }
 
-export function createBrowserSurface(url?: string): Surface {
+function createBrowserSurface(url?: string): Surface {
   return {
     type: "browser",
     id: generateId(),

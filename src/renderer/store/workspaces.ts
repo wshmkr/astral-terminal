@@ -8,6 +8,7 @@ import {
   type TerminalSurface,
   type Workspace,
 } from "../../shared/types";
+import { normalizeFractions } from "../components/Layout/layout-math";
 import {
   findFirstLeaf,
   findLeafPane,
@@ -51,14 +52,8 @@ function resolveWorkspace(workspaceId?: string): Workspace | undefined {
   return workspaceId ? getWorkspace(workspaceId) : getActiveWorkspace();
 }
 
-function getFocusedPaneIn(workspaceId: string): string | null {
-  const s = getState();
-  if (s.activeWorkspaceId === workspaceId) return s.focusedPaneId;
-  return lastFocusedPaneByWorkspace.get(workspaceId) ?? null;
-}
-
 function focusPaneIn(workspaceId: string, paneId: string): boolean {
-  if (getFocusedPaneIn(workspaceId) === paneId) return false;
+  if (getWorkspaceFocusedPaneId(workspaceId) === paneId) return false;
   const s = getState();
   if (s.activeWorkspaceId === workspaceId) {
     setState({ ...s, focusedPaneId: paneId });
@@ -159,10 +154,9 @@ function applyLayoutAfterRemoval(
     removeWorkspace(ws.id);
     return;
   }
+  const wasFocused = getWorkspaceFocusedPaneId(ws.id) === paneId;
   setWorkspaceLayout(ws.id, newLayout);
-  if (getFocusedPaneIn(ws.id) === paneId) {
-    focusPaneIn(ws.id, findFirstLeaf(newLayout));
-  }
+  if (wasFocused) focusPaneIn(ws.id, findFirstLeaf(newLayout));
 }
 
 export function updateTerminalSurface(
@@ -196,16 +190,11 @@ export function createWorkspace(
     name ?? nextWorkspaceName(s.workspaces),
     cwd,
   );
-  setState(
-    activate
-      ? {
-          ...s,
-          workspaces: [...s.workspaces, ws],
-          activeWorkspaceId: ws.id,
-          focusedPaneId: ws.layout.id,
-        }
-      : { ...s, workspaces: [...s.workspaces, ws] },
-  );
+  setState({
+    ...s,
+    workspaces: [...s.workspaces, ws],
+    ...(activate && { activeWorkspaceId: ws.id, focusedPaneId: ws.layout.id }),
+  });
   commit();
   return ws;
 }
@@ -553,7 +542,7 @@ export function moveSurfaceToPane(
   if (!ws) return;
   const sourceLeaf = findLeafPane(ws.layout, sourcePaneId);
   const surface = sourceLeaf?.surfaces.find((s) => s.id === surfaceId);
-  if (!surface) return;
+  if (!sourceLeaf || !surface) return;
 
   const afterAdd = updateLeafInLayout(ws.layout, targetPaneId, (leaf) => {
     const surfaces = [...leaf.surfaces];
@@ -565,10 +554,10 @@ export function moveSurfaceToPane(
   const nextLayout = removeSurfaceFromLayout(afterAdd, sourcePaneId, surfaceId);
   if (!nextLayout) return;
 
-  setWorkspaceLayout(ws.id, nextLayout);
   const sourcePruned =
-    getFocusedPaneIn(ws.id) === sourcePaneId &&
-    !findLeafPane(nextLayout, sourcePaneId);
+    sourceLeaf.surfaces.length === 1 &&
+    getWorkspaceFocusedPaneId(ws.id) === sourcePaneId;
+  setWorkspaceLayout(ws.id, nextLayout);
   if (focus || sourcePruned) focusPaneIn(ws.id, targetPaneId);
   commit();
 }
@@ -589,11 +578,7 @@ export function findParentSplit(
     if (node.kind === "leaf") return null;
     const index = node.children.findIndex((c) => c.id === paneId);
     if (index >= 0) {
-      const count = node.children.length;
-      const sizes =
-        node.sizes?.length === count
-          ? node.sizes
-          : Array.from({ length: count }, () => 1 / count);
+      const sizes = normalizeFractions(node.sizes, node.children.length);
       return { splitId: node.id, index, sizes };
     }
     for (const child of node.children) {
@@ -617,12 +602,7 @@ export function splitPaneWithSurface(
   const surface = sourceLeaf?.surfaces.find((s) => s.id === surfaceId);
   if (!sourceLeaf || !surface) return;
 
-  const newLeaf: LeafPane = {
-    kind: "leaf",
-    id: generateId(),
-    surfaces: [surface],
-    activeSurfaceId: surface.id,
-  };
+  const newLeaf = createLeafPane(surface);
   const afterSplit = wrapLeafInSplit(
     ws.layout,
     targetPaneId,
