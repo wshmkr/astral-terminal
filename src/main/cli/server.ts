@@ -24,6 +24,7 @@ const PRE_AUTH_TIMEOUT_MS = 10_000;
 const MAX_FAILED_AUTH_ATTEMPTS = 3;
 
 export type CliMethodHandler = (params: unknown) => Promise<unknown> | unknown;
+export type CliFallbackHandler = (method: string, params: unknown) => unknown;
 
 export class CliMethodError extends Error {
   constructor(
@@ -39,13 +40,15 @@ export interface CliServer {
   start(): Promise<string>;
   close(): Promise<void>;
   register(method: string, handler: CliMethodHandler): void;
+  setFallback(handler: CliFallbackHandler): void;
+  listMethods(): string[];
   getSocketPath(): string | null;
   getTcpPort(): number | null;
   getAuthToken(): string | null;
 }
 
 interface ConnectionContext {
-  handlers: Map<string, CliMethodHandler>;
+  resolveHandler(method: string): CliMethodHandler | null;
   // null => the transport itself is the access boundary (local socket / named pipe), so the
   // connection is pre-authenticated; a string => the client must pass it via auth.hello first.
   requiredToken: string | null;
@@ -170,6 +173,13 @@ function listenAsync(srv: net.Server, listen: () => void): Promise<void> {
 
 export function createCliServer(): CliServer {
   const handlers = new Map<string, CliMethodHandler>();
+  let fallback: CliFallbackHandler | null = null;
+  const resolveHandler = (method: string): CliMethodHandler | null => {
+    const handler = handlers.get(method);
+    if (handler) return handler;
+    const fb = fallback;
+    return fb ? (params) => fb(method, params) : null;
+  };
   let localServer: net.Server | null = null;
   let tcpServer: net.Server | null = null;
   let location: SocketLocation | null = null;
@@ -195,6 +205,12 @@ export function createCliServer(): CliServer {
     register(method, handler) {
       handlers.set(method, handler);
     },
+    setFallback(handler) {
+      fallback = handler;
+    },
+    listMethods() {
+      return [...handlers.keys()];
+    },
     getSocketPath() {
       return location?.path ?? null;
     },
@@ -211,7 +227,7 @@ export function createCliServer(): CliServer {
       if (!loc.isPipe) unlinkSocketIfExists(loc.path);
 
       const local = net.createServer((socket) =>
-        attachConnection(socket, { handlers, requiredToken: null }),
+        attachConnection(socket, { resolveHandler, requiredToken: null }),
       );
       await listenAsync(local, () => local.listen(loc.path));
 
@@ -236,7 +252,7 @@ export function createCliServer(): CliServer {
         try {
           const token = generateToken();
           const tcp = net.createServer((socket) =>
-            attachConnection(socket, { handlers, requiredToken: token }),
+            attachConnection(socket, { resolveHandler, requiredToken: token }),
           );
           await listenAsync(tcp, () => tcp.listen(0, "0.0.0.0"));
           const addr = tcp.address();
@@ -303,7 +319,7 @@ async function dispatch(
     );
   }
 
-  const handler = ctx.handlers.get(method);
+  const handler = ctx.resolveHandler(method);
   if (!handler) {
     return makeErr(
       id,

@@ -6,11 +6,22 @@ export const CLI_ERROR_CODES = {
   unauthorized: "unauthorized",
   unknownMethod: "unknown_method",
   invalidParams: "invalid_params",
+  notFound: "not_found",
+  ambiguous: "ambiguous",
+  unsupportedSurface: "unsupported_surface",
   internalError: "internal_error",
 } as const;
 
 export type CliErrorCode =
   (typeof CLI_ERROR_CODES)[keyof typeof CLI_ERROR_CODES];
+
+const ERROR_CODE_SET: ReadonlySet<string> = new Set(
+  Object.values(CLI_ERROR_CODES),
+);
+
+export function isCliErrorCode(value: unknown): value is CliErrorCode {
+  return typeof value === "string" && ERROR_CODE_SET.has(value);
+}
 
 const CliIdSchema = z.union([z.string(), z.number().finite()], {
   error: "id must be a string or finite number",
