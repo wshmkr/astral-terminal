@@ -157,21 +157,21 @@ func (c *Client) exchangeWith(ctx context.Context, host string, auth, req []byte
 	stop := context.AfterFunc(ctx, func() { _ = conn.SetDeadline(time.Now()) })
 	defer stop()
 
-	if _, err := conn.Write(append(append([]byte{}, auth...), req...)); err != nil {
+	if _, err := (&net.Buffers{auth, req}).WriteTo(conn); err != nil {
 		return nil, nil, noReply
 	}
-	r := bufio.NewReaderSize(conn, 64<<10)
-	authLine, err := readLine(r)
+	r := bufio.NewReader(conn)
+	_, authResp, err := readResponse(r, addr, noReply)
 	if err != nil {
-		return nil, nil, noReply
-	}
-	var authResp protocol.Response
-	if err := json.Unmarshal(authLine, &authResp); err != nil {
-		return nil, nil, fmt.Errorf("malformed reply from %s: %w", addr, err)
+		return nil, nil, err
 	}
 	if !authResp.OK {
-		return nil, nil, appError(&authResp)
+		return nil, nil, appError(authResp)
 	}
+	return readResponse(r, addr, noReply)
+}
+
+func readResponse(r *bufio.Reader, addr string, noReply error) ([]byte, *protocol.Response, error) {
 	line, err := readLine(r)
 	if err != nil {
 		return nil, nil, noReply

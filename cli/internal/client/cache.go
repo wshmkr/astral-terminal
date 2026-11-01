@@ -11,9 +11,10 @@ type HostCache struct {
 	Dir  string
 	Port string
 
-	uid   int
-	owner func(os.FileInfo) (int, bool)
-	state int
+	uid    int
+	owner  func(os.FileInfo) (int, bool)
+	state  int
+	loaded string
 }
 
 const (
@@ -26,11 +27,7 @@ func DefaultCacheDir() string {
 	if xdg := os.Getenv("XDG_RUNTIME_DIR"); xdg != "" {
 		return filepath.Join(xdg, "astral")
 	}
-	tmp := os.Getenv("TMPDIR")
-	if tmp == "" {
-		tmp = "/tmp"
-	}
-	return filepath.Join(tmp, "astral-"+strconv.Itoa(os.Getuid()))
+	return filepath.Join(os.TempDir(), "astral-"+strconv.Itoa(os.Getuid()))
 }
 
 func NewHostCache(dir, port string) *HostCache {
@@ -44,16 +41,24 @@ func (c *HostCache) path() string {
 func (c *HostCache) usable() bool {
 	if c.state == cacheUnchecked {
 		c.state = cacheBad
-		if os.MkdirAll(c.Dir, 0o700) == nil {
-			_ = os.Chmod(c.Dir, 0o700)
-			if info, err := os.Stat(c.Dir); err == nil && info.IsDir() {
-				if uid, ok := c.owner(info); ok && uid == c.uid {
-					c.state = cacheOK
-				}
-			}
+		if c.checkDir() {
+			c.state = cacheOK
 		}
 	}
 	return c.state == cacheOK
+}
+
+func (c *HostCache) checkDir() bool {
+	if os.MkdirAll(c.Dir, 0o700) != nil {
+		return false
+	}
+	_ = os.Chmod(c.Dir, 0o700)
+	info, err := os.Stat(c.Dir)
+	if err != nil || !info.IsDir() {
+		return false
+	}
+	uid, ok := c.owner(info)
+	return ok && uid == c.uid
 }
 
 func (c *HostCache) Load() string {
@@ -65,13 +70,14 @@ func (c *HostCache) Load() string {
 		return ""
 	}
 	line, _, _ := strings.Cut(string(data), "\n")
-	return strings.TrimSpace(line)
+	c.loaded = strings.TrimSpace(line)
+	return c.loaded
 }
 
 // Store records host as the working host; the port changes each launch, so other ports' entries
 // are removed first.
 func (c *HostCache) Store(host string) {
-	if !c.usable() {
+	if host == c.loaded || !c.usable() {
 		return
 	}
 	if stale, err := filepath.Glob(filepath.Join(c.Dir, "host-*")); err == nil {

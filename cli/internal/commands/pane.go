@@ -47,21 +47,16 @@ func shortOrDash(id *string) string {
 	return output.ShortID(*id)
 }
 
-var paneSplitCmd = &cobra.Command{
-	Use:   "split <right|down>",
-	Short: "Split a pane right or down",
-	Args:  splitArgs,
-	RunE:  runSplit,
-}
-
-var splitCmd = &cobra.Command{
-	Use:   "split <right|down>",
-	Short: "Split a pane right or down (alias for pane split)",
-	Args:  splitArgs,
-	RunE:  runSplit,
+func newSplitCmd(short string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "split <right|down>",
+		Short: short,
+		Args:  splitArgs,
+		RunE:  runSplit,
+	}
 }
 
 func init() {
-	Pane.AddCommand(paneSplitCmd)
-	Root.AddCommand(splitCmd)
+	Pane.AddCommand(newSplitCmd("Split a pane right or down"))
+	Root.AddCommand(newSplitCmd("Split a pane right or down (alias for pane split)"))
 }

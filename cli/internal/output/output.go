@@ -13,8 +13,8 @@ import (
 const shortIDLen = 8
 
 func JSONEnabled(cmd *cobra.Command) bool {
-	f := cmd.Flag("json")
-	return f != nil && f.Value.String() == "true"
+	v, _ := cmd.Flags().GetBool("json")
+	return v
 }
 
 func Print(cmd *cobra.Command, result any, human func(w io.Writer)) error {

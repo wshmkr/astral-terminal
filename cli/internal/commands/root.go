@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -20,6 +21,8 @@ const (
 	ExitUsage       = 2
 	ExitUnreachable = 3
 )
+
+const capabilitiesProbeTimeout = 5 * time.Second
 
 var Version = "dev"
 
@@ -167,18 +170,11 @@ func withVersionHint(ctx context.Context, method string, err error) error {
 }
 
 func methodAdvertised(ctx context.Context, method string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, capabilitiesProbeTimeout)
 	defer cancel()
-	var caps struct {
-		Methods []string `json:"methods"`
-	}
+	var caps protocol.Capabilities
 	if err := client.Call(ctx, "system.capabilities", nil, &caps); err != nil {
 		return false
 	}
-	for _, m := range caps.Methods {
-		if m == method {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(caps.Methods, method)
 }

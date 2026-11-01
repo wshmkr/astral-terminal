@@ -2,17 +2,20 @@ package keys
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
+
+var baseNames = []string{
+	"enter", "tab", "escape", "backspace", "delete",
+	"up", "down", "left", "right",
+	"home", "end", "pageup", "pagedown",
+}
 
 var Names = buildNames()
 
 func buildNames() []string {
-	names := []string{
-		"enter", "tab", "escape", "backspace", "delete",
-		"up", "down", "left", "right",
-		"home", "end", "pageup", "pagedown",
-	}
+	names := slices.Clone(baseNames)
 	for i := 1; i <= 12; i++ {
 		names = append(names, fmt.Sprintf("f%d", i))
 	}
@@ -22,16 +25,8 @@ func buildNames() []string {
 	return names
 }
 
-var named = func() map[string]bool {
-	m := make(map[string]bool, len(Names))
-	for _, n := range Names {
-		m[n] = true
-	}
-	return m
-}()
-
 func Valid(name string) bool {
-	if named[name] {
+	if slices.Contains(Names, name) {
 		return true
 	}
 	if rest, ok := strings.CutPrefix(name, "alt-"); ok {
@@ -45,5 +40,5 @@ func Validate(name string) error {
 		return nil
 	}
 	return fmt.Errorf("invalid key name %q (expected one of %s, f1-f12, ctrl-<a-z>, alt-<char>)",
-		name, strings.Join(Names[:13], ", "))
+		name, strings.Join(baseNames, ", "))
 }
