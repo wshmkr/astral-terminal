@@ -139,11 +139,19 @@ var paneListCmd = &cobra.Command{
 	},
 }
 
-func paneRefCmd(name, method, short, verb string) *cobra.Command {
+func paneFocusArgs(cmd *cobra.Command, args []string) error {
+	paneID, _ := paneTargetParams(cmd, args)["paneId"].(string)
+	if len(args) > 1 || paneID == "" {
+		return usageErrorf("usage: %s <pane>", cmd.CommandPath())
+	}
+	return nil
+}
+
+func paneRefCmd(use, method, short, verb string, validateArgs cobra.PositionalArgs) *cobra.Command {
 	return &cobra.Command{
-		Use:   name + " [pane]",
+		Use:   use,
 		Short: short,
-		Args:  cobra.MaximumNArgs(1),
+		Args:  validateArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var result protocol.PaneRefResult
 			if err := call(cmd, method, paneTargetParams(cmd, args), &result); err != nil {
@@ -205,8 +213,8 @@ func init() {
 	Pane.AddCommand(
 		paneListCmd,
 		newSplitCmd("Split a pane"),
-		paneRefCmd("focus", "pane.focus", "Focus a pane, switching workspace if needed", "focused"),
-		paneRefCmd("close", "pane.close", "Close a pane", "closed"),
+		paneRefCmd("focus <pane>", "pane.focus", "Focus a pane, switching workspace if needed", "focused", paneFocusArgs),
+		paneRefCmd("close [pane]", "pane.close", "Close a pane", "closed", cobra.MaximumNArgs(1)),
 		paneResizeCmd(),
 	)
 	Root.AddCommand(newSplitCmd("Split a pane (alias for pane split)"))

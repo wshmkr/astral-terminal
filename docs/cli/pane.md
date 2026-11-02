@@ -2,7 +2,7 @@
 
 Commands and socket methods for listing, splitting, focusing, closing, and resizing panes. See [the socket reference](../cli-protocol.md) for the request format, errors, and the targeting fields (`workspaceId`, `paneId`, `surfaceId`, `callerSurfaceId`).
 
-Commands that act on a pane target, in order: the pane given as an argument or by `--pane`, `--tab`, or `--workspace`; the pane the command runs in; the focused pane of the active workspace.
+Commands that act on a pane target, in order: the pane given as an argument or by `--pane`, `--tab`, or `--workspace`; the pane the command runs in; the focused pane of the active workspace. `astral pane focus` is the exception: it requires a pane, given as an argument or by `--pane`.
 
 ## Commands
 
@@ -10,7 +10,7 @@ Commands that act on a pane target, in order: the pane given as an argument or b
 | -------------------------------------------- | -------------------------------------------- |
 | `astral pane list`                           | List the panes in a workspace.               |
 | `astral pane split <left\|right\|up\|down>`  | Split a pane. `astral split` is an alias.    |
-| `astral pane focus [pane]`                   | Focus a pane, switching workspace if needed. |
+| `astral pane focus <pane>`                   | Focus a pane, switching workspace if needed. |
 | `astral pane close [pane]`                   | Close a pane.                                |
 | `astral pane resize [pane] --size <percent>` | Set a pane's share of its parent split.      |
 

@@ -127,35 +127,76 @@ func TestPaneList(t *testing.T) {
 	}
 }
 
-func TestPaneFocusAndClose(t *testing.T) {
+func TestPaneFocus(t *testing.T) {
 	reply := `{"id":"call","ok":true,"result":{"paneId":"pane-0123456789"}}`
-	requests := fakeApp(t, map[string]string{"pane.focus": reply, "pane.close": reply})
+	requests := fakeApp(t, map[string]string{"pane.focus": reply})
 	t.Setenv("ASTRAL_SURFACE_ID", "caller-1")
 
-	for _, c := range []struct{ name, method, verb string }{
-		{"focus", "pane.focus", "focused"},
-		{"close", "pane.close", "closed"},
+	r := run("pane", "focus", "abcd")
+	if r.code != ExitOK || r.stdout != "focused pane pane-012\n" {
+		t.Errorf("positional: %+v", r)
+	}
+	if params := paneParams(t, requests, "pane.focus"); params["paneId"] != "abcd" {
+		t.Errorf("positional: params = %v", params)
+	}
+
+	if r := run("pane", "focus", "--pane", "wxyz"); r.code != ExitOK {
+		t.Errorf("--pane: %+v", r)
+	}
+	if params := paneParams(t, requests, "pane.focus"); params["paneId"] != "wxyz" {
+		t.Errorf("--pane: params = %v", params)
+	}
+
+	if r := run("pane", "focus", "abcd", "--pane", "wxyz"); r.code != ExitOK {
+		t.Errorf("both: %+v", r)
+	}
+	if params := paneParams(t, requests, "pane.focus"); params["paneId"] != "abcd" {
+		t.Errorf("both: params = %v", params)
+	}
+
+	for _, args := range [][]string{
+		{"pane", "focus"},
+		{"pane", "focus", ""},
+		{"pane", "focus", "--pane", ""},
+		{"pane", "focus", "--tab", "abcd"},
+		{"pane", "focus", "--workspace", "2"},
+		{"pane", "focus", "abcd", "efgh"},
 	} {
-		r := run("pane", c.name)
-		if r.code != ExitOK || r.stdout != c.verb+" pane pane-012\n" {
-			t.Errorf("%s: %+v", c.name, r)
+		if r := run(args...); r.code != ExitUsage {
+			t.Errorf("%v: code = %d, stderr = %q", args, r.code, r.stderr)
 		}
-		params := paneParams(t, requests, c.method)
-		if _, ok := params["paneId"]; ok || params["callerSurfaceId"] != "caller-1" {
-			t.Errorf("%s without argument: params = %v", c.name, params)
-		}
+	}
+	if r := run("pane", "focus"); !strings.HasPrefix(r.stderr, "astral: usage: astral pane focus <pane>\n") {
+		t.Errorf("usage: %q", r.stderr)
+	}
+	if len(requests) != 0 {
+		t.Errorf("usage errors reached the app: %d requests", len(requests))
+	}
+}
 
-		r = run("pane", c.name, "abcd", "--pane", "wxyz")
-		if r.code != ExitOK {
-			t.Errorf("%s: %+v", c.name, r)
-		}
-		if params := paneParams(t, requests, c.method); params["paneId"] != "abcd" {
-			t.Errorf("%s positional: params = %v", c.name, params)
-		}
+func TestPaneClose(t *testing.T) {
+	reply := `{"id":"call","ok":true,"result":{"paneId":"pane-0123456789"}}`
+	requests := fakeApp(t, map[string]string{"pane.close": reply})
+	t.Setenv("ASTRAL_SURFACE_ID", "caller-1")
 
-		if r := run("pane", c.name, "abcd", "efgh"); r.code != ExitUsage {
-			t.Errorf("%s two arguments: %+v", c.name, r)
-		}
+	r := run("pane", "close")
+	if r.code != ExitOK || r.stdout != "closed pane pane-012\n" {
+		t.Errorf("no argument: %+v", r)
+	}
+	params := paneParams(t, requests, "pane.close")
+	if _, ok := params["paneId"]; ok || params["callerSurfaceId"] != "caller-1" {
+		t.Errorf("no argument: params = %v", params)
+	}
+
+	if r := run("pane", "close", "abcd", "--pane", "wxyz"); r.code != ExitOK {
+		t.Errorf("positional: %+v", r)
+	}
+	if params := paneParams(t, requests, "pane.close"); params["paneId"] != "abcd" {
+		t.Errorf("positional: params = %v", params)
+	}
+
+	if r := run("pane", "close", "abcd", "efgh"); r.code != ExitUsage {
+		t.Errorf("two arguments: %+v", r)
 	}
 }
 
