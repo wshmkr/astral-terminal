@@ -140,7 +140,7 @@ func TargetParams(cmd *cobra.Command) map[string]any {
 		"pane":      "paneId",
 		"tab":       "surfaceId",
 	} {
-		if f := cmd.Flag(flag); f != nil && f.Value.String() != "" {
+		if f := cmd.Flag(flag); f != nil && f.Changed {
 			params[key] = f.Value.String()
 		}
 	}

@@ -45,6 +45,7 @@ func TestPaneSplitUsageErrors(t *testing.T) {
 			{"left", "right"},
 			{"left", "--url", "https://example.com"},
 			{"left", "--browser=false", "--url", "https://example.com"},
+			{"left", "--browser", "--url", ""},
 			{"left", "--nope"},
 		} {
 			args := paneArgs(prefix, rest...)
@@ -122,8 +123,17 @@ func TestPaneList(t *testing.T) {
 		t.Errorf("json output = %v", out)
 	}
 
-	if r := run("pane", "list", "extra"); r.code != ExitUsage {
-		t.Errorf("extra arg: %+v", r)
+	for _, args := range [][]string{
+		{"pane", "list", "extra"},
+		{"pane", "list", "--pane", "abcd"},
+		{"pane", "list", "--tab", "abcd"},
+	} {
+		if r := run(args...); r.code != ExitUsage {
+			t.Errorf("%v: %+v", args, r)
+		}
+	}
+	if len(requests) != 0 {
+		t.Errorf("usage errors reached the app: %d requests", len(requests))
 	}
 }
 
@@ -193,6 +203,13 @@ func TestPaneClose(t *testing.T) {
 	}
 	if params := paneParams(t, requests, "pane.close"); params["paneId"] != "abcd" {
 		t.Errorf("positional: params = %v", params)
+	}
+
+	if r := run("pane", "close", "--pane", ""); r.code != ExitOK {
+		t.Errorf("empty --pane: %+v", r)
+	}
+	if params := paneParams(t, requests, "pane.close"); params["paneId"] != "" {
+		t.Errorf("empty --pane: params = %v", params)
 	}
 
 	if r := run("pane", "close", "abcd", "efgh"); r.code != ExitUsage {

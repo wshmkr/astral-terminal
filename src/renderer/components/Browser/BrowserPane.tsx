@@ -87,8 +87,8 @@ export function BrowserPane({
   }, [surface.id]);
 
   useEffect(() => {
-    if (freshTab) urlInputRef.current?.focus();
-  }, [freshTab]);
+    if (freshTab && isVisible) urlInputRef.current?.focus();
+  }, [freshTab, isVisible]);
 
   const controllerRef = useSurfaceLifecycle<BrowserController>({
     paneId,

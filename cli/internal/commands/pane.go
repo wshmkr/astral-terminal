@@ -31,8 +31,18 @@ func splitArgs(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if cmd.Flags().Changed("url") && !browser {
+	if !cmd.Flags().Changed("url") {
+		return nil
+	}
+	if !browser {
 		return usageErrorf("--url requires --browser")
+	}
+	url, err := cmd.Flags().GetString("url")
+	if err != nil {
+		return err
+	}
+	if url == "" {
+		return usageErrorf("--url must not be empty")
 	}
 	return nil
 }
@@ -114,10 +124,22 @@ func paneBoolMark(value bool) string {
 	return ""
 }
 
+func paneListArgs(cmd *cobra.Command, args []string) error {
+	if err := cobra.NoArgs(cmd, args); err != nil {
+		return err
+	}
+	for _, name := range []string{"pane", "tab"} {
+		if cmd.Flags().Changed(name) {
+			return usageErrorf("--%s does not apply to %s; use --workspace", name, cmd.CommandPath())
+		}
+	}
+	return nil
+}
+
 var paneListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List the panes in a workspace",
-	Args:  cobra.NoArgs,
+	Args:  paneListArgs,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		var result protocol.PaneListResult
 		if err := call(cmd, "pane.list", TargetParams(cmd), &result); err != nil {
