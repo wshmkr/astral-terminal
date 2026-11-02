@@ -32,19 +32,22 @@ func workspaceAction(cmd *cobra.Command, method string, params map[string]any, v
 	})
 }
 
+// workspaceTargetAction runs a method on the positional workspace, which overrides --workspace.
+func workspaceTargetAction(method, verb string) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		params := TargetParams(cmd)
+		if len(args) == 1 {
+			params["workspaceId"] = args[0]
+		}
+		return workspaceAction(cmd, method, params, verb)
+	}
+}
+
 func workspaceYesNo(v bool) string {
 	if v {
 		return "yes"
 	}
 	return "no"
-}
-
-func workspaceParseIndex(arg string) (int, error) {
-	index, err := strconv.Atoi(arg)
-	if err != nil || index < 1 {
-		return 0, usageErrorf("invalid index: %s (expected a positive integer)", arg)
-	}
-	return index, nil
 }
 
 var workspaceListCmd = &cobra.Command{
@@ -94,51 +97,41 @@ func workspaceResolveCwd(cwd string) (string, error) {
 	return filepath.Abs(cwd)
 }
 
-func newWorkspaceNewCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "new [<name>]",
-		Short: "Create a workspace, in the background unless --focus is given",
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 1 {
-				return usageErrorf("usage: %s [<name>] [--cwd <dir>] [--focus]", cmd.CommandPath())
+var workspaceNewCmd = &cobra.Command{
+	Use:   "new",
+	Short: "Create a workspace, in the background unless --focus is given",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		params := map[string]any{}
+		if flag := cmd.Flag("name"); flag.Changed {
+			params["name"] = flag.Value.String()
+		}
+		if flag := cmd.Flag("cwd"); flag.Changed {
+			cwd, err := workspaceResolveCwd(flag.Value.String())
+			if err != nil {
+				return err
 			}
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			params := map[string]any{}
-			if len(args) == 1 {
-				params["name"] = args[0]
+			params["cwd"] = cwd
+		}
+		if cmd.Flag("focus").Changed {
+			focus, err := cmd.Flags().GetBool("focus")
+			if err != nil {
+				return err
 			}
-			if flag := cmd.Flag("cwd"); flag.Changed {
-				cwd, err := workspaceResolveCwd(flag.Value.String())
-				if err != nil {
-					return err
-				}
-				params["cwd"] = cwd
-			}
-			if cmd.Flag("focus").Changed {
-				focus, err := cmd.Flags().GetBool("focus")
-				if err != nil {
-					return err
-				}
-				params["focus"] = focus
-			}
-			return workspaceCall(cmd, "workspace.create", params, func(w io.Writer, r protocol.WorkspaceCreated) {
-				output.Table(w, []string{"WORKSPACE", "PANE", "TAB"}, [][]string{{
-					output.ShortID(r.WorkspaceID),
-					output.ShortID(r.PaneID),
-					output.ShortID(r.SurfaceID),
-				}})
-			})
-		},
-	}
-	cmd.Flags().String("cwd", "", "working directory of the new workspace's terminal")
-	cmd.Flags().Bool("focus", false, "switch to the new workspace")
-	return cmd
+			params["focus"] = focus
+		}
+		return workspaceCall(cmd, "workspace.create", params, func(w io.Writer, r protocol.WorkspaceCreated) {
+			output.Table(w, []string{"WORKSPACE", "PANE", "TAB"}, [][]string{{
+				output.ShortID(r.WorkspaceID),
+				output.ShortID(r.PaneID),
+				output.ShortID(r.SurfaceID),
+			}})
+		})
+	},
 }
 
 var workspaceSelectCmd = &cobra.Command{
-	Use:   "select [<workspace>]",
+	Use:   "select <workspace>",
 	Short: "Switch to a workspace (by positional argument or --workspace)",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 1 || (len(args) == 0 && cmd.Flag("workspace").Value.String() == "") {
@@ -146,13 +139,7 @@ var workspaceSelectCmd = &cobra.Command{
 		}
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		params := TargetParams(cmd)
-		if len(args) == 1 {
-			params["workspaceId"] = args[0]
-		}
-		return workspaceAction(cmd, "workspace.select", params, "Selected")
-	},
+	RunE: workspaceTargetAction("workspace.select", "Selected"),
 }
 
 var workspaceRenameCmd = &cobra.Command{
@@ -183,44 +170,42 @@ var workspaceCloseCmd = &cobra.Command{
 		}
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
-		params := TargetParams(cmd)
-		if len(args) == 1 {
-			params["workspaceId"] = args[0]
-		}
-		return workspaceAction(cmd, "workspace.close", params, "Closed")
-	},
+	RunE: workspaceTargetAction("workspace.close", "Closed"),
 }
 
 var workspaceMoveCmd = &cobra.Command{
-	Use:   "move [<workspace>] <index>",
-	Short: "Move a workspace, by default the caller's, to a 1-based position",
+	Use:   "move <workspace> --index <n>",
+	Short: "Move a workspace to a 1-based position",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 || len(args) > 2 {
-			return usageErrorf("usage: %s [<workspace>] <index>", cmd.CommandPath())
+		if len(args) != 1 {
+			return usageErrorf("usage: %s <workspace> --index <n>", cmd.CommandPath())
 		}
-		_, err := workspaceParseIndex(args[len(args)-1])
-		return err
+		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		index, err := workspaceParseIndex(args[len(args)-1])
+		index, err := cmd.Flags().GetInt("index")
 		if err != nil {
 			return err
 		}
-		params := TargetParams(cmd)
-		if len(args) == 2 {
-			params["workspaceId"] = args[0]
+		if index < 1 {
+			return usageErrorf("--index is required and must be 1 or greater")
 		}
+		params := TargetParams(cmd)
+		params["workspaceId"] = args[0]
 		params["index"] = index
 		return workspaceAction(cmd, "workspace.reorder", params, "Moved")
 	},
 }
 
 func init() {
+	workspaceNewCmd.Flags().String("name", "", "name of the new workspace")
+	workspaceNewCmd.Flags().String("cwd", "", "working directory of the new workspace's terminal")
+	workspaceNewCmd.Flags().Bool("focus", false, "switch to the new workspace")
+	workspaceMoveCmd.Flags().Int("index", 0, "1-based position to move to")
 	Workspace.AddCommand(
 		workspaceListCmd,
 		workspaceCurrentCmd,
-		newWorkspaceNewCmd(),
+		workspaceNewCmd,
 		workspaceSelectCmd,
 		workspaceRenameCmd,
 		workspaceCloseCmd,

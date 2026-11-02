@@ -12,7 +12,12 @@ import type {
   WorkspaceReorderParams,
   WorkspaceTabInfo,
 } from "../../../shared/cli/workspace";
-import type { PaneNode, Surface, Workspace } from "../../../shared/types";
+import {
+  isTerminalSurface,
+  type PaneNode,
+  type Surface,
+  type Workspace,
+} from "../../../shared/types";
 import { forEachLeaf } from "../../components/Layout/pane-tree";
 import {
   CliHandlerError,
@@ -23,6 +28,7 @@ import { getState } from "../core";
 import {
   closeWorkspace,
   createWorkspace,
+  findPaneBySurfaceId,
   getWorkspaceFocusedPaneId,
   renameWorkspace,
   reorderWorkspaces,
@@ -31,6 +37,9 @@ import {
 import { resolveTarget, TargetParamsSchema } from "./target";
 
 const MAX_NAME_LENGTH = 64;
+
+// Closing the caller's workspace kills the caller, so its reply has to go out first.
+const CALLER_WORKSPACE_CLOSE_DELAY_MS = 100;
 
 const NameSchema = z
   .string()
@@ -74,7 +83,7 @@ function describeTab(
     surfaceId: surface.id,
     type: surface.type,
     name: surface.name,
-    ...(surface.type === "terminal"
+    ...(isTerminalSurface(surface)
       ? { cwd: surface.cwd }
       : { url: surface.url }),
     active: surface.id === activeSurfaceId,
@@ -179,7 +188,12 @@ registerCliHandler("workspace.rename", (params): WorkspaceActionResult => {
 registerCliHandler("workspace.close", (params): WorkspaceActionResult => {
   const target = parseCliParams(TargetParamsSchema, params);
   const { workspaceId } = resolveTarget(target, "workspace");
-  closeWorkspace(workspaceId);
+  const close = () => closeWorkspace(workspaceId);
+  const isCallerWorkspace =
+    target.callerSurfaceId !== undefined &&
+    findPaneBySurfaceId(target.callerSurfaceId)?.workspaceId === workspaceId;
+  if (isCallerWorkspace) setTimeout(close, CALLER_WORKSPACE_CLOSE_DELAY_MS);
+  else close();
   return { workspaceId };
 });
 

@@ -43,8 +43,7 @@ func treePrintNode(w io.Writer, node *protocol.WorkspaceNode, callerSurfaceID st
 		case tab.URL != "":
 			fields = append(fields, tab.URL)
 		}
-		isCaller := callerSurfaceID != "" && tab.SurfaceID == callerSurfaceID
-		treeLine(w, isCaller, node.Focused && tab.Active, 2, fields...)
+		treeLine(w, tab.SurfaceID == callerSurfaceID, node.Focused && tab.Active, 2, fields...)
 	}
 }
 

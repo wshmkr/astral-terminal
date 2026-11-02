@@ -68,7 +68,7 @@ Resolves target params to a workspace without changing anything.
 
 Creates a workspace with one terminal. Without `focus`, the active workspace and focused pane do not change, unless no workspace is active, in which case the new one becomes active.
 
-- **CLI:** `astral workspace new [<name>] [--cwd <dir>] [--focus]`. The CLI makes a relative `--cwd` absolute against its own working directory.
+- **CLI:** `astral workspace new [--name <name>] [--cwd <dir>] [--focus]`. The CLI makes a relative `--cwd` absolute against its own working directory.
 - **Params:**
   - `name` (optional string): normalized as described under [`workspace.rename`](#workspacerename). Defaults to the next free `Workspace <n>`.
   - `cwd` (optional string): the terminal's working directory. Defaults to `~`.
@@ -96,7 +96,7 @@ Renames a workspace.
 
 ## `workspace.close`
 
-Closes a workspace and all of its terminals. Closing the active workspace activates the one before it in the sidebar, or the first if there is none before it. Closing the last workspace leaves the app open with no workspaces, the same as closing it in the sidebar. Closing the caller's own workspace also ends the caller's shell, so the command may not get to print its result.
+Closes a workspace and all of its terminals. Closing the active workspace activates the one before it in the sidebar, or the first if there is none before it. Closing the last workspace leaves the app open with no workspaces, the same as closing it in the sidebar. When the workspace holds `callerSurfaceId`, it closes shortly after the reply, so the calling command can finish.
 
 - **CLI:** `astral workspace close [<workspace>]`. Defaults to the caller's workspace.
 - **Params:** target params.
@@ -107,7 +107,7 @@ Closes a workspace and all of its terminals. Closing the active workspace activa
 
 Moves a workspace to a new sidebar position, shifting the workspaces between its old and new positions.
 
-- **CLI:** `astral workspace move [<workspace>] <index>`. Defaults to the caller's workspace.
+- **CLI:** `astral workspace move <workspace> --index <n>`.
 - **Params:** `index` (integer, 1 or greater): the 1-based position to move to, plus target params.
 - **Result:** `{ "workspaceId": "..." }`
 - **Errors:** the common ones. Also `not_found` when `index` is past the last workspace or no workspace is open.

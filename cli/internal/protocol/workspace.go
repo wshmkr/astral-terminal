@@ -15,10 +15,7 @@ type WorkspaceNode struct {
 	Focused bool           `json:"focused"`
 	Tabs    []WorkspaceTab `json:"tabs"`
 
-	SplitID   string          `json:"splitId"`
-	Direction string          `json:"direction"`
-	Sizes     []float64       `json:"sizes"`
-	Children  []WorkspaceNode `json:"children"`
+	Children []WorkspaceNode `json:"children"`
 }
 
 type WorkspaceInfo struct {

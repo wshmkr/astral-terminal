@@ -36,17 +36,20 @@ func TestWorkspaceUsageErrors(t *testing.T) {
 		{"workspace", "bogus"},
 		{"workspace", "list", "x"},
 		{"workspace", "current", "x"},
-		{"workspace", "new", "a", "b"},
+		{"workspace", "new", "build"},
 		{"workspace", "select"},
 		{"workspace", "select", "1", "2"},
 		{"workspace", "rename"},
 		{"workspace", "rename", "a", "b", "c"},
 		{"workspace", "close", "a", "b"},
 		{"workspace", "move"},
-		{"workspace", "move", "x"},
-		{"workspace", "move", "0"},
-		{"workspace", "move", "-1"},
-		{"workspace", "move", "a", "b", "c"},
+		{"workspace", "move", "2"},
+		{"workspace", "move", "2", "1"},
+		{"workspace", "move", "--index", "1"},
+		{"workspace", "move", "a", "b", "--index", "1"},
+		{"workspace", "move", "a", "--index", "0"},
+		{"workspace", "move", "a", "--index", "-1"},
+		{"workspace", "move", "a", "--index", "x"},
 		{"tree", "x"},
 	}
 	for _, args := range cases {
@@ -104,7 +107,7 @@ func TestWorkspaceNew(t *testing.T) {
 	}
 
 	abs := t.TempDir()
-	if r := run("workspace", "new", "build", "--cwd", abs, "--focus"); r.code != ExitOK {
+	if r := run("workspace", "new", "--name", "build", "--cwd", abs, "--focus"); r.code != ExitOK {
 		t.Fatalf("%+v", r)
 	}
 	params := workspaceParams(t, requests, "workspace.create")
@@ -199,20 +202,12 @@ func TestWorkspaceMove(t *testing.T) {
 	requests := fakeApp(t, map[string]string{"workspace.reorder": workspaceActionReply})
 	t.Setenv("ASTRAL_SURFACE_ID", "caller-1")
 
-	r := run("workspace", "move", "2")
+	r := run("workspace", "move", "abcd", "--index", "2")
 	if r.code != ExitOK || r.stdout != "Moved workspace ws-01234\n" {
 		t.Errorf("%+v", r)
 	}
 	params := workspaceParams(t, requests, "workspace.reorder")
-	if _, ok := params["workspaceId"]; ok || params["index"] != float64(2) {
-		t.Errorf("params = %v", params)
-	}
-
-	if r := run("workspace", "move", "abcd", "1"); r.code != ExitOK {
-		t.Fatalf("%+v", r)
-	}
-	params = workspaceParams(t, requests, "workspace.reorder")
-	if params["workspaceId"] != "abcd" || params["index"] != float64(1) {
+	if params["workspaceId"] != "abcd" || params["index"] != float64(2) {
 		t.Errorf("params = %v", params)
 	}
 }
@@ -222,7 +217,7 @@ func TestWorkspaceAppError(t *testing.T) {
 		"workspace.select": `{"id":"call","ok":false,"error":{"code":"not_found","message":"workspace not found: #9"}}`,
 	})
 	r := run("workspace", "select", "9")
-	if r.code != ExitAppError || r.stderr != "astral: workspace not found: #9\n" {
+	if r.code != ExitAppError || r.stderr != "astral: workspace not found: #9 (not_found)\n" {
 		t.Errorf("%+v", r)
 	}
 }
@@ -280,6 +275,38 @@ func TestTreeMarksCallerAndFocusTogether(t *testing.T) {
 		"   workspace 2 ws-56789 logs\n" +
 		" >   pane pane-444\n" +
 		" >     tab surf-555 terminal tail ~\n"
+	if r.code != ExitOK || r.stdout != want {
+		t.Errorf("code = %d, stdout =\n%s\nwant\n%s", r.code, r.stdout, want)
+	}
+}
+
+func TestTreeNestedSplits(t *testing.T) {
+	reply := `{"id":"call","ok":true,"result":{"workspaces":[` +
+		`{"id":"ws-0123456789","index":1,"name":"main","active":true,"paneCount":4,"tabCount":4,"layout":` +
+		`{"splitId":"split-1","direction":"vertical","sizes":[0.3,0.7],"children":[` +
+		`{"paneId":"pane-aaaaaaaaaa","focused":false,"tabs":[` +
+		`{"surfaceId":"surf-aaaaaaaaaa","type":"terminal","name":"a","cwd":"~","active":true}]},` +
+		`{"splitId":"split-2","direction":"horizontal","children":[` +
+		`{"paneId":"pane-bbbbbbbbbb","focused":false,"tabs":[` +
+		`{"surfaceId":"surf-bbbbbbbbbb","type":"terminal","name":"b","cwd":"~","active":true}]},` +
+		`{"splitId":"split-3","direction":"vertical","children":[` +
+		`{"paneId":"pane-cccccccccc","focused":true,"tabs":[` +
+		`{"surfaceId":"surf-cccccccccc","type":"browser","name":"c","url":"about:blank","active":true}]},` +
+		`{"paneId":"pane-dddddddddd","focused":false,"tabs":[` +
+		`{"surfaceId":"surf-dddddddddd","type":"terminal","name":"d","cwd":"~","active":true}]}]}]}]}}]}}`
+	fakeApp(t, map[string]string{"workspace.list": reply})
+	t.Setenv("ASTRAL_SURFACE_ID", "surf-dddddddddd")
+
+	r := run("tree")
+	want := " > workspace 1 ws-01234 main\n" +
+		"     pane pane-aaa\n" +
+		"       tab surf-aaa terminal a ~\n" +
+		"     pane pane-bbb\n" +
+		"       tab surf-bbb terminal b ~\n" +
+		" >   pane pane-ccc\n" +
+		" >     tab surf-ccc browser c about:blank\n" +
+		"     pane pane-ddd\n" +
+		"*      tab surf-ddd terminal d ~\n"
 	if r.code != ExitOK || r.stdout != want {
 		t.Errorf("code = %d, stdout =\n%s\nwant\n%s", r.code, r.stdout, want)
 	}
