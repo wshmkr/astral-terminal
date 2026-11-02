@@ -73,10 +73,8 @@ func TestUsageErrors(t *testing.T) {
 	cases := [][]string{
 		{"bogus"},
 		{"split"},
-		{"split", "left"},
 		{"split", "right", "down"},
 		{"pane", "split"},
-		{"pane", "split", "up"},
 		{"pane", "bogus"},
 		{"call"},
 		{"call", "x.y", "{not json"},
@@ -243,10 +241,10 @@ func TestCallUnknownMethodHint(t *testing.T) {
 }
 
 func TestSplitUsageNamesCommand(t *testing.T) {
-	if r := run("split"); !strings.HasPrefix(r.stderr, "astral: usage: astral split <right|down>\n") {
+	if r := run("split"); !strings.HasPrefix(r.stderr, "astral: usage: astral split <left|right|up|down>\n") {
 		t.Errorf("split: %q", r.stderr)
 	}
-	if r := run("pane", "split"); !strings.HasPrefix(r.stderr, "astral: usage: astral pane split <right|down>\n") {
+	if r := run("pane", "split"); !strings.HasPrefix(r.stderr, "astral: usage: astral pane split <left|right|up|down>\n") {
 		t.Errorf("pane split: %q", r.stderr)
 	}
 }
