@@ -33,20 +33,25 @@ import { getCliServer } from "./cli/server";
 
 const astralCliInstallAttempted = new Set<string>();
 
-// Install the astral CLI once per distro per run (installer is idempotent); clear on transient failure to retry
+// Install the astral CLI once per distro per run (installer is idempotent); clear on a skipped install or transient failure to retry
 function ensureAstralCliOnce(distro: string | null): void {
   const key = distro ?? "";
   if (astralCliInstallAttempted.has(key)) return;
   astralCliInstallAttempted.add(key);
-  void ensureAstralCliInstalled(distro).catch((err) => {
-    if (err instanceof ForeignCliError) {
-      // stays marked attempted so the dialog shows once, not on every spawn
-      dialog.showErrorBox("Astral CLI could not be installed", err.message);
-      return;
-    }
-    astralCliInstallAttempted.delete(key);
-    console.warn("[astral-cli] install failed:", err);
-  });
+  void ensureAstralCliInstalled(distro).then(
+    (installed) => {
+      if (!installed) astralCliInstallAttempted.delete(key);
+    },
+    (err) => {
+      if (err instanceof ForeignCliError) {
+        // stays marked attempted so the dialog shows once, not on every spawn
+        dialog.showErrorBox("Astral CLI could not be installed", err.message);
+        return;
+      }
+      astralCliInstallAttempted.delete(key);
+      console.warn("[astral-cli] install failed:", err);
+    },
+  );
 }
 
 const HEADLESS_SCROLLBACK = 10000;

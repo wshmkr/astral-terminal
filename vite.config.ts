@@ -19,6 +19,7 @@ const brandingDefines = {
   __APP_PACKAGE_NAME__: JSON.stringify(pkg.name),
   __APP_ID__: JSON.stringify(pkg.build.appId),
   __APP_VERSION__: JSON.stringify(pkg.version),
+  __ASTRAL_CLI_VERSION__: JSON.stringify(pkg.astralCliVersion),
   __APP_GITHUB_SLUG__: JSON.stringify(githubRepoSlug(pkg.repository.url)),
 };
 
