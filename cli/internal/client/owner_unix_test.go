@@ -5,6 +5,7 @@ package client
 import (
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 )
 
@@ -66,6 +67,67 @@ func TestHostCacheRepairsOpenDir(t *testing.T) {
 	c.Store("1.2.3.4")
 	if got := NewHostCache(dir, "4000").Load(); got != "1.2.3.4" {
 		t.Errorf("Load = %q", got)
+	}
+}
+
+func TestHostCacheRejectsUntrustedEntry(t *testing.T) {
+	const planted = "6.6.6.6\n"
+	plantFile := func(mode os.FileMode) func(t *testing.T, path string) {
+		return func(t *testing.T, path string) {
+			if err := os.WriteFile(path, []byte(planted), mode); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Chmod(path, mode); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	foreignFile := func(c *HostCache) {
+		c.owner = func(info os.FileInfo) (int, bool) {
+			if info.IsDir() {
+				return c.uid, true
+			}
+			return c.uid + 1, true
+		}
+	}
+	cases := []struct {
+		name  string
+		plant func(t *testing.T, path string)
+		setup func(c *HostCache)
+	}{
+		{name: "group or world access", plant: plantFile(0o644)},
+		{name: "foreign owner", plant: plantFile(0o600), setup: foreignFile},
+		{name: "symlink", plant: func(t *testing.T, path string) {
+			target := filepath.Join(t.TempDir(), "target")
+			if err := os.WriteFile(target, []byte(planted), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(target, path); err != nil {
+				t.Fatal(err)
+			}
+		}},
+		{name: "fifo", plant: func(t *testing.T, path string) {
+			if err := syscall.Mkfifo(path, 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			tc.plant(t, filepath.Join(dir, "host-4000"))
+			c := NewHostCache(dir, "4000")
+			if tc.setup != nil {
+				tc.setup(c)
+			}
+			if got := c.Load(); got != "" {
+				t.Errorf("Load = %q", got)
+			}
+			c.Store("1.2.3.4")
+			if got := NewHostCache(dir, "4000").Load(); got != "1.2.3.4" {
+				t.Errorf("Load after Store = %q", got)
+			}
+		})
 	}
 }
 

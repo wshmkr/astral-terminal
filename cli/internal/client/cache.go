@@ -56,7 +56,7 @@ func (c *HostCache) checkDir() bool {
 	if err != nil || !info.IsDir() {
 		return false
 	}
-	if uid, ok := c.owner(info); !ok || uid != c.uid {
+	if !c.ownedByUser(info) {
 		return false
 	}
 	_ = os.Chmod(c.Dir, 0o700)
@@ -64,8 +64,17 @@ func (c *HostCache) checkDir() bool {
 	return err == nil && accessIsPrivate(info)
 }
 
+func (c *HostCache) ownedByUser(info os.FileInfo) bool {
+	uid, ok := c.owner(info)
+	return ok && uid == c.uid
+}
+
 func (c *HostCache) Load() string {
 	if !c.usable() {
+		return ""
+	}
+	info, err := os.Lstat(c.path())
+	if err != nil || !info.Mode().IsRegular() || !c.ownedByUser(info) || !accessIsPrivate(info) {
 		return ""
 	}
 	data, err := os.ReadFile(c.path())
