@@ -139,7 +139,7 @@ var paneListCmd = &cobra.Command{
 	},
 }
 
-func newPaneRefCmd(name, method, short, verb string) *cobra.Command {
+func paneRefCmd(name, method, short, verb string) *cobra.Command {
 	return &cobra.Command{
 		Use:   name + " [pane]",
 		Short: short,
@@ -173,7 +173,7 @@ func paneResizeArgs(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func newPaneResizeCmd() *cobra.Command {
+func paneResizeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "resize [pane] --size <percent>",
 		Short: "Set a pane's share of its parent split",
@@ -197,7 +197,7 @@ func newPaneResizeCmd() *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().Float64("size", 0, "percent of the parent split, 5 to 95")
+	cmd.Flags().Float64("size", 0, fmt.Sprintf("percent of the parent split, %d to %d", paneMinSizePercent, paneMaxSizePercent))
 	return cmd
 }
 
@@ -205,9 +205,9 @@ func init() {
 	Pane.AddCommand(
 		paneListCmd,
 		newSplitCmd("Split a pane"),
-		newPaneRefCmd("focus", "pane.focus", "Focus a pane, switching workspace if needed", "focused"),
-		newPaneRefCmd("close", "pane.close", "Close a pane", "closed"),
-		newPaneResizeCmd(),
+		paneRefCmd("focus", "pane.focus", "Focus a pane, switching workspace if needed", "focused"),
+		paneRefCmd("close", "pane.close", "Close a pane", "closed"),
+		paneResizeCmd(),
 	)
 	Root.AddCommand(newSplitCmd("Split a pane (alias for pane split)"))
 }

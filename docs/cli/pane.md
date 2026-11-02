@@ -82,7 +82,7 @@ Focuses a pane, switching to its workspace first if needed.
 
 ### `pane.close`
 
-Closes a pane and every tab in it. Closing the last pane of a workspace closes the workspace.
+Closes a pane and every tab in it. Closing the last pane of a workspace closes the workspace. When the pane holds `callerSurfaceId`, it closes shortly after the reply, so the calling command can finish.
 
 - **Params:** the targeting fields.
 - **Result:** `{ "paneId": "..." }`

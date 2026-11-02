@@ -17,11 +17,15 @@ func paneParams(t *testing.T, requests <-chan map[string]any, method string) map
 	return req["params"].(map[string]any)
 }
 
+func paneArgs(prefix []string, rest ...string) []string {
+	return append(append([]string{}, prefix...), rest...)
+}
+
 func TestPaneSplitDirections(t *testing.T) {
 	requests := fakeApp(t, map[string]string{"pane.split": paneSplitReply})
 	for _, prefix := range [][]string{{"split"}, {"pane", "split"}} {
 		for _, direction := range []string{"left", "right", "up", "down"} {
-			args := append(append([]string{}, prefix...), direction)
+			args := paneArgs(prefix, direction)
 			if r := run(args...); r.code != ExitOK {
 				t.Fatalf("%v: code = %d, stderr = %q", args, r.code, r.stderr)
 			}
@@ -43,7 +47,7 @@ func TestPaneSplitUsageErrors(t *testing.T) {
 			{"left", "--browser=false", "--url", "https://example.com"},
 			{"left", "--nope"},
 		} {
-			args := append(append([]string{}, prefix...), rest...)
+			args := paneArgs(prefix, rest...)
 			if r := run(args...); r.code != ExitUsage {
 				t.Errorf("%v: code = %d, stderr = %q", args, r.code, r.stderr)
 			}
@@ -57,7 +61,7 @@ func TestPaneSplitUsageErrors(t *testing.T) {
 func TestPaneSplitFlags(t *testing.T) {
 	requests := fakeApp(t, map[string]string{"pane.split": paneSplitReply})
 	for _, prefix := range [][]string{{"split"}, {"pane", "split"}} {
-		args := append(append([]string{}, prefix...), "up", "--browser", "--url", "https://example.com", "--focus")
+		args := paneArgs(prefix, "up", "--browser", "--url", "https://example.com", "--focus")
 		if r := run(args...); r.code != ExitOK {
 			t.Fatalf("%v: code = %d, stderr = %q", args, r.code, r.stderr)
 		}
@@ -66,7 +70,7 @@ func TestPaneSplitFlags(t *testing.T) {
 			t.Errorf("%v: params = %v", args, params)
 		}
 
-		args = append(append([]string{}, prefix...), "up")
+		args = paneArgs(prefix, "up")
 		if r := run(args...); r.code != ExitOK {
 			t.Fatalf("%v: code = %d, stderr = %q", args, r.code, r.stderr)
 		}

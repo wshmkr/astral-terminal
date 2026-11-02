@@ -123,10 +123,10 @@ Resolves target params to a concrete surface without changing anything.
 
 ### `pane.split`
 
-Splits a pane and opens a new terminal in the new pane. The new pane takes focus only when the split pane was focused.
+Splits a pane and opens a new tab in the new pane. Without `focus`, the new pane takes focus only when the split pane was focused.
 
-- **Params:** `direction` (`right` or `down`) plus the targeting fields above.
-- **Result:** `{ "workspaceId": "...", "paneId": "...", "surfaceId": "..." }` for the new pane and its terminal.
+- **Params:** `direction` (`left`, `right`, `up`, or `down`), optional `browser`, `url`, and `focus`, plus the targeting fields above. See [Panes](cli/pane.md#panesplit).
+- **Result:** `{ "workspaceId": "...", "paneId": "...", "surfaceId": "..." }` for the new pane and its tab.
 
 ## Method reference
 
