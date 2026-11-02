@@ -6,13 +6,12 @@ import {
   compareVersions,
   parseMarkerVersion,
 } from "../../shared/marker-version";
-import { APP_PACKAGE_NAME } from "../../shared/meta";
+import { APP_PACKAGE_NAME, ASTRAL_CLI_VERSION } from "../../shared/meta";
 import { IS_DEV } from "../env";
 import { withKeyedLock } from "../keyed-lock";
 import { resolveWslPath, runWsl } from "../wsl/home";
 
-// Bump on any cli/ change so stale installs are replaced; keep in sync with scripts/build-cli.mjs
-const CLI_VERSION = "1.0";
+// Bump astralCliVersion in package.json on any cli/ change so stale installs are replaced
 const CLI_MARKER_PREFIX = `${APP_PACKAGE_NAME}:cli`;
 const CLI_RELATIVE_PATH = ".local/bin/astral";
 
@@ -86,9 +85,10 @@ async function readBundledCli(arch: CliArch): Promise<Buffer | null> {
   }
 }
 
+// Resolves false when the install was skipped because no bundled binary applies
 export function ensureAstralCliInstalled(
   distro?: string | null,
-): Promise<void> {
+): Promise<boolean> {
   return withKeyedLock(pathLocks, distro ?? "", async () => {
     const filePath = await resolveWslPath(CLI_RELATIVE_PATH, distro);
     const installed = await readInstalledCli(filePath);
@@ -96,18 +96,19 @@ export function ensureAstralCliInstalled(
       throw new ForeignCliError(CLI_RELATIVE_PATH);
     }
     if (installed.kind === "marked") {
-      const order = compareVersions(installed.version, CLI_VERSION);
-      if (order === 0) return;
+      const order = compareVersions(installed.version, ASTRAL_CLI_VERSION);
+      // Dev reinstalls so a rebuilt dist-cli replaces an install of the same version
+      if (order === 0 && !IS_DEV) return true;
       if (order > 0) {
         console.warn(
-          `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed.version} → v${CLI_VERSION}`,
+          `[astral-cli] downgrading ~/${CLI_RELATIVE_PATH}: v${installed.version} → v${ASTRAL_CLI_VERSION}`,
         );
       }
     }
     const arch = await detectCliArch(distro);
-    if (arch === null) return;
+    if (arch === null) return false;
     const binary = await readBundledCli(arch);
-    if (binary === null) return;
+    if (binary === null) return false;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
 
     // Stage then rename so the marker only lands on a complete, executable file
@@ -135,7 +136,8 @@ export function ensureAstralCliInstalled(
       throw err;
     }
     console.log(
-      `[astral-cli] installed ~/${CLI_RELATIVE_PATH} (v${CLI_VERSION})`,
+      `[astral-cli] installed ~/${CLI_RELATIVE_PATH} (v${ASTRAL_CLI_VERSION})`,
     );
+    return true;
   });
 }

@@ -1,21 +1,20 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Keep in sync with CLI_VERSION in src/main/astral-cli/installer.ts
-const CLI_VERSION = "1.0";
 const ARCHES = ["amd64", "arm64"];
 
 const rootDir = path.resolve(fileURLToPath(import.meta.url), "../..");
 const cliDir = path.join(rootDir, "cli");
 const outDir = path.join(rootDir, "dist-cli");
 
-const { name, version } = JSON.parse(
+const { name, version, astralCliVersion } = JSON.parse(
   readFileSync(path.join(rootDir, "package.json"), "utf-8"),
 );
-const marker = `${name}:cli:v${CLI_VERSION}`;
+const marker = `${name}:cli:v${astralCliVersion}`;
 
+rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
 for (const arch of ARCHES) {
@@ -25,6 +24,7 @@ for (const arch of ARCHES) {
     [
       "build",
       "-trimpath",
+      "-buildvcs=false",
       "-ldflags",
       `-s -w -X main.version=${version} -X main.marker=${marker}`,
       "-o",
