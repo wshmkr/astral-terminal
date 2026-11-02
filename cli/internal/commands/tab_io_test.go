@@ -50,7 +50,7 @@ func TestTabIOSendUsageErrors(t *testing.T) {
 		{"tab", "read", "--lines", "0"},
 		{"tab", "read", "--lines", "-1"},
 		{"tab", "read", "--lines", "abc"},
-		{"tab", "clear-history", "extra"},
+		{"tab", "clear-history", "a", "b"},
 	}
 	for _, args := range cases {
 		if got := run(args...); got.code != ExitUsage {
@@ -216,6 +216,18 @@ func TestTabIOClearHistory(t *testing.T) {
 	}
 	params := tabIOParams(t, requests, "surface.clearHistory")
 	if params["callerSurfaceId"] != "caller" {
+		t.Errorf("params = %v", params)
+	}
+}
+
+func TestTabIOClearHistoryPositional(t *testing.T) {
+	requests := fakeApp(t, map[string]string{"surface.clearHistory": tabIOPlainReply})
+	t.Setenv("ASTRAL_SURFACE_ID", "caller")
+	if got := run("tab", "clear-history", "--tab", "flag", "positional"); got.code != ExitOK {
+		t.Fatalf("code = %d, stderr = %q", got.code, got.stderr)
+	}
+	params := tabIOParams(t, requests, "surface.clearHistory")
+	if params["surfaceId"] != "positional" {
 		t.Errorf("params = %v", params)
 	}
 }

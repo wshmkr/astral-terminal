@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatParamsError } from "../../../shared/cli/params";
 import {
   SURFACE_CLEAR_HISTORY_VIEW,
   type SurfaceIoResult,
@@ -35,12 +36,9 @@ const TargetObjectSchema = z.object({});
 function parseParams<T>(schema: z.ZodType<T>, params: unknown): T {
   const result = schema.safeParse(params ?? {});
   if (result.success) return result.data;
-  const issue = result.error.issues[0];
-  const path = issue?.path.join(".");
-  const message = issue?.message ?? "invalid params";
   throw new CliMethodError(
     CLI_ERROR_CODES.invalidParams,
-    path ? `${path}: ${message}` : message,
+    formatParamsError(result.error),
   );
 }
 
@@ -62,14 +60,7 @@ export function registerSurfaceIoMethods(
         `surface ${surfaceId} is not a terminal`,
       );
     }
-    const manager = await getPtyManager();
-    if (manager.findBySurfaceId(surfaceId) === undefined) {
-      throw new CliMethodError(
-        CLI_ERROR_CODES.notFound,
-        `surface ${surfaceId} has no running terminal`,
-      );
-    }
-    return { manager, surfaceId };
+    return { manager: await getPtyManager(), surfaceId };
   };
 
   server.register(
@@ -125,6 +116,7 @@ export function registerSurfaceIoMethods(
     async (params): Promise<SurfaceIoResult> => {
       parseParams(TargetObjectSchema, params);
       const { manager, surfaceId } = await resolveTerminal(params);
+      await manager.settle(surfaceId);
       await callRenderer(SURFACE_CLEAR_HISTORY_VIEW, { surfaceId });
       await manager.clearHeadless(surfaceId);
       return { surfaceId };

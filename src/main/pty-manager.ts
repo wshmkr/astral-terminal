@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { Terminal as HeadlessTerminal } from "@xterm/headless";
+import { Terminal as HeadlessTerminal, type IBuffer } from "@xterm/headless";
 import { app, dialog } from "electron";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
@@ -188,8 +188,20 @@ function feedHeadless(entry: PtyEntry, chunks: string[], track = false): void {
   }
 }
 
-function isBlank(line: string): boolean {
-  return line.trim() === "";
+function noRunningTerminal(surfaceId: string): CliMethodError {
+  return new CliMethodError(
+    CLI_ERROR_CODES.notFound,
+    `surface ${surfaceId} has no running terminal`,
+  );
+}
+
+// Returns start - 1 when every row in [start, end) is blank.
+function lastContentRow(buffer: IBuffer, start: number, end: number): number {
+  let y = end - 1;
+  while (y >= start && !buffer.getLine(y)?.translateToString(true).trim()) {
+    y--;
+  }
+  return y;
 }
 
 function readLines(
@@ -199,15 +211,14 @@ function readLines(
   const buffer = headless.buffer.active;
   const viewportOnly = !scrollback && lines === undefined;
   const start = viewportOnly ? buffer.viewportY : 0;
-  const end = viewportOnly ? start + headless.rows : buffer.length;
+  const limit = viewportOnly ? start + headless.rows : buffer.length;
+  const end = lastContentRow(buffer, start, limit) + 1;
+  const first = lines === undefined ? start : Math.max(start, end - lines);
   const rows: string[] = [];
-  for (let y = start; y < end; y++) {
+  for (let y = first; y < end; y++) {
     rows.push(buffer.getLine(y)?.translateToString(true) ?? "");
   }
-  while (rows.length > 0 && isBlank(rows[rows.length - 1] as string)) {
-    rows.pop();
-  }
-  return (lines === undefined ? rows : rows.slice(-lines)).join("\n");
+  return rows.join("\n");
 }
 
 function readAnsi(
@@ -221,13 +232,7 @@ function readAnsi(
     });
   }
   const buffer = entry.headless.buffer.normal;
-  let last = buffer.length - 1;
-  while (
-    last > 0 &&
-    isBlank(buffer.getLine(last)?.translateToString(true) ?? "")
-  ) {
-    last--;
-  }
+  const last = Math.max(0, lastContentRow(buffer, 0, buffer.length));
   return entry.serializeAddon.serialize({
     excludeModes: true,
     range: { start: Math.max(0, last - lines + 1), end: last },
@@ -608,12 +613,7 @@ export class PtyManager {
   private entryForSurface(surfaceId: string): PtyEntry {
     const id = this.findBySurfaceId(surfaceId);
     const entry = id === undefined ? undefined : this.entries.get(id);
-    if (!entry) {
-      throw new CliMethodError(
-        CLI_ERROR_CODES.notFound,
-        `surface ${surfaceId} has no running terminal`,
-      );
-    }
+    if (!entry) throw noRunningTerminal(surfaceId);
     return entry;
   }
 
@@ -631,12 +631,7 @@ export class PtyManager {
         torndown,
       ]);
     }
-    if (!live) {
-      throw new CliMethodError(
-        CLI_ERROR_CODES.notFound,
-        `surface ${surfaceId} has no running terminal`,
-      );
-    }
+    if (!live) throw noRunningTerminal(surfaceId);
     return entry;
   }
 

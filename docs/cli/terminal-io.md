@@ -64,9 +64,9 @@ With `--ansi` the output comes from the terminal's serializer: it keeps styling 
 astral tab read --tab 3f2a --lines 5
 ```
 
-### `astral tab clear-history`
+### `astral tab clear-history [<tab>]`
 
-Clears the screen and scrollback in both the visible terminal and what `tab read` returns. The line holding the cursor stays and moves to the top.
+Clears the screen and scrollback in both the visible terminal and what `tab read` returns. The line holding the cursor stays and moves to the top. A positional tab takes precedence over `--tab`.
 
 On success the command prints nothing. With `--json` it prints the method's result.
 
@@ -96,7 +96,7 @@ All of these accept the [targeting fields](../cli-protocol.md#targeting-workspac
 
 ### `surface.clearHistoryView`
 
-Clears only the visible terminal. `surface.clearHistory` calls it; use that instead.
+Clears only the visible terminal, and succeeds when the surface has no terminal view. `surface.clearHistory` calls it; use that instead.
 
 - **Params:** `surfaceId`, a full surface id.
 - **Result:** `{ "surfaceId": "..." }`

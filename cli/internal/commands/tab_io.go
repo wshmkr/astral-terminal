@@ -123,9 +123,20 @@ func tabIORunRead(cmd *cobra.Command, _ []string) error {
 	})
 }
 
-func tabIORunClearHistory(cmd *cobra.Command, _ []string) error {
+func tabIOClearHistoryArgs(cmd *cobra.Command, args []string) error {
+	if len(args) > 1 {
+		return usageErrorf("usage: %s [tab]", cmd.CommandPath())
+	}
+	return nil
+}
+
+func tabIORunClearHistory(cmd *cobra.Command, args []string) error {
+	params := TargetParams(cmd)
+	if len(args) == 1 {
+		params["surfaceId"] = args[0]
+	}
 	var result protocol.TabIOSurfaceResult
-	if err := call(cmd, "surface.clearHistory", TargetParams(cmd), &result); err != nil {
+	if err := call(cmd, "surface.clearHistory", params, &result); err != nil {
 		return err
 	}
 	return output.Print(cmd, result, func(io.Writer) {})
@@ -159,9 +170,9 @@ func init() {
 	readCmd.Flags().Bool("ansi", false, "include colors and styles as escape sequences")
 
 	clearHistoryCmd := &cobra.Command{
-		Use:   "clear-history",
+		Use:   "clear-history [tab]",
 		Short: "Clear a terminal tab's screen and scrollback, keeping the cursor line",
-		Args:  cobra.NoArgs,
+		Args:  tabIOClearHistoryArgs,
 		RunE:  tabIORunClearHistory,
 	}
 
