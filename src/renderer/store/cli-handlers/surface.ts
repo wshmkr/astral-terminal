@@ -30,6 +30,7 @@ import {
   navigateToSurface,
   renameSurface,
   reorderSurfaces,
+  setActiveWorkspace,
 } from "../workspaces";
 import { resolveTarget, TargetParamsSchema } from "./target";
 
@@ -60,6 +61,23 @@ const MoveParamsSchema = TargetParamsSchema.extend({
   toPaneId: z.string(),
   index: z.number().int().nonnegative().optional(),
 }) satisfies z.ZodType<SurfaceMoveParams>;
+
+// Closing the caller's tab kills the caller, so its reply has to go out first.
+const CALLER_TAB_CLOSE_DELAY_MS = 100;
+
+function closeTab(
+  workspaceId: string,
+  paneId: string,
+  surfaceId: string,
+  callerSurfaceId: string | undefined,
+): void {
+  const close = () => closeSurface(paneId, surfaceId, { workspaceId });
+  if (surfaceId === callerSurfaceId) {
+    setTimeout(close, CALLER_TAB_CLOSE_DELAY_MS);
+  } else {
+    close();
+  }
+}
 
 function describeSurface(
   workspaceId: string,
@@ -128,7 +146,8 @@ registerCliHandler("surface.create", (params): SurfaceCreateResult => {
   if (!surfaceId) {
     throw new CliHandlerError("internal_error", "tab was not created");
   }
-  if (!focus) consumeBrowserUrlFocus(surfaceId);
+  if (focus) setActiveWorkspace(workspaceId);
+  else consumeBrowserUrlFocus(surfaceId);
   return { workspaceId, paneId, surfaceId };
 });
 
@@ -142,11 +161,9 @@ registerCliHandler("surface.focus", (params): SurfaceRefResult => {
 });
 
 registerCliHandler("surface.close", (params): SurfaceRefResult => {
-  const { workspaceId, paneId, surfaceId } = resolveTarget(
-    parseCliParams(TargetParamsSchema, params),
-    "surface",
-  );
-  closeSurface(paneId, surfaceId, { workspaceId });
+  const target = parseCliParams(TargetParamsSchema, params);
+  const { workspaceId, paneId, surfaceId } = resolveTarget(target, "surface");
+  closeTab(workspaceId, paneId, surfaceId, target.callerSurfaceId);
   return { surfaceId };
 });
 

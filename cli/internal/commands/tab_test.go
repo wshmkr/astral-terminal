@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -32,15 +33,18 @@ func TestTabUsageErrors(t *testing.T) {
 		{"tab", "bogus"},
 		{"tab", "list", "extra"},
 		{"tab", "list", "--tab", "surf"},
+		{"tab", "list", "--pane", "pane", "--workspace", "2"},
 		{"tab", "new", "extra"},
 		{"tab", "new", "--url", "https://example.com"},
 		{"tab", "new", "--browser", "--cwd", "/work"},
+		{"tab", "focus"},
 		{"tab", "focus", "a", "b"},
 		{"tab", "close", "a", "b"},
 		{"tab", "rename"},
 		{"tab", "rename", " "},
 		{"tab", "rename", "a", "b", "c"},
 		{"tab", "move"},
+		{"tab", "move", "--pane", "pane"},
 		{"tab", "move", "surf"},
 		{"tab", "move", "surf", "extra", "--pane", "pane"},
 		{"tab", "move", "surf", "--pane", "pane", "--index", "-1"},
@@ -77,10 +81,10 @@ func TestTabRequests(t *testing.T) {
 		},
 		{
 			name:   "new terminal",
-			args:   []string{"tab", "new", "--pane", "pane", "--cwd", "/work"},
+			args:   []string{"tab", "new", "--pane", "pane", "--cwd", "~/work"},
 			method: "surface.create",
 			reply:  tabCreatedReply,
-			want:   map[string]any{"paneId": "pane", "cwd": "/work", "callerSurfaceId": "caller-1"},
+			want:   map[string]any{"paneId": "pane", "cwd": "~/work", "callerSurfaceId": "caller-1"},
 		},
 		{
 			name:   "new browser",
@@ -97,6 +101,13 @@ func TestTabRequests(t *testing.T) {
 		{
 			name:   "focus positional",
 			args:   []string{"tab", "focus", "surf"},
+			method: "surface.focus",
+			reply:  tabRefReply,
+			want:   map[string]any{"surfaceId": "surf", "callerSurfaceId": "caller-1"},
+		},
+		{
+			name:   "focus by flag",
+			args:   []string{"tab", "focus", "--tab", "surf"},
 			method: "surface.focus",
 			reply:  tabRefReply,
 			want:   map[string]any{"surfaceId": "surf", "callerSurfaceId": "caller-1"},
@@ -138,10 +149,10 @@ func TestTabRequests(t *testing.T) {
 		},
 		{
 			name:   "move index zero",
-			args:   []string{"tab", "move", "--pane", "dest", "--index", "0"},
+			args:   []string{"tab", "move", "surf", "--pane", "dest", "--index", "0"},
 			method: "surface.move",
 			reply:  tabMovedReply,
-			want:   map[string]any{"toPaneId": "dest", "index": float64(0), "callerSurfaceId": "caller-1"},
+			want:   map[string]any{"surfaceId": "surf", "toPaneId": "dest", "index": float64(0), "callerSurfaceId": "caller-1"},
 		},
 	}
 	for _, tc := range cases {
@@ -153,6 +164,30 @@ func TestTabRequests(t *testing.T) {
 			}
 			tabCheckRequest(t, requests, tc.method, tc.want)
 		})
+	}
+}
+
+func TestTabNewCwd(t *testing.T) {
+	relative, err := filepath.Abs("sub")
+	if err != nil {
+		t.Fatal(err)
+	}
+	absolute, err := filepath.Abs(filepath.Join(t.TempDir(), "dir"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	requests := fakeApp(t, map[string]string{"surface.create": tabCreatedReply})
+	t.Setenv("ASTRAL_SURFACE_ID", "")
+	for cwd, want := range map[string]string{
+		"sub":    relative,
+		absolute: absolute,
+		"~":      "~",
+		"~/dev":  "~/dev",
+	} {
+		if r := run("tab", "new", "--cwd", cwd); r.code != ExitOK {
+			t.Fatalf("code = %d, stderr = %q", r.code, r.stderr)
+		}
+		tabCheckRequest(t, requests, "surface.create", map[string]any{"cwd": want})
 	}
 }
 

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -9,7 +10,11 @@ import (
 	"github.com/wshmkr/astral-terminal/cli/internal/protocol"
 )
 
-func tabPrintRef(cmd *cobra.Command, result protocol.TabRef) error {
+func tabCallRef(cmd *cobra.Command, method string, params map[string]any) error {
+	var result protocol.TabRef
+	if err := call(cmd, method, params, &result); err != nil {
+		return err
+	}
 	return output.Print(cmd, result, func(w io.Writer) {
 		output.Table(w, []string{"TAB"}, [][]string{{output.ShortID(result.SurfaceID)}})
 	})
@@ -42,6 +47,9 @@ var tabListCmd = &cobra.Command{
 		if cmd.Flag("tab").Changed {
 			return usageErrorf("--tab does not apply to %s", cmd.CommandPath())
 		}
+		if cmd.Flag("pane").Changed && cmd.Flag("workspace").Changed {
+			return usageErrorf("--pane and --workspace cannot be combined on %s", cmd.CommandPath())
+		}
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
@@ -73,25 +81,28 @@ var tabNewCmd = &cobra.Command{
 		if len(args) != 0 {
 			return usageErrorf("usage: %s", cmd.CommandPath())
 		}
-		browser, url, cwd := tabNewFlags(cmd)
-		if url != "" && !browser {
+		browser, _ := cmd.Flags().GetBool("browser")
+		if cmd.Flag("url").Changed && !browser {
 			return usageErrorf("--url requires --browser")
 		}
-		if cwd != "" && browser {
+		if cmd.Flag("cwd").Changed && browser {
 			return usageErrorf("--cwd does not apply with --browser")
 		}
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		browser, url, cwd := tabNewFlags(cmd)
 		params := TargetParams(cmd)
-		if browser {
+		if browser, _ := cmd.Flags().GetBool("browser"); browser {
 			params["browser"] = true
 		}
-		if url != "" {
-			params["url"] = url
+		if flag := cmd.Flag("url"); flag.Changed {
+			params["url"] = flag.Value.String()
 		}
-		if cwd != "" {
+		if flag := cmd.Flag("cwd"); flag.Changed {
+			cwd, err := tabResolveCwd(flag.Value.String())
+			if err != nil {
+				return err
+			}
 			params["cwd"] = cwd
 		}
 		if focus, _ := cmd.Flags().GetBool("focus"); focus {
@@ -111,35 +122,49 @@ var tabNewCmd = &cobra.Command{
 	},
 }
 
-func tabNewFlags(cmd *cobra.Command) (browser bool, url, cwd string) {
-	browser, _ = cmd.Flags().GetBool("browser")
-	url, _ = cmd.Flags().GetString("url")
-	cwd, _ = cmd.Flags().GetString("cwd")
-	return browser, url, cwd
+func tabResolveCwd(cwd string) (string, error) {
+	if strings.HasPrefix(cwd, "~") {
+		return cwd, nil
+	}
+	return filepath.Abs(cwd)
 }
 
-func tabActionCmd(use, short, method string) *cobra.Command {
-	return &cobra.Command{
-		Use:   use + " [tab]",
-		Short: short,
-		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 1 {
-				return usageErrorf("usage: %s [tab]", cmd.CommandPath())
-			}
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			params := TargetParams(cmd)
-			if len(args) == 1 {
-				params["surfaceId"] = args[0]
-			}
-			var result protocol.TabRef
-			if err := call(cmd, method, params, &result); err != nil {
-				return err
-			}
-			return tabPrintRef(cmd, result)
-		},
+func tabHasTarget(cmd *cobra.Command, args []string) bool {
+	return len(args) == 1 || cmd.Flag("tab").Value.String() != ""
+}
+
+func tabRunAction(method string) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		params := TargetParams(cmd)
+		if len(args) == 1 {
+			params["surfaceId"] = args[0]
+		}
+		return tabCallRef(cmd, method, params)
 	}
+}
+
+var tabFocusCmd = &cobra.Command{
+	Use:   "focus <tab>",
+	Short: "Switch to a tab, its pane and its workspace",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 1 || !tabHasTarget(cmd, args) {
+			return usageErrorf("usage: %s <tab>", cmd.CommandPath())
+		}
+		return nil
+	},
+	RunE: tabRunAction("surface.focus"),
+}
+
+var tabCloseCmd = &cobra.Command{
+	Use:   "close [tab]",
+	Short: "Close a tab",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 1 {
+			return usageErrorf("usage: %s [tab]", cmd.CommandPath())
+		}
+		return nil
+	},
+	RunE: tabRunAction("surface.close"),
 }
 
 var tabRenameCmd = &cobra.Command{
@@ -160,20 +185,16 @@ var tabRenameCmd = &cobra.Command{
 			params["surfaceId"] = args[0]
 		}
 		params["name"] = args[len(args)-1]
-		var result protocol.TabRef
-		if err := call(cmd, "surface.rename", params, &result); err != nil {
-			return err
-		}
-		return tabPrintRef(cmd, result)
+		return tabCallRef(cmd, "surface.rename", params)
 	},
 }
 
 var tabMoveCmd = &cobra.Command{
-	Use:   "move [tab] --pane <pane> [--index <n>]",
+	Use:   "move <tab> --pane <pane> [--index <n>]",
 	Short: "Move a tab to another pane in its workspace, or to a position in its pane",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) > 1 {
-			return usageErrorf("usage: %s [tab] --pane <pane> [--index <n>]", cmd.CommandPath())
+		if len(args) > 1 || !tabHasTarget(cmd, args) {
+			return usageErrorf("usage: %s <tab> --pane <pane> [--index <n>]", cmd.CommandPath())
 		}
 		if cmd.Flag("pane").Value.String() == "" {
 			return usageErrorf("%s requires --pane", cmd.CommandPath())
@@ -190,11 +211,8 @@ var tabMoveCmd = &cobra.Command{
 		if len(args) == 1 {
 			params["surfaceId"] = args[0]
 		}
-		if cmd.Flags().Changed("index") {
-			index, err := cmd.Flags().GetInt("index")
-			if err != nil {
-				return err
-			}
+		if cmd.Flag("index").Changed {
+			index, _ := cmd.Flags().GetInt("index")
 			params["index"] = index
 		}
 		var result protocol.TabMoved
@@ -215,14 +233,14 @@ func init() {
 	newFlags.Bool("browser", false, "open a browser tab instead of a terminal")
 	newFlags.String("url", "", "URL to open (requires --browser)")
 	newFlags.String("cwd", "", "working directory for the terminal")
-	newFlags.Bool("focus", false, "make the target pane the workspace's focused pane")
+	newFlags.Bool("focus", false, "focus the tab's pane, switching workspace if needed")
 	tabMoveCmd.Flags().Int("index", 0, "zero-based tab position in the destination pane (default: last)")
 
 	Tab.AddCommand(
 		tabListCmd,
 		tabNewCmd,
-		tabActionCmd("focus", "Switch to a tab, its pane and its workspace", "surface.focus"),
-		tabActionCmd("close", "Close a tab", "surface.close"),
+		tabFocusCmd,
+		tabCloseCmd,
 		tabRenameCmd,
 		tabMoveCmd,
 	)

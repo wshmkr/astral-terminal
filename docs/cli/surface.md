@@ -39,14 +39,14 @@ Lists tabs without changing anything. With `paneId`, lists that pane's tabs. Oth
 
 ## `surface.create`
 
-Opens a new tab at the end of the target pane and makes it the pane's active tab. Keyboard focus does not move unless `focus` is set.
+Opens a new tab at the end of the target pane and makes it the pane's active tab. The focused pane and active workspace do not change unless `focus` is set.
 
-| Param     | Description                                                                                                                                                             |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `browser` | Open a browser tab instead of a terminal.                                                                                                                               |
-| `url`     | The URL to open. Requires `browser`. Defaults to the configured homepage.                                                                                               |
-| `cwd`     | The terminal's working directory. Not allowed with `browser`. Defaults to the working directory of the pane's active terminal.                                          |
-| `focus`   | Make the target pane its workspace's focused pane. This does not switch workspaces, so a pane in a background workspace takes focus when you next switch to it.         |
+| Param     | Description                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `browser` | Open a browser tab instead of a terminal.                                                                                      |
+| `url`     | The URL to open. Requires `browser`. Defaults to the configured homepage.                                                      |
+| `cwd`     | The terminal's working directory. Not allowed with `browser`. Defaults to the working directory of the pane's active terminal. |
+| `focus`   | Focus the target pane, switching to its workspace if needed.                                                                   |
 
 - **Result:** `{ "workspaceId": "...", "paneId": "...", "surfaceId": "..." }`.
 
@@ -58,7 +58,7 @@ Switches to the target tab, its pane, and its workspace.
 
 ## `surface.close`
 
-Closes the target tab and ends what is running in it. Closing a pane's last tab closes the pane, and closing a workspace's last tab closes the workspace.
+Closes the target tab and ends what is running in it. Closing a pane's last tab closes the pane, and closing a workspace's last tab closes the workspace. When the tab is `callerSurfaceId`, it closes shortly after the reply, so the calling command can finish.
 
 - **Result:** `{ "surfaceId": "..." }`.
 
@@ -73,10 +73,12 @@ Renames the target tab. A terminal program that sets its title can replace the n
 
 Moves the target tab to another pane in the same workspace and makes it that pane's active tab. Focus does not move, unless the move closes the focused pane.
 
-| Param      | Description                                                                                                                               |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `toPaneId` | The destination pane: an id or a unique id prefix. A pane in another workspace fails with `invalid_params`.                               |
-| `index`    | The zero-based position in the destination pane. Defaults to last. When `toPaneId` is the tab's own pane, this reorders the tab in place. |
+| Param      | Description                                                                                                                 |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `toPaneId` | The destination pane: an id or a unique id prefix. A pane in another workspace fails with `invalid_params`.                 |
+| `index`    | The tab's zero-based position in the destination pane after the move. A position past the end means last. Defaults to last. |
+
+When `toPaneId` is the tab's own pane, `index` reorders the tab in place without activating it, and omitting `index` leaves the tab where it is.
 
 - **Result:** `{ "surfaceId": "...", "paneId": "..." }`, where `paneId` is the destination.
 
@@ -84,11 +86,11 @@ Moves the target tab to another pane in the same workspace and makes it that pan
 
 | Command                                                            | Method           |
 | ------------------------------------------------------------------ | ---------------- |
-| `astral tab list [--pane <pane>] [--workspace <workspace>]`        | `surface.list`   |
+| `astral tab list [--pane <pane> \| --workspace <workspace>]`       | `surface.list`   |
 | `astral tab new [--browser [--url <url>]] [--cwd <dir>] [--focus]` | `surface.create` |
-| `astral tab focus [tab]`                                           | `surface.focus`  |
+| `astral tab focus <tab>`                                           | `surface.focus`  |
 | `astral tab close [tab]`                                           | `surface.close`  |
 | `astral tab rename [tab] <name>`                                   | `surface.rename` |
-| `astral tab move [tab] --pane <pane> [--index <n>]`                | `surface.move`   |
+| `astral tab move <tab> --pane <pane> [--index <n>]`                | `surface.move`   |
 
-`--workspace`, `--pane`, and `--tab` select the target, and a positional `tab` overrides `--tab`. On `tab move`, `--pane` is the destination rather than part of the target. `--tab` does not apply to `tab list`. Add `--json` to print the method's result.
+`--workspace`, `--pane`, and `--tab` select the target, and a positional `tab` overrides `--tab`. `tab focus` and `tab move` take the tab as a positional or through `--tab`. On `tab move`, `--pane` is the destination rather than part of the target. `--tab` does not apply to `tab list`. The CLI makes a relative `--cwd` absolute against its own working directory, and leaves paths starting with `~` unchanged. Add `--json` to print the method's result.
