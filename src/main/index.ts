@@ -17,6 +17,7 @@ import {
 import { BrowserManager } from "./browser-manager";
 import { registerActiveRefIpc } from "./cli/active-ref";
 import { registerAppIdentify } from "./cli/methods/app-identify";
+import { registerSurfaceIoMethods } from "./cli/methods/surface-io";
 import { registerSystemMethods } from "./cli/methods/system";
 import { registerRendererCall } from "./cli/renderer-call";
 import { getCliServer } from "./cli/server";
@@ -177,6 +178,7 @@ const startup = app.whenReady().then(async () => {
   const cliServer = getCliServer();
   registerAppIdentify(cliServer);
   registerSystemMethods(cliServer);
+  registerSurfaceIoMethods(cliServer, getPtyManager);
   registerRendererCall(cliServer, getMainWindow);
   await cliServer.start().catch((err) => {
     console.error("[cli] listen failed", err);

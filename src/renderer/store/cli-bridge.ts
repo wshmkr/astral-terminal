@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { formatParamsError } from "../../shared/cli/params";
 import type {
   ActiveRef,
   CliRendererErrorCode,
@@ -49,13 +50,7 @@ export function registerCliHandler(method: string, handler: CliHandler): void {
 export function parseCliParams<T>(schema: z.ZodType<T>, params: unknown): T {
   const result = schema.safeParse(params ?? {});
   if (result.success) return result.data;
-  const issue = result.error.issues[0];
-  const path = issue?.path.join(".");
-  const message = issue?.message ?? "invalid params";
-  throw new CliHandlerError(
-    "invalid_params",
-    path ? `${path}: ${message}` : message,
-  );
+  throw new CliHandlerError("invalid_params", formatParamsError(result.error));
 }
 
 async function runHandler(request: CliRendererRequest): Promise<unknown> {
