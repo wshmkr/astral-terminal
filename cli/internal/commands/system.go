@@ -36,8 +36,8 @@ var identifyCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "%s\n", line)
-		return nil
+		_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\n", line)
+		return err
 	},
 }
 
@@ -120,7 +120,9 @@ var callCmd = &cobra.Command{
 		}
 		line, err := client.CallRaw(cmd.Context(), args[0], params)
 		if line != nil {
-			fmt.Fprintf(cmd.OutOrStdout(), "%s\n", line)
+			if _, writeErr := fmt.Fprintf(cmd.OutOrStdout(), "%s\n", line); err == nil {
+				err = writeErr
+			}
 		}
 		return withVersionHint(cmd.Context(), args[0], err, false)
 	},

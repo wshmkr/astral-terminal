@@ -22,8 +22,24 @@ func Print(cmd *cobra.Command, result any, human func(w io.Writer)) error {
 	if JSONEnabled(cmd) || human == nil {
 		return WriteJSON(w, result)
 	}
-	human(w)
-	return nil
+	ew := &errWriter{w: w}
+	human(ew)
+	return ew.err
+}
+
+// errWriter keeps the first write error, which fmt.Fprint and Table callers do not check.
+type errWriter struct {
+	w   io.Writer
+	err error
+}
+
+func (e *errWriter) Write(p []byte) (int, error) {
+	if e.err != nil {
+		return 0, e.err
+	}
+	n, err := e.w.Write(p)
+	e.err = err
+	return n, err
 }
 
 func WriteJSON(w io.Writer, v any) error {

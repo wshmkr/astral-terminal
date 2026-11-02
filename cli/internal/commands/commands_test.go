@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -185,6 +186,41 @@ func TestUnknownMethodHint(t *testing.T) {
 	r := run("ping")
 	if r.code != ExitAppError || !strings.Contains(r.stderr, "versions differ") {
 		t.Errorf("%+v", r)
+	}
+}
+
+func TestUnknownMethodNoHintWhenAdvertised(t *testing.T) {
+	fakeApp(t, map[string]string{
+		"system.ping":         `{"id":"call","ok":false,"error":{"code":"unknown_method","message":"unknown method"}}`,
+		"system.capabilities": `{"id":"call","ok":true,"result":{"protocolVersion":1,"methods":["system.ping"]}}`,
+	})
+	r := run("ping")
+	if r.code != ExitAppError || strings.Contains(r.stderr, "versions differ") {
+		t.Errorf("%+v", r)
+	}
+}
+
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("disk full") }
+
+func TestStdoutWriteErrorFails(t *testing.T) {
+	ok := `{"id":"call","ok":true,"result":{"pong":true}}`
+	rejected := `{"id":"call","ok":false,"error":{"code":"invalid_params","message":"bad"}}`
+	fakeApp(t, map[string]string{"system.ping": ok, "bad.params": rejected})
+	t.Setenv("ASTRAL_SURFACE_ID", "s1")
+
+	for _, args := range [][]string{{"call", "system.ping"}, {"ping"}, {"identify"}} {
+		var errOut bytes.Buffer
+		if code := Execute(context.Background(), args, failingWriter{}, &errOut); code != ExitAppError || !strings.Contains(errOut.String(), "disk full") {
+			t.Errorf("%v: code = %d, stderr = %q", args, code, errOut.String())
+		}
+	}
+
+	var errOut bytes.Buffer
+	code := Execute(context.Background(), []string{"call", "bad.params"}, failingWriter{}, &errOut)
+	if code != ExitAppError || !strings.Contains(errOut.String(), "invalid_params") {
+		t.Errorf("reply error must win: code = %d, stderr = %q", code, errOut.String())
 	}
 }
 

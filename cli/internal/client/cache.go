@@ -52,13 +52,16 @@ func (c *HostCache) checkDir() bool {
 	if os.MkdirAll(c.Dir, 0o700) != nil {
 		return false
 	}
-	_ = os.Chmod(c.Dir, 0o700)
-	info, err := os.Stat(c.Dir)
+	info, err := os.Lstat(c.Dir)
 	if err != nil || !info.IsDir() {
 		return false
 	}
-	uid, ok := c.owner(info)
-	return ok && uid == c.uid
+	if uid, ok := c.owner(info); !ok || uid != c.uid {
+		return false
+	}
+	_ = os.Chmod(c.Dir, 0o700)
+	info, err = os.Lstat(c.Dir)
+	return err == nil && accessIsPrivate(info)
 }
 
 func (c *HostCache) Load() string {

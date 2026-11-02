@@ -14,3 +14,7 @@ func fileOwner(info os.FileInfo) (int, bool) {
 	}
 	return int(st.Uid), true
 }
+
+func accessIsPrivate(info os.FileInfo) bool {
+	return info.Mode().Perm()&0o077 == 0
+}

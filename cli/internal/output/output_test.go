@@ -2,6 +2,8 @@ package output
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"testing"
 
@@ -28,6 +30,39 @@ func TestTable(t *testing.T) {
 	want := "ID  NAME\n1   one\n22  two\n"
 	if buf.String() != want {
 		t.Errorf("Table = %q, want %q", buf.String(), want)
+	}
+}
+
+type failAfter struct{ n int }
+
+func (f *failAfter) Write(p []byte) (int, error) {
+	if f.n == 0 {
+		return 0, errors.New("disk full")
+	}
+	f.n--
+	return len(p), nil
+}
+
+func TestPrintReturnsHumanWriteError(t *testing.T) {
+	cmd := &cobra.Command{Use: "x"}
+	cmd.Flags().Bool("json", false, "")
+	w := &failAfter{n: 1}
+	cmd.SetOut(w)
+	err := Print(cmd, nil, func(out io.Writer) {
+		fmt.Fprintln(out, "first")
+		fmt.Fprintln(out, "second")
+		fmt.Fprintln(out, "third")
+	})
+	if err == nil || err.Error() != "disk full" {
+		t.Errorf("err = %v", err)
+	}
+
+	cmd.SetOut(&failAfter{})
+	err = Print(cmd, nil, func(out io.Writer) {
+		Table(out, []string{"ID"}, [][]string{{"1"}})
+	})
+	if err == nil {
+		t.Error("Table write error dropped")
 	}
 }
 

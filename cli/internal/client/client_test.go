@@ -158,7 +158,7 @@ func TestCallReplyTimeoutFromContext(t *testing.T) {
 	if !errors.Is(err, ErrNoReply) {
 		t.Fatalf("err = %v", err)
 	}
-	if time.Since(start) > 5*time.Second {
+	if time.Since(start) > time.Second {
 		t.Error("reply timeout from context ignored")
 	}
 }
@@ -217,5 +217,34 @@ func TestFromEnvNotConnected(t *testing.T) {
 	t.Setenv("ASTRAL_TOKEN", "x")
 	if _, err := FromEnv(); !errors.Is(err, ErrNotConnected) {
 		t.Errorf("err = %v", err)
+	}
+}
+
+func TestFromEnvEmptyToken(t *testing.T) {
+	t.Setenv("ASTRAL_PORT", "9999")
+	t.Setenv("ASTRAL_TOKEN", "")
+	if _, err := FromEnv(); !errors.Is(err, ErrNotConnected) {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestCallResultPresence(t *testing.T) {
+	clientReplying := func(reply string) *Client {
+		s := startServer(t, func(_, _ string) []string { return []string{authOK, reply} })
+		return newTestClient(t, s, "good")
+	}
+	var out struct{ A int }
+
+	omitted := clientReplying(`{"id":"call","ok":true}`)
+	if err := omitted.Call(context.Background(), "x.y", nil, &out); err == nil || !strings.Contains(err.Error(), "missing result") {
+		t.Errorf("omitted result with out: err = %v", err)
+	}
+	if err := omitted.Call(context.Background(), "x.y", nil, nil); err != nil {
+		t.Errorf("omitted result without out: err = %v", err)
+	}
+
+	null := clientReplying(`{"id":"call","ok":true,"result":null}`)
+	if err := null.Call(context.Background(), "x.y", nil, &out); err != nil {
+		t.Errorf("null result: err = %v", err)
 	}
 }

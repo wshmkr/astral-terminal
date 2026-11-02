@@ -93,8 +93,11 @@ func (c *Client) Call(ctx context.Context, method string, params any, out any) e
 	if err != nil {
 		return err
 	}
-	if out == nil || len(resp.Result) == 0 {
+	if out == nil {
 		return nil
+	}
+	if resp.Result == nil {
+		return fmt.Errorf("malformed %s reply: missing result", method)
 	}
 	if err := json.Unmarshal(resp.Result, out); err != nil {
 		return fmt.Errorf("decode %s result: %w", method, err)
