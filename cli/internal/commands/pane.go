@@ -1,33 +1,63 @@
 package commands
 
 import (
+	"fmt"
 	"io"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/wshmkr/astral-terminal/cli/internal/output"
+	"github.com/wshmkr/astral-terminal/cli/internal/protocol"
 )
 
-type splitResult struct {
-	WorkspaceID *string `json:"workspaceId"`
-	PaneID      *string `json:"paneId"`
-	SurfaceID   *string `json:"surfaceId"`
-}
+const (
+	paneMinSizePercent = 5
+	paneMaxSizePercent = 95
+)
+
+var paneSplitDirections = []string{"left", "right", "up", "down"}
 
 func splitArgs(cmd *cobra.Command, args []string) error {
+	directions := strings.Join(paneSplitDirections, "|")
 	if len(args) != 1 {
-		return usageErrorf("usage: %s <right|down>", cmd.CommandPath())
+		return usageErrorf("usage: %s <%s>", cmd.CommandPath(), directions)
 	}
-	switch args[0] {
-	case "right", "down":
-		return nil
+	if !slices.Contains(paneSplitDirections, args[0]) {
+		return usageErrorf("invalid direction: %s (expected %s)", args[0], directions)
 	}
-	return usageErrorf("invalid direction: %s (expected right or down)", args[0])
+	browser, err := cmd.Flags().GetBool("browser")
+	if err != nil {
+		return err
+	}
+	if cmd.Flags().Changed("url") && !browser {
+		return usageErrorf("--url requires --browser")
+	}
+	return nil
 }
 
 func runSplit(cmd *cobra.Command, args []string) error {
 	params := TargetParams(cmd)
 	params["direction"] = args[0]
-	var result splitResult
+	flags := cmd.Flags()
+	for _, name := range []string{"browser", "focus"} {
+		enabled, err := flags.GetBool(name)
+		if err != nil {
+			return err
+		}
+		if enabled {
+			params[name] = true
+		}
+	}
+	if flags.Changed("url") {
+		url, err := flags.GetString("url")
+		if err != nil {
+			return err
+		}
+		params["url"] = url
+	}
+	var result protocol.PaneSplitResult
 	if err := call(cmd, "pane.split", params, &result); err != nil {
 		return err
 	}
@@ -48,15 +78,136 @@ func shortOrDash(id *string) string {
 }
 
 func newSplitCmd(short string) *cobra.Command {
-	return &cobra.Command{
-		Use:   "split <right|down>",
+	cmd := &cobra.Command{
+		Use:   "split <" + strings.Join(paneSplitDirections, "|") + ">",
 		Short: short,
 		Args:  splitArgs,
 		RunE:  runSplit,
 	}
+	f := cmd.Flags()
+	f.Bool("browser", false, "open a browser tab in the new pane instead of a terminal")
+	f.String("url", "", "URL for the browser tab (requires --browser)")
+	f.Bool("focus", false, "focus the new pane, switching workspace if needed")
+	return cmd
+}
+
+func paneTargetParams(cmd *cobra.Command, args []string) map[string]any {
+	params := TargetParams(cmd)
+	if len(args) == 1 {
+		params["paneId"] = args[0]
+	}
+	return params
+}
+
+func paneFormatSizes(sizes []float64) string {
+	parts := make([]string, len(sizes))
+	for i, size := range sizes {
+		parts[i] = strconv.FormatFloat(size*100, 'f', 1, 64) + "%"
+	}
+	return strings.Join(parts, " ")
+}
+
+func paneBoolMark(value bool) string {
+	if value {
+		return "*"
+	}
+	return ""
+}
+
+var paneListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List the panes in a workspace",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		var result protocol.PaneListResult
+		if err := call(cmd, "pane.list", TargetParams(cmd), &result); err != nil {
+			return err
+		}
+		return output.Print(cmd, result, func(w io.Writer) {
+			rows := make([][]string, len(result.Panes))
+			for i, pane := range result.Panes {
+				rows[i] = []string{
+					paneBoolMark(pane.Focused),
+					output.ShortID(pane.PaneID),
+					output.ShortID(pane.WorkspaceID),
+					shortOrDash(pane.ActiveSurfaceID),
+					strconv.Itoa(pane.TabCount),
+				}
+			}
+			output.Table(w, []string{"", "PANE", "WORKSPACE", "ACTIVE TAB", "TABS"}, rows)
+		})
+	},
+}
+
+func newPaneRefCmd(name, method, short, verb string) *cobra.Command {
+	return &cobra.Command{
+		Use:   name + " [pane]",
+		Short: short,
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var result protocol.PaneRefResult
+			if err := call(cmd, method, paneTargetParams(cmd, args), &result); err != nil {
+				return err
+			}
+			return output.Print(cmd, result, func(w io.Writer) {
+				fmt.Fprintf(w, "%s pane %s\n", verb, shortOrDash(result.PaneID))
+			})
+		},
+	}
+}
+
+func paneResizeArgs(cmd *cobra.Command, args []string) error {
+	if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
+		return err
+	}
+	if !cmd.Flags().Changed("size") {
+		return usageErrorf("--size is required")
+	}
+	size, err := cmd.Flags().GetFloat64("size")
+	if err != nil {
+		return err
+	}
+	if !(size >= paneMinSizePercent && size <= paneMaxSizePercent) {
+		return usageErrorf("--size must be between %d and %d", paneMinSizePercent, paneMaxSizePercent)
+	}
+	return nil
+}
+
+func newPaneResizeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "resize [pane] --size <percent>",
+		Short: "Set a pane's share of its parent split",
+		Args:  paneResizeArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			size, err := cmd.Flags().GetFloat64("size")
+			if err != nil {
+				return err
+			}
+			params := paneTargetParams(cmd, args)
+			params["size"] = size
+			var result protocol.PaneResizeResult
+			if err := call(cmd, "pane.resize", params, &result); err != nil {
+				return err
+			}
+			return output.Print(cmd, result, func(w io.Writer) {
+				output.Table(w, []string{"PANE", "SIZES"}, [][]string{{
+					shortOrDash(result.PaneID),
+					paneFormatSizes(result.Sizes),
+				}})
+			})
+		},
+	}
+	cmd.Flags().Float64("size", 0, "percent of the parent split, 5 to 95")
+	return cmd
 }
 
 func init() {
-	Pane.AddCommand(newSplitCmd("Split a pane right or down"))
-	Root.AddCommand(newSplitCmd("Split a pane right or down (alias for pane split)"))
+	Pane.AddCommand(
+		paneListCmd,
+		newSplitCmd("Split a pane"),
+		newPaneRefCmd("focus", "pane.focus", "Focus a pane, switching workspace if needed", "focused"),
+		newPaneRefCmd("close", "pane.close", "Close a pane", "closed"),
+		newPaneResizeCmd(),
+	)
+	Root.AddCommand(newSplitCmd("Split a pane (alias for pane split)"))
 }
