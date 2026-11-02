@@ -9,6 +9,10 @@ import { app, dialog } from "electron";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
 import { findAgentProvider } from "../shared/agent-hooks";
+import type {
+  SurfaceReadOptions,
+  TerminalModes,
+} from "../shared/cli/surface-io";
 import {
   ASTRAL_ENV,
   type AstralEnvName,
@@ -29,7 +33,8 @@ import {
   ensureAstralCliInstalled,
   ForeignCliError,
 } from "./astral-cli/installer";
-import { getCliServer } from "./cli/server";
+import { CLI_ERROR_CODES } from "./cli/protocol";
+import { CliMethodError, getCliServer } from "./cli/server";
 
 const astralCliInstallAttempted = new Set<string>();
 
@@ -181,6 +186,52 @@ function feedHeadless(entry: PtyEntry, chunks: string[], track = false): void {
   } else {
     for (const chunk of chunks) entry.headless.write(chunk);
   }
+}
+
+function isBlank(line: string): boolean {
+  return line.trim() === "";
+}
+
+function readLines(
+  headless: HeadlessTerminal,
+  { scrollback, lines }: SurfaceReadOptions,
+): string {
+  const buffer = headless.buffer.active;
+  const viewportOnly = !scrollback && lines === undefined;
+  const start = viewportOnly ? buffer.viewportY : 0;
+  const end = viewportOnly ? start + headless.rows : buffer.length;
+  const rows: string[] = [];
+  for (let y = start; y < end; y++) {
+    rows.push(buffer.getLine(y)?.translateToString(true) ?? "");
+  }
+  while (rows.length > 0 && isBlank(rows[rows.length - 1] as string)) {
+    rows.pop();
+  }
+  return (lines === undefined ? rows : rows.slice(-lines)).join("\n");
+}
+
+function readAnsi(
+  entry: PtyEntry,
+  { scrollback, lines }: SurfaceReadOptions,
+): string {
+  if (lines === undefined) {
+    return entry.serializeAddon.serialize({
+      excludeModes: true,
+      ...(scrollback ? {} : { scrollback: 0 }),
+    });
+  }
+  const buffer = entry.headless.buffer.normal;
+  let last = buffer.length - 1;
+  while (
+    last > 0 &&
+    isBlank(buffer.getLine(last)?.translateToString(true) ?? "")
+  ) {
+    last--;
+  }
+  return entry.serializeAddon.serialize({
+    excludeModes: true,
+    range: { start: Math.max(0, last - lines + 1), end: last },
+  });
 }
 
 export class PtyManager {
@@ -545,6 +596,82 @@ export class PtyManager {
 
   kill(id: string): void {
     this.teardown(id, { deleteBuffer: true });
+  }
+
+  findBySurfaceId(surfaceId: string): string | undefined {
+    for (const [id, entry] of this.entries) {
+      if (entry.surfaceId === surfaceId) return id;
+    }
+    return undefined;
+  }
+
+  private entryForSurface(surfaceId: string): PtyEntry {
+    const id = this.findBySurfaceId(surfaceId);
+    const entry = id === undefined ? undefined : this.entries.get(id);
+    if (!entry) {
+      throw new CliMethodError(
+        CLI_ERROR_CODES.notFound,
+        `surface ${surfaceId} has no running terminal`,
+      );
+    }
+    return entry;
+  }
+
+  // Waits for the restored buffer and all output received so far to be parsed.
+  private async settledEntry(surfaceId: string): Promise<PtyEntry> {
+    const entry = this.entryForSurface(surfaceId);
+    let live = true;
+    const torndown = entry.torndown.then(() => {
+      live = false;
+    });
+    await Promise.race([entry.parseSettled, torndown]);
+    if (live) {
+      await Promise.race([
+        new Promise<void>((resolve) => entry.headless.write("", resolve)),
+        torndown,
+      ]);
+    }
+    if (!live) {
+      throw new CliMethodError(
+        CLI_ERROR_CODES.notFound,
+        `surface ${surfaceId} has no running terminal`,
+      );
+    }
+    return entry;
+  }
+
+  async settle(surfaceId: string): Promise<void> {
+    await this.settledEntry(surfaceId);
+  }
+
+  writeToSurface(surfaceId: string, data: string): void {
+    this.entryForSurface(surfaceId).pty.write(data);
+  }
+
+  terminalModes(surfaceId: string): TerminalModes {
+    const { modes } = this.entryForSurface(surfaceId).headless;
+    return {
+      applicationCursorKeys: modes.applicationCursorKeysMode,
+      bracketedPaste: modes.bracketedPasteMode,
+    };
+  }
+
+  async readSurface(
+    surfaceId: string,
+    options: SurfaceReadOptions,
+  ): Promise<string> {
+    const entry = await this.settledEntry(surfaceId);
+    return options.ansi
+      ? readAnsi(entry, options)
+      : readLines(entry.headless, options);
+  }
+
+  async clearHeadless(surfaceId: string): Promise<void> {
+    const entry = await this.settledEntry(surfaceId);
+    entry.headless.clear();
+    entry.initialReplay = null;
+    entry.restoreRaw = null;
+    entry.restoreTail = [];
   }
 
   private evictBySurfaceId(surfaceId: string): StoredBuffer | null {

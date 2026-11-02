@@ -20,6 +20,10 @@ import type { FindController, FindMatches } from "../Find/FindBar";
 import { attachDropHandlers } from "./drop-handlers";
 import { parseOsc } from "./osc";
 import { pasteClipboardImage, pasteText } from "./paste";
+import {
+  registerTerminalController,
+  unregisterTerminalController,
+} from "./terminal-registry";
 
 const RESIZE_DEBOUNCE_MS = 100;
 
@@ -317,6 +321,7 @@ export class TerminalController implements SurfaceController, FindController {
     this.fitAddon = fitAddon;
     this.searchAddon = searchAddon;
     this.findDecorations = findDecorationsFromTheme(opts.theme);
+    registerTerminalController(opts.surfaceId, this);
 
     // xterm's renderer can't measure cell metrics on a 0×0 container
     if (opts.container.offsetWidth > 0 && opts.container.offsetHeight > 0) {
@@ -430,6 +435,7 @@ export class TerminalController implements SurfaceController, FindController {
 
   dispose(): void {
     this.disposed = true;
+    unregisterTerminalController(this.opts.surfaceId, this);
     this.resizeObserver.disconnect();
     if (this.resizeTimer !== null) clearTimeout(this.resizeTimer);
     for (const fn of this.cleanupFns) fn();
