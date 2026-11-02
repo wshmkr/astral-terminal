@@ -1,5 +1,9 @@
 import InputBase from "@mui/material/InputBase";
 import { useState } from "react";
+import {
+  MAX_WORKSPACE_NAME_LENGTH,
+  normalizeWorkspaceName,
+} from "../../../shared/types";
 
 const INPUT_SX = {
   flex: 1,
@@ -18,23 +22,18 @@ const INPUT_PROPS = {
 
 interface Props {
   initialName: string;
-  maxLength: number;
   onCommit: (next: string) => void;
   onCancel: () => void;
 }
 
 export function WorkspaceRenameInput({
   initialName,
-  maxLength,
   onCommit,
   onCancel,
 }: Props) {
   const [draft, setDraft] = useState(initialName);
 
-  const commit = () => {
-    const next = draft.trim().replace(/\s+/g, " ").slice(0, maxLength);
-    onCommit(next);
-  };
+  const commit = () => onCommit(normalizeWorkspaceName(draft));
 
   return (
     <InputBase
@@ -54,7 +53,7 @@ export function WorkspaceRenameInput({
       onBlur={commit}
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
-      inputProps={{ maxLength, ...INPUT_PROPS }}
+      inputProps={{ maxLength: MAX_WORKSPACE_NAME_LENGTH, ...INPUT_PROPS }}
       sx={INPUT_SX}
     />
   );

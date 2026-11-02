@@ -29,6 +29,17 @@ export function decodeAppModeArg(argv: readonly string[]): AppMode {
 export type SplitDirection = "horizontal" | "vertical";
 
 export const DEFAULT_CWD = "~";
+
+export const MAX_WORKSPACE_NAME_LENGTH = 64;
+
+export function normalizeWorkspaceName(name: string): string {
+  return name
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, MAX_WORKSPACE_NAME_LENGTH)
+    .trimEnd();
+}
+
 export const INITIAL_WINDOW_BG = "#262624";
 // Fixed so the drop hint stays consistent regardless of the active theme
 export const SPLIT_PREVIEW_COLOR = "#1976d2";

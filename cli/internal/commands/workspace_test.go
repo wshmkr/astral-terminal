@@ -51,6 +51,14 @@ func TestWorkspaceUsageErrors(t *testing.T) {
 		{"workspace", "move", "a", "--index", "-1"},
 		{"workspace", "move", "a", "--index", "x"},
 		{"tree", "x"},
+		{"workspace", "close", "--pane", "abcd"},
+		{"workspace", "close", "--tab", "abcd"},
+		{"workspace", "current", "--pane", "abcd"},
+		{"workspace", "rename", "build", "--tab", "abcd"},
+		{"workspace", "list", "--workspace", "2"},
+		{"workspace", "new", "--workspace", "2"},
+		{"tree", "--workspace", "2"},
+		{"tree", "--pane", "abcd"},
 	}
 	for _, args := range cases {
 		if r := run(args...); r.code != ExitUsage {
@@ -120,6 +128,24 @@ func TestWorkspaceNew(t *testing.T) {
 	}
 	if params := workspaceParams(t, requests, "workspace.create"); params["cwd"] != "~/dev" {
 		t.Errorf("params = %v", params)
+	}
+
+	if r := run("workspace", "new", "--cwd", `~\dev`); r.code != ExitOK {
+		t.Fatalf("%+v", r)
+	}
+	if params := workspaceParams(t, requests, "workspace.create"); params["cwd"] != `~\dev` {
+		t.Errorf("params = %v", params)
+	}
+
+	if r := run("workspace", "new", "--cwd", "~backup"); r.code != ExitOK {
+		t.Fatalf("%+v", r)
+	}
+	wantTildeCwd, err := filepath.Abs("~backup")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if params := workspaceParams(t, requests, "workspace.create"); params["cwd"] != wantTildeCwd {
+		t.Errorf("params = %v, want cwd %s", params, wantTildeCwd)
 	}
 
 	if r := run("workspace", "new", "--cwd", "sub"); r.code != ExitOK {
@@ -235,6 +261,23 @@ func TestWorkspaceJSONKeepsUnmodeledFields(t *testing.T) {
 		t.Fatalf("stdout is not JSON: %q", r.stdout)
 	}
 	if out["id"] != "ws-0123456789" || out["extra"] != "kept" {
+		t.Errorf("json output = %v", out)
+	}
+}
+
+func TestWorkspaceJSONSkipsDecoding(t *testing.T) {
+	fakeApp(t, map[string]string{
+		"workspace.current": `{"id":"call","ok":true,"result":{"id":"ws-0123456789","index":"first"}}`,
+	})
+	r := run("workspace", "current", "--json")
+	if r.code != ExitOK {
+		t.Fatalf("%+v", r)
+	}
+	var out map[string]any
+	if err := json.Unmarshal([]byte(r.stdout), &out); err != nil {
+		t.Fatalf("stdout is not JSON: %q", r.stdout)
+	}
+	if out["index"] != "first" {
 		t.Errorf("json output = %v", out)
 	}
 }

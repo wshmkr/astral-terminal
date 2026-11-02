@@ -4,6 +4,8 @@ Methods for listing and managing workspaces over the [Astral CLI socket](../cli-
 
 Errors common to all methods: `invalid_params` when a param has the wrong type or fails validation, and, for methods that take target params, `not_found` or `ambiguous` when `workspaceId` matches nothing or more than one workspace.
 
+The `workspace` commands reject `--pane` and `--tab` with a usage error. `workspace list`, `workspace new` and `tree` also reject `--workspace`, and `tree` rejects `--pane` and `--tab`.
+
 ## `workspace.list`
 
 Lists every workspace in sidebar order.
@@ -68,7 +70,7 @@ Resolves target params to a workspace without changing anything.
 
 Creates a workspace with one terminal. Without `focus`, the active workspace and focused pane do not change, unless no workspace is active, in which case the new one becomes active.
 
-- **CLI:** `astral workspace new [--name <name>] [--cwd <dir>] [--focus]`. The CLI makes a relative `--cwd` absolute against its own working directory.
+- **CLI:** `astral workspace new [--name <name>] [--cwd <dir>] [--focus]`. The CLI makes a relative `--cwd` absolute against its own working directory, except `~`, `~/...` and `~\...`, which it passes through.
 - **Params:**
   - `name` (optional string): normalized as described under [`workspace.rename`](#workspacerename). Defaults to the next free `Workspace <n>`.
   - `cwd` (optional string): the terminal's working directory. Defaults to `~`.

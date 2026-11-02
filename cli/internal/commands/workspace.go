@@ -19,11 +19,14 @@ func workspaceCall[T any](cmd *cobra.Command, method string, params any, human f
 	if err := call(cmd, method, params, &raw); err != nil {
 		return err
 	}
+	if output.JSONEnabled(cmd) {
+		return output.WriteJSON(cmd.OutOrStdout(), raw)
+	}
 	var result T
 	if err := json.Unmarshal(raw, &result); err != nil {
-		return err
+		return fmt.Errorf("decode %s result: %w", method, err)
 	}
-	return output.Print(cmd, raw, func(w io.Writer) { human(w, result) })
+	return output.Print(cmd, result, func(w io.Writer) { human(w, result) })
 }
 
 func workspaceAction(cmd *cobra.Command, method string, params map[string]any, verb string) error {
@@ -43,6 +46,19 @@ func workspaceTargetAction(method, verb string) func(*cobra.Command, []string) e
 	}
 }
 
+func workspaceRejectFlags(cmd *cobra.Command, names ...string) error {
+	for _, name := range names {
+		if cmd.Flag(name).Changed {
+			return usageErrorf("--%s does not apply to %s", name, cmd.CommandPath())
+		}
+	}
+	return nil
+}
+
+func workspaceRejectTarget(cmd *cobra.Command, _ []string) error {
+	return workspaceRejectFlags(cmd, "workspace")
+}
+
 func workspaceYesNo(v bool) string {
 	if v {
 		return "yes"
@@ -51,9 +67,10 @@ func workspaceYesNo(v bool) string {
 }
 
 var workspaceListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List workspaces",
-	Args:  cobra.NoArgs,
+	Use:     "list",
+	Short:   "List workspaces",
+	Args:    cobra.NoArgs,
+	PreRunE: workspaceRejectTarget,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		return workspaceCall(cmd, "workspace.list", nil, func(w io.Writer, r protocol.WorkspaceList) {
 			rows := make([][]string, 0, len(r.Workspaces))
@@ -91,16 +108,17 @@ var workspaceCurrentCmd = &cobra.Command{
 // workspaceResolveCwd makes a relative path absolute here, since the app does not share the
 // caller's working directory. Paths under ~ are left for the app's shell to expand.
 func workspaceResolveCwd(cwd string) (string, error) {
-	if strings.HasPrefix(cwd, "~") {
+	if cwd == "~" || strings.HasPrefix(cwd, "~/") || strings.HasPrefix(cwd, `~\`) {
 		return cwd, nil
 	}
 	return filepath.Abs(cwd)
 }
 
 var workspaceNewCmd = &cobra.Command{
-	Use:   "new",
-	Short: "Create a workspace, in the background unless --focus is given",
-	Args:  cobra.NoArgs,
+	Use:     "new",
+	Short:   "Create a workspace, in the background unless --focus is given",
+	Args:    cobra.NoArgs,
+	PreRunE: workspaceRejectTarget,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		params := map[string]any{}
 		if flag := cmd.Flag("name"); flag.Changed {
@@ -198,6 +216,9 @@ var workspaceMoveCmd = &cobra.Command{
 }
 
 func init() {
+	Workspace.PersistentPreRunE = func(cmd *cobra.Command, _ []string) error {
+		return workspaceRejectFlags(cmd, "pane", "tab")
+	}
 	workspaceNewCmd.Flags().String("name", "", "name of the new workspace")
 	workspaceNewCmd.Flags().String("cwd", "", "working directory of the new workspace's terminal")
 	workspaceNewCmd.Flags().Bool("focus", false, "switch to the new workspace")

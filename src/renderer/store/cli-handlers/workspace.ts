@@ -14,6 +14,7 @@ import type {
 } from "../../../shared/cli/workspace";
 import {
   isTerminalSurface,
+  normalizeWorkspaceName,
   type PaneNode,
   type Surface,
   type Workspace,
@@ -36,16 +37,12 @@ import {
 } from "../workspaces";
 import { resolveTarget, TargetParamsSchema } from "./target";
 
-const MAX_NAME_LENGTH = 64;
-
 // Closing the caller's workspace kills the caller, so its reply has to go out first.
 const CALLER_WORKSPACE_CLOSE_DELAY_MS = 100;
 
 const NameSchema = z
   .string()
-  .transform((name) =>
-    name.trim().replace(/\s+/g, " ").slice(0, MAX_NAME_LENGTH),
-  )
+  .transform(normalizeWorkspaceName)
   .refine((name) => name.length > 0, { error: "must not be empty" });
 
 const ListParamsSchema = z.object({
@@ -202,7 +199,7 @@ registerCliHandler("workspace.reorder", (params): WorkspaceActionResult => {
   const { workspaceId } = resolveTarget(target, "workspace");
   const over = getState().workspaces[index - 1];
   if (!over) {
-    throw new CliHandlerError("not_found", `workspace not found: #${index}`);
+    throw new CliHandlerError("not_found", `no workspace at position ${index}`);
   }
   reorderWorkspaces(workspaceId, over.id);
   return { workspaceId };

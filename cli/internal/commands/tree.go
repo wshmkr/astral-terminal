@@ -51,6 +51,9 @@ var treeCmd = &cobra.Command{
 	Use:   "tree",
 	Short: "Print workspaces, panes and tabs, marking the caller (*) and focus (>)",
 	Args:  cobra.NoArgs,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		return workspaceRejectFlags(cmd, "workspace", "pane", "tab")
+	},
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		params := map[string]any{"layout": true}
 		return workspaceCall(cmd, "workspace.list", params, func(w io.Writer, r protocol.WorkspaceList) {

@@ -15,8 +15,6 @@ import {
 import { WorkspaceRenameInput } from "./WorkspaceRenameInput";
 import { WorkspaceSurfaceList } from "./WorkspaceSurfaceList";
 
-const MAX_NAME_LEN = 64;
-
 const EDIT_AFFORDANCE_SX = {
   display: "none",
   alignItems: "center",
@@ -154,7 +152,6 @@ export const WorkspaceTab = memo(function WorkspaceTab({
         {editing ? (
           <WorkspaceRenameInput
             initialName={workspace.name}
-            maxLength={MAX_NAME_LEN}
             onCommit={(next) => {
               if (next && next !== workspace.name)
                 renameWorkspace(workspace.id, next);
