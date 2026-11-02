@@ -1,0 +1,20 @@
+//go:build unix
+
+package client
+
+import (
+	"os"
+	"syscall"
+)
+
+func fileOwner(info os.FileInfo) (int, bool) {
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		return 0, false
+	}
+	return int(st.Uid), true
+}
+
+func accessIsPrivate(info os.FileInfo) bool {
+	return info.Mode().Perm()&0o077 == 0
+}
