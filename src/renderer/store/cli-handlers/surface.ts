@@ -26,6 +26,7 @@ import {
   addSurface,
   closeSurface,
   consumeBrowserUrlFocus,
+  findPaneBySurfaceId,
   moveSurfaceToPane,
   navigateToSurface,
   renameSurface,
@@ -71,12 +72,14 @@ function closeTab(
   surfaceId: string,
   callerSurfaceId: string | undefined,
 ): void {
-  const close = () => closeSurface(paneId, surfaceId, { workspaceId });
-  if (surfaceId === callerSurfaceId) {
-    setTimeout(close, CALLER_TAB_CLOSE_DELAY_MS);
-  } else {
-    close();
+  if (surfaceId !== callerSurfaceId) {
+    closeSurface(paneId, surfaceId, { workspaceId });
+    return;
   }
+  setTimeout(() => {
+    const located = findPaneBySurfaceId(surfaceId);
+    if (located) closeSurface(located.paneId, surfaceId, located);
+  }, CALLER_TAB_CLOSE_DELAY_MS);
 }
 
 function describeSurface(

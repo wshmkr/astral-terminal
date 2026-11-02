@@ -37,6 +37,7 @@ func TestTabUsageErrors(t *testing.T) {
 		{"tab", "new", "extra"},
 		{"tab", "new", "--url", "https://example.com"},
 		{"tab", "new", "--browser", "--cwd", "/work"},
+		{"tab", "new", "--cwd", ""},
 		{"tab", "focus"},
 		{"tab", "focus", "a", "b"},
 		{"tab", "close", "a", "b"},
@@ -172,6 +173,10 @@ func TestTabNewCwd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	relativeTilde, err := filepath.Abs("~sub")
+	if err != nil {
+		t.Fatal(err)
+	}
 	absolute, err := filepath.Abs(filepath.Join(t.TempDir(), "dir"))
 	if err != nil {
 		t.Fatal(err)
@@ -183,12 +188,22 @@ func TestTabNewCwd(t *testing.T) {
 		absolute: absolute,
 		"~":      "~",
 		"~/dev":  "~/dev",
+		"~sub":   relativeTilde,
 	} {
 		if r := run("tab", "new", "--cwd", cwd); r.code != ExitOK {
 			t.Fatalf("code = %d, stderr = %q", r.code, r.stderr)
 		}
 		tabCheckRequest(t, requests, "surface.create", map[string]any{"cwd": want})
 	}
+}
+
+func TestTabEmptyTargetDoesNotDefaultToCaller(t *testing.T) {
+	requests := fakeApp(t, map[string]string{"surface.close": tabRefReply})
+	t.Setenv("ASTRAL_SURFACE_ID", "caller-1")
+	if r := run("tab", "close", "--tab", ""); r.code != ExitOK {
+		t.Fatalf("code = %d, stderr = %q", r.code, r.stderr)
+	}
+	tabCheckRequest(t, requests, "surface.close", map[string]any{"surfaceId": "", "callerSurfaceId": "caller-1"})
 }
 
 func TestTabFlagsResetBetweenRuns(t *testing.T) {
@@ -218,7 +233,7 @@ func TestTabListOutput(t *testing.T) {
 	for i, want := range [][]string{
 		{"TAB", "PANE", "TYPE", "NAME", "ACTIVE", "LOCATION"},
 		{"surf-012", "pane-012", "terminal", "shell", "*", "/work"},
-		{"surf-987", "pane-012", "browser", "docs", "https://example.com"},
+		{"surf-987", "pane-012", "browser", "docs", "-", "https://example.com"},
 	} {
 		if got := strings.Fields(lines[i]); !reflect.DeepEqual(got, want) {
 			t.Errorf("line %d = %v, want %v", i, got, want)

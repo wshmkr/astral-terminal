@@ -64,7 +64,7 @@ Closes the target tab and ends what is running in it. Closing a pane's last tab 
 
 ## `surface.rename`
 
-Renames the target tab. A terminal program that sets its title can replace the name later.
+Renames the target tab. A terminal program that sets its title, or a browser page's title, can replace the name later.
 
 - **Params:** `name`, which must not be blank, plus the targeting fields.
 - **Result:** `{ "surfaceId": "..." }`.
@@ -93,4 +93,4 @@ When `toPaneId` is the tab's own pane, `index` reorders the tab in place without
 | `astral tab rename [tab] <name>`                                   | `surface.rename` |
 | `astral tab move <tab> --pane <pane> [--index <n>]`                | `surface.move`   |
 
-`--workspace`, `--pane`, and `--tab` select the target, and a positional `tab` overrides `--tab`. `tab focus` and `tab move` take the tab as a positional or through `--tab`. On `tab move`, `--pane` is the destination rather than part of the target. `--tab` does not apply to `tab list`. The CLI makes a relative `--cwd` absolute against its own working directory, and leaves paths starting with `~` unchanged. Add `--json` to print the method's result.
+`--workspace`, `--pane`, and `--tab` select the target, and a positional `tab` overrides `--tab`. `tab focus` and `tab move` take the tab as a positional or through `--tab`. On `tab move`, `--pane` is the destination rather than part of the target. `--tab` does not apply to `tab list`. The CLI makes a relative `--cwd` absolute against its own working directory, and leaves `~` and paths starting with `~/` or `~\` unchanged. An empty `--workspace`, `--pane`, or `--tab` never falls back to the default target: it fails as a usage error or with `not_found`. Add `--json` to print the method's result.

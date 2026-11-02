@@ -34,7 +34,7 @@ func tabActiveMark(tab protocol.TabInfo) string {
 	if tab.Active {
 		return "*"
 	}
-	return ""
+	return "-"
 }
 
 var tabListCmd = &cobra.Command{
@@ -85,8 +85,10 @@ var tabNewCmd = &cobra.Command{
 		if cmd.Flag("url").Changed && !browser {
 			return usageErrorf("--url requires --browser")
 		}
-		if cmd.Flag("cwd").Changed && browser {
+		if flag := cmd.Flag("cwd"); flag.Changed && browser {
 			return usageErrorf("--cwd does not apply with --browser")
+		} else if flag.Changed && flag.Value.String() == "" {
+			return usageErrorf("--cwd must not be empty")
 		}
 		return nil
 	},
@@ -123,7 +125,7 @@ var tabNewCmd = &cobra.Command{
 }
 
 func tabResolveCwd(cwd string) (string, error) {
-	if strings.HasPrefix(cwd, "~") {
+	if cwd == "~" || strings.HasPrefix(cwd, "~/") || strings.HasPrefix(cwd, `~\`) {
 		return cwd, nil
 	}
 	return filepath.Abs(cwd)
