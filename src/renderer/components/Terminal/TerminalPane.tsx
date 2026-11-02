@@ -89,6 +89,7 @@ export function TerminalPane({
         surfaceId,
         cwd,
         getLiveSurface: () => surfaceRef.current,
+        isPaneFocused: () => getState().focusedPaneId === paneIdRef.current,
         onCwdChange: (next) =>
           updateTerminalSurface(workspaceId, paneIdRef.current, surfaceId, {
             cwd: next,

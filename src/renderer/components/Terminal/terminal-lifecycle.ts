@@ -280,6 +280,7 @@ export interface TerminalControllerOptions {
   surfaceId: string;
   cwd: string;
   getLiveSurface: () => { cwd: string };
+  isPaneFocused: () => boolean;
   onCwdChange: (cwd: string) => void;
   onTitleChange: (title: string) => void;
   onNotification: (title: string | undefined, body: string | undefined) => void;
@@ -513,7 +514,7 @@ export class TerminalController implements SurfaceController, FindController {
     if (this.safeFit()) {
       window.app.resizePty(id, this.term.cols, this.term.rows);
     }
-    if (!this.pendingOpen) this.term.focus();
+    if (!this.pendingOpen && this.opts.isPaneFocused()) this.term.focus();
   }
 
   private onPtyData(data: string): void {
