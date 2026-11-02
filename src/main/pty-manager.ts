@@ -188,6 +188,15 @@ function feedHeadless(entry: PtyEntry, chunks: string[], track = false): void {
   }
 }
 
+function flushPreReplay(entry: PtyEntry): void {
+  const chunks = entry.preReplay;
+  if (!chunks?.length || entry.replayRequested) return;
+  entry.preReplay = [];
+  entry.preReplayBytes = 0;
+  entry.initialReplay = null;
+  feedHeadless(entry, chunks, true);
+}
+
 function noRunningTerminal(surfaceId: string): CliMethodError {
   return new CliMethodError(
     CLI_ERROR_CODES.notFound,
@@ -536,16 +545,7 @@ export class PtyManager {
       if (entry.preReplay) {
         entry.preReplay.push(data);
         entry.preReplayBytes += data.length;
-        if (
-          entry.preReplayBytes > MAX_PRE_REPLAY_BYTES &&
-          !entry.replayRequested
-        ) {
-          const chunks = entry.preReplay;
-          entry.preReplay = [];
-          entry.preReplayBytes = 0;
-          entry.initialReplay = null;
-          feedHeadless(entry, chunks, true);
-        }
+        if (entry.preReplayBytes > MAX_PRE_REPLAY_BYTES) flushPreReplay(entry);
         return;
       }
       feedHeadless(entry, [data]);
@@ -603,23 +603,17 @@ export class PtyManager {
     this.teardown(id, { deleteBuffer: true });
   }
 
-  findBySurfaceId(surfaceId: string): string | undefined {
-    for (const [id, entry] of this.entries) {
-      if (entry.surfaceId === surfaceId) return id;
-    }
-    return undefined;
-  }
-
   private entryForSurface(surfaceId: string): PtyEntry {
-    const id = this.findBySurfaceId(surfaceId);
-    const entry = id === undefined ? undefined : this.entries.get(id);
-    if (!entry) throw noRunningTerminal(surfaceId);
-    return entry;
+    for (const entry of this.entries.values()) {
+      if (entry.surfaceId === surfaceId) return entry;
+    }
+    throw noRunningTerminal(surfaceId);
   }
 
   // Waits for the restored buffer and all output received so far to be parsed.
   private async settledEntry(surfaceId: string): Promise<PtyEntry> {
     const entry = this.entryForSurface(surfaceId);
+    flushPreReplay(entry);
     let live = true;
     const torndown = entry.torndown.then(() => {
       live = false;
@@ -664,6 +658,7 @@ export class PtyManager {
   async clearHeadless(surfaceId: string): Promise<void> {
     const entry = await this.settledEntry(surfaceId);
     entry.headless.clear();
+    entry.pty.clear();
     entry.initialReplay = null;
     entry.restoreRaw = null;
     entry.restoreTail = [];

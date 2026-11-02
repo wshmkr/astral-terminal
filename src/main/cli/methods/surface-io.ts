@@ -116,9 +116,8 @@ export function registerSurfaceIoMethods(
     async (params): Promise<SurfaceIoResult> => {
       parseParams(TargetObjectSchema, params);
       const { manager, surfaceId } = await resolveTerminal(params);
-      await manager.settle(surfaceId);
-      await callRenderer(SURFACE_CLEAR_HISTORY_VIEW, { surfaceId });
       await manager.clearHeadless(surfaceId);
+      await callRenderer(SURFACE_CLEAR_HISTORY_VIEW, { surfaceId });
       return { surfaceId };
     },
   );

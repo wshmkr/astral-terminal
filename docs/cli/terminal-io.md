@@ -68,6 +68,8 @@ astral tab read --tab 3f2a --lines 5
 
 Clears the screen and scrollback in both the visible terminal and what `tab read` returns. The line holding the cursor stays and moves to the top. A positional tab takes precedence over `--tab`.
 
+While a full-screen program such as `less` is running, only its screen is cleared, and the normal screen's scrollback stays. Nothing is cleared when the cursor is on the first row and there is no scrollback.
+
 On success the command prints nothing. With `--json` it prints the method's result.
 
 ## Methods
