@@ -23,9 +23,9 @@
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
-    "dist": "npm run build:cli && vite build && electron-builder",
-    "dist:dir": "npm run build:cli && vite build && electron-builder --dir",
-    "release": "npm run build:cli && vite build && electron-builder --publish always",
+    "dist": "npm run build && electron-builder",
+    "dist:dir": "npm run build && electron-builder --dir",
+    "release": "npm run build && electron-builder --publish always",
     "postinstall": "simple-git-hooks"
   },
   "build": {
