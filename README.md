@@ -26,12 +26,18 @@ Heavily inspired by [cmux](https://github.com/manaflow-ai/cmux), which didn't fi
 
 ## Getting started
 
-Built and tested on Node 22.
+Built and tested on Node 22. Building the CLI requires [Go](https://go.dev/) (`winget install GoLang.Go`).
 
 ```bash
 npm install
 npm run dev
 ```
+
+`npm run dev` does not build the CLI. To test it in dev, run `npm run build:cli` first, otherwise the install is skipped with a warning.
+
+## CLI
+
+Astral installs an `astral` command to `~/.local/bin` in each WSL distro you open a terminal in. Run `astral --help` for usage, and see [docs/cli-protocol.md](docs/cli-protocol.md) for the protocol.
 
 ## Credits
 

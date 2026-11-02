@@ -1,13 +1,19 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
+import { app } from "electron";
 import {
   compareVersions,
   parseMarkerVersion,
 } from "../../shared/marker-version";
+import { APP_PACKAGE_NAME } from "../../shared/meta";
+import { IS_DEV } from "../env";
 import { withKeyedLock } from "../keyed-lock";
 import { resolveWslPath, runWsl } from "../wsl/home";
-import { buildAstralCli, CLI_MARKER_PREFIX, CLI_VERSION } from "./build";
 
+// Bump on any cli/ change so stale installs are replaced; keep in sync with scripts/build-cli.mjs
+const CLI_VERSION = "1.0";
+const CLI_MARKER_PREFIX = `${APP_PACKAGE_NAME}:cli`;
 const CLI_RELATIVE_PATH = ".local/bin/astral";
 
 const pathLocks = new Map<string, Promise<unknown>>();
@@ -30,7 +36,7 @@ type InstalledCli =
 async function readInstalledCli(filePath: string): Promise<InstalledCli> {
   let content: string;
   try {
-    content = await fs.readFile(filePath, "utf-8");
+    content = (await fs.readFile(filePath)).toString("latin1");
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT")
       return { kind: "absent" };
@@ -38,6 +44,46 @@ async function readInstalledCli(filePath: string): Promise<InstalledCli> {
   }
   const version = parseMarkerVersion(content, CLI_MARKER_PREFIX);
   return version === null ? { kind: "unmarked" } : { kind: "marked", version };
+}
+
+type CliArch = "amd64" | "arm64";
+
+async function detectCliArch(distro?: string | null): Promise<CliArch | null> {
+  // TODO(native): on non-Windows the guest is the host
+  const machine =
+    process.platform === "win32"
+      ? (await runWsl(["uname", "-m"], distro)).stdout.trim()
+      : os.machine();
+  switch (machine) {
+    case "x86_64":
+      return "amd64";
+    case "aarch64":
+    case "arm64":
+      return "arm64";
+    default:
+      console.warn(
+        `[astral-cli] skipping install: unsupported architecture ${machine}`,
+      );
+      return null;
+  }
+}
+
+async function readBundledCli(arch: CliArch): Promise<Buffer | null> {
+  const dir = IS_DEV
+    ? path.join(app.getAppPath(), "dist-cli")
+    : path.join(process.resourcesPath, "cli");
+  const binaryPath = path.join(dir, `astral-linux-${arch}`);
+  try {
+    return await fs.readFile(binaryPath);
+  } catch (err) {
+    if (IS_DEV && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      console.warn(
+        `[astral-cli] skipping install: ${binaryPath} not found. Run \`npm run build:cli\` to test the CLI in dev.`,
+      );
+      return null;
+    }
+    throw err;
+  }
 }
 
 export function ensureAstralCliInstalled(
@@ -58,13 +104,17 @@ export function ensureAstralCliInstalled(
         );
       }
     }
+    const arch = await detectCliArch(distro);
+    if (arch === null) return;
+    const binary = await readBundledCli(arch);
+    if (binary === null) return;
     await fs.mkdir(path.dirname(filePath), { recursive: true });
 
     // Stage then rename so the marker only lands on a complete, executable file
     const tmpRelativePath = `${path.posix.dirname(CLI_RELATIVE_PATH)}/.astral.${process.pid}.tmp`;
     const tmpPath = await resolveWslPath(tmpRelativePath, distro);
-    await fs.writeFile(tmpPath, buildAstralCli(), { mode: 0o755 });
     try {
+      await fs.writeFile(tmpPath, binary, { mode: 0o755 });
       if (process.platform === "win32") {
         // \\wsl$ writes don't reliably carry the exec bit; chmod and rename inside the guest
         // TODO(native): on non-Windows the writeFile mode already suffices
